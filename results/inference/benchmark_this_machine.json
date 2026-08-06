@@ -1,0 +1,32 @@
+{
+  "b_to_stream_ready_us": {
+    "max": 840.1,
+    "p50": 587.7,
+    "p95": 744.0049999999999,
+    "p99": 819.774
+  },
+  "clock": "time.perf_counter_ns",
+  "device": "CPU",
+  "first_renderer_tick_us": {
+    "max": 43.9,
+    "p50": 21.5,
+    "p95": 26.505,
+    "p99": 27.812999999999988
+  },
+  "later_renderer_tick_us": {
+    "max": 79.9,
+    "p50": 9.5,
+    "p95": 12.2,
+    "p99": 15.003999999999905
+  },
+  "model_seed": 7,
+  "platform": {
+    "machine": "AMD64",
+    "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+    "python": "3.13.14",
+    "system": "Windows"
+  },
+  "schema": "abcurves.runtime_benchmark.v1",
+  "startup_ms": 1002.9631,
+  "trials": 200
+}

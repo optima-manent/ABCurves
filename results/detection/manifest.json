@@ -1,0 +1,45 @@
+{
+  "schema": "abcurves.release.detection_manifest.v1",
+  "status": "complete_compact_evidence",
+  "candidate": "final_e260_pipeline",
+  "created_date": "2026-08-05",
+  "scope": {
+    "public_repository": "compact result tables, figure, reusable evaluation code, and integrity receipts",
+    "requires_contributed_dataset_access": "exact human-distance anchors, exact cold leave-key-out rerun, and exact warm frozen-panel rerun",
+    "omitted": "private movement rows, frozen descriptor caches, and multi-megabyte per-bag ledgers"
+  },
+  "artifacts": {
+    "README.md": {
+      "bytes": 1662,
+      "sha256": "1246f76aab839a12fc1e51eb6d46abfd28ae4e0aac655efaea84d6a675cfbb65"
+    },
+    "cold_unknown_person.json": {
+      "bytes": 4606,
+      "sha256": "d5b55d6ad2332de23172f8a23f6256ebed1ee69dc208ccb822bfd031b79e6eda"
+    },
+    "detection_modes.png": {
+      "bytes": 106039,
+      "sha256": "6af5f56112bdb55fdcb8f7e356f281dfe86ceeb8cc4a86060c83f596c655e9fc"
+    },
+    "human_distance_floors.json": {
+      "bytes": 1436,
+      "sha256": "6bb825cc9380e9c8344df7bf85f517d479be324817d718ee7ae55aa27217ae92"
+    },
+    "labeled_judges.json": {
+      "bytes": 1382,
+      "sha256": "691a139f26d4bf27a44ca7e17c69386fc29d02423a526c2da9bceafe5cd9768f"
+    },
+    "protocol_parity.json": {
+      "bytes": 1913,
+      "sha256": "3fdf7537154923de29ca8777c07960159073b3934fb22bf726dfa0d815a62d41"
+    },
+    "warm_known_reference.json": {
+      "bytes": 2747,
+      "sha256": "a58fa4d8e67c54b8c49b5584ff9f0b0954b358fa8234f4397bf00fa86c5ece3f"
+    },
+    "warm_power.csv": {
+      "bytes": 379,
+      "sha256": "702128a6543f21bd0e80c7c97d6a35e912fcaaf5271cbedf5861dd3aaa368525"
+    }
+  }
+}

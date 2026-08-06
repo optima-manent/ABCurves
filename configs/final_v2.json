@@ -1,0 +1,123 @@
+{
+  "schema": "abcurves.dataset_preparation.v1",
+  "planner": {
+    "b_min": 0.78,
+    "b_short_max": 0.9,
+    "b_long_max": 0.92,
+    "b_count": 21,
+    "long_edge_distance": 150.0,
+    "dense_train_split": "train",
+    "runtime_b_threshold": 0.8,
+    "seam": {
+      "min_prefix_ms": 24,
+      "min_future_ms": 12,
+      "max_future_ms": 1000,
+      "max_ab_ms": 1500,
+      "min_remaining_counts": 8.0,
+      "min_edge_margin_counts": 8.0,
+      "max_center_progress": 0.92,
+      "progress_regression_threshold": 0.18
+    },
+    "materialization": {
+      "prefix_ticks": 160,
+      "future_horizon_ms": 1000,
+      "smoothing_spec": "triangular_moving_average_path:window=5",
+      "onset": {
+        "noise_window_ms": 24,
+        "consecutive_ticks": 12,
+        "backtrack_ms": 4,
+        "speed_floor": 0.35,
+        "threshold_mad_multiplier": 6.0,
+        "alignment_min": 0.15,
+        "quiet_baseline_fallback": true
+      }
+    },
+    "apply_quality_filter": true,
+    "quality": {
+      "min_duration_ms": 24,
+      "max_duration_ms": 2500,
+      "max_endpoint_radius_fraction": 0.75,
+      "min_final_inside_run_ms": 8,
+      "min_trailing_quiet_ms": 4,
+      "max_tail_active_fraction_16ms": 0.5,
+      "max_path_efficiency": 2.0,
+      "max_radial_return_fraction": 0.35,
+      "max_direction_reversals": 8,
+      "max_total_abs_turn_degrees": 900.0
+    },
+    "recover_turn_only_if_path_efficiency_at_most": 1.2,
+    "recover_turn_only_if_radial_return_at_most": 0.05,
+    "shape": {
+      "extreme_arc_chord": 1.8,
+      "backtrack_arc_chord": 1.45,
+      "axial_regression_over_edge": 0.1,
+      "lateral_over_radius": 1.5,
+      "detour_path_over_edge": 1.6,
+      "lateral_prominence_floor": 3.0,
+      "lateral_prominence_radius_fraction": 0.12,
+      "axial_prominence_floor": 4.0,
+      "axial_prominence_edge_fraction": 0.08,
+      "reversal_count": 2,
+      "preentry_turn_degrees": 540.0,
+      "post_b_turn_degrees": 600.0,
+      "turn_bin_ms": 8,
+      "turn_minimum_displacement": 2.0,
+      "stationary_pause_ms": 160,
+      "repeated_target_exits": 3,
+      "far_reentry_exits": 2,
+      "far_reentry_radius_fraction": 1.75,
+      "postentry_turn_degrees": 600.0
+    },
+    "tiny_target": {
+      "enabled": true,
+      "radius_quotas": {
+        "2": 64,
+        "3": 96,
+        "4": 128,
+        "5": 160,
+        "6": 192,
+        "7": 224,
+        "8": 256,
+        "9": 288,
+        "10": 320,
+        "12": 400,
+        "15": 500,
+        "20": 640
+      },
+      "parent_radius_ratio_min": 1.25,
+      "endpoint_radius_fraction_max": 0.5,
+      "final_inside_ms": 8,
+      "train_split": "train",
+      "selection_salt": "abcurves.final_v2.tiny"
+    }
+  },
+  "renderer": {
+    "b_threshold": 0.8,
+    "seam": {
+      "min_prefix_ms": 24,
+      "min_future_ms": 12,
+      "max_future_ms": 1000,
+      "max_ab_ms": 1500,
+      "min_remaining_counts": 8.0,
+      "min_edge_margin_counts": 8.0,
+      "max_center_progress": 0.92,
+      "progress_regression_threshold": 0.18
+    },
+    "materialization": {
+      "prefix_ticks": 160,
+      "future_horizon_ms": 1000,
+      "smoothing_spec": "triangular_moving_average_path:window=5",
+      "onset": {
+        "noise_window_ms": 24,
+        "consecutive_ticks": 12,
+        "backtrack_ms": 4,
+        "speed_floor": 0.35,
+        "threshold_mad_multiplier": 6.0,
+        "alignment_min": 0.15,
+        "quiet_baseline_fallback": true
+      }
+    },
+    "require_success": true,
+    "require_clean_technical_outcome": true
+  }
+}

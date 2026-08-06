@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<title>ABCurves · human mouse movement, A → B → C</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --pane:#ffffff; --ink:#1f2933; --muted:#7b8794; --line:#d9dee3;
+    --soft:#eceef1; --human:#2563eb; --prefix:#9aa5b1; --target:#059669; --b:#7c3aed;
+    --avg:#c026d3; --gen:#d97706;
+    --s0:#d97706; --s1:#0ea5e9; --s2:#16a34a; --s3:#dc2626;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:"Segoe UI",system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);
+       display:flex;flex-direction:column;overflow:hidden}
+  header{padding:14px 22px 0;flex:0 0 auto;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  h1{margin:0;font-size:21px;font-weight:700;letter-spacing:.01em}
+  .tag{color:var(--muted);font-size:13px}
+  .tabs{margin-left:auto;display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .tabs button{border:none;background:#fff;padding:8px 16px;font-size:13px;cursor:pointer;color:var(--ink);
+    border-right:1px solid var(--line)}
+  .tabs button:last-child{border-right:none}
+  .tabs button:hover{background:#eef4ff}
+  .tabs button.on{background:var(--human);color:#fff}
+  .sub{color:var(--muted);font-size:13.5px;line-height:1.5;padding:6px 22px 0;flex:0 0 auto;max-width:1100px}
+  .sub b{color:var(--ink)}
+  .wrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:0 22px 12px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;flex:0 0 auto}
+  button,select{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 13px;
+    font-size:13px;cursor:pointer;color:var(--ink);transition:background .12s,border-color .12s}
+  button:hover,select:hover{background:#eef4ff;border-color:#c3d4f0}
+  button.on{background:var(--human);color:#fff;border-color:var(--human)}
+  button.on:hover{background:#1d4ed8}
+  .mini{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .mini button{border:none;border-radius:0;border-right:1px solid var(--line);padding:7px 11px}
+  .mini button:last-child{border-right:none}
+  .mini button.on{background:var(--human);color:#fff}
+  .spacer{flex:1 1 auto}
+  .clock{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;min-width:110px;text-align:right}
+  label.rng{font-size:12.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+  input[type=range]{accent-color:var(--human);width:110px}
+  .panes{flex:1 1 auto;min-height:0;display:grid;gap:12px}
+  .panes.spread{grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:1fr 1fr}
+  .panes.average{grid-template-columns:1fr 1fr;grid-template-rows:1fr}
+  .panes.texture{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  .pane{background:var(--pane);border:1px solid var(--soft);border-radius:12px;padding:9px 12px 10px;
+    display:flex;flex-direction:column;min-width:0;min-height:0;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+  .pane.big{grid-row:1/3}
+  .pane h2{margin:0 0 5px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--ink)}
+  .pane-title{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .pane h2 .chip{width:14px;height:5px;border-radius:3px;flex:0 0 auto}
+  .pane h2 .ms{color:var(--muted);font-weight:400;font-size:12px;margin-left:auto}
+  .cv{flex:1 1 auto;min-height:0}
+  canvas{width:100%;height:100%;display:block;border-radius:8px;cursor:grab;touch-action:none}
+  canvas.drag{cursor:grabbing}
+  .legend{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:14px 18px;margin-top:9px;color:var(--muted);font-size:12px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:16px;height:4px;border-radius:2px;display:inline-block}
+  .dotk{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .foot{flex:0 0 auto;color:var(--muted);font-size:12px;margin-top:7px}
+  .foot a{color:var(--human);text-decoration:none}
+  .foot-mobile{display:none}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  /* loader */
+  #loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;z-index:50;transition:opacity .5s}
+  #loader.hide{opacity:0;pointer-events:none}
+  .loadtrace{width:250px;height:125px}
+  .loadmsg{margin-top:16px;color:var(--muted);font-size:13.5px;letter-spacing:.02em;min-height:18px}
+  .dot{font-weight:700;color:var(--human)}
+  @media(max-width:900px){
+    html{height:auto;min-height:100%;overflow-x:hidden}
+    body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto;
+      padding-bottom:env(safe-area-inset-bottom,0px)}
+    header{padding:calc(9px + env(safe-area-inset-top,0px)) 10px 0;gap:3px 8px}
+    h1{font-size:19px;line-height:1.2}
+    .tag{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 105px)}
+    .tabs{order:3;margin:7px 0 0;width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;
+      scrollbar-width:none;border-radius:11px}
+    .tabs::-webkit-scrollbar{display:none}
+    .tabs button{flex:1 0 auto;min-height:44px;padding:8px 13px;white-space:nowrap;font-size:12.5px}
+    .sub{padding:7px 11px 0;font-size:12.5px;line-height:1.35;min-height:41px;max-width:none}
+    .wrap{display:block;min-height:0;padding:0 10px max(14px,env(safe-area-inset-bottom,0px))}
+    .controls{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:grid;
+      grid-template-columns:44px minmax(0,1fr) 44px;
+      grid-template-areas:
+        "prev pick next"
+        "samples samples samples"
+        "channels channels channels"
+        "play marker reset";
+      gap:6px;margin:7px -2px 8px;padding:6px 2px;
+      background:rgba(246,247,249,.96);backdrop-filter:blur(9px);
+      border-bottom:1px solid rgba(217,222,227,.8)}
+    .controls button,.controls select{min-height:44px;font-size:13px}
+    #prev{grid-area:prev;font-size:23px;padding:0}
+    #pick{grid-area:pick;width:100%;min-width:0;text-overflow:ellipsis}
+    #next{grid-area:next;font-size:23px;padding:0}
+    #sampSeg{grid-area:samples;width:100%}
+    #chanSeg{grid-area:channels;width:100%}
+    #sampSeg button,#chanSeg button{flex:1 1 0;min-width:0;padding:7px 5px}
+    #play{grid-area:play;padding:7px 5px}
+    #btoggle{grid-area:marker;padding:7px 5px}
+    #reset{grid-area:reset;padding:7px 5px}
+    .controls>.spacer,.controls>span[style],label.rng,.clock{display:none}
+    .panes{display:grid;flex:none;min-height:0;gap:7px}
+    .panes.spread,.panes.average{height:52vh;height:52svh;min-height:340px;max-height:520px;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:1fr}
+    .panes.texture{height:62vh;height:62svh;min-height:440px;max-height:620px;
+      grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+    .pane{min-height:0;padding:7px 6px 7px;border-radius:10px}
+    .pane.big{grid-row:auto}
+    .pane.mobile-hidden{display:none}
+    .pane h2{font-size:11.5px;line-height:1.25;gap:5px;margin-bottom:4px;white-space:nowrap;overflow:hidden}
+    .pane h2 .ms{display:none}
+    .pane h2 .chip{width:10px}
+    canvas{touch-action:pan-y pinch-zoom;cursor:default}
+    .legend{margin-top:7px;padding:1px 0 5px;gap:9px 13px;flex-wrap:nowrap;overflow-x:auto;
+      overscroll-behavior-x:contain;scrollbar-width:none;font-size:11px}
+    .legend::-webkit-scrollbar{display:none}
+    .legend span{flex:0 0 auto}
+    .foot{font-size:11.5px;line-height:1.45;margin-top:2px}
+    .foot-desktop{display:none}
+    .foot-mobile{display:inline}
+  }
+  @media(max-width:350px){
+    .tag{display:none}
+    .tabs button{padding-inline:10px;font-size:12px}
+    .panes.spread,.panes.average{min-height:320px}
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <svg class="loadtrace" viewBox="0 0 250 125" aria-hidden="true">
+    <circle cx="222" cy="30" r="15" fill="#ecfdf5" stroke="#059669" stroke-width="3">
+      <animate attributeName="r" values="15;17;15" dur="1.3s" repeatCount="indefinite"/>
+    </circle>
+    <path d="M14,98 C64,98 104,84 140,52 C164,30 198,22 222,30" fill="none"
+          stroke="#9aa5b1" stroke-width="3.4" stroke-linecap="round" opacity=".45"/>
+    <path id="lt" d="M14,98 C64,98 104,84 140,52 C164,30 198,22 222,30" fill="none"
+          stroke="#2563eb" stroke-width="4.2" stroke-linecap="round"
+          stroke-dasharray="262" stroke-dashoffset="262">
+      <animate attributeName="stroke-dashoffset" values="262;0;0" keyTimes="0;.72;1" dur="1.45s" repeatCount="indefinite"/>
+    </path>
+    <circle cx="14" cy="98" r="5" fill="#1f2933"/>
+    <circle cx="128" cy="62" r="5.6" fill="#7c3aed"/>
+  </svg>
+  <div class="loadmsg" id="loadmsg">Drawing <span class="dot">A</span> → <span class="dot">B</span> → <span class="dot">C</span> …</div>
+</div>
+
+<header>
+  <h1>ABCurves</h1>
+  <span class="tag">a human starts the movement, the model finishes it</span>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Demo view">
+    <button data-view="spread" class="on">Human vs ABCurves</button>
+    <button data-view="average">Why not “the average”?</button>
+    <button data-view="texture">The 1 kHz texture</button>
+  </div>
+</header>
+<div class="sub" id="viewSub" aria-live="polite"></div>
+
+<div class="wrap">
+  <div class="controls">
+    <button id="prev" title="previous example (←)">‹</button>
+    <label class="sr-only" for="pick">Choose an example</label>
+    <select id="pick" title="choose an example"></select>
+    <button id="next" title="next example (→)">›</button>
+    <span style="width:4px"></span>
+    <div class="mini" id="chanSeg" style="display:none" role="group" aria-label="Packet axis">
+      <button data-ch="0" class="on">horizontal (dx)</button>
+      <button data-ch="1">vertical (dy)</button>
+    </div>
+    <div class="mini" id="sampSeg" style="display:none" role="group" aria-label="Choose an ABCurves finish">
+      <button data-s="0" class="on">finish 1</button>
+      <button data-s="1">finish 2</button>
+      <button data-s="2">finish 3</button>
+      <button data-s="3">finish 4</button>
+    </div>
+    <span class="spacer"></span>
+    <label class="rng">speed <input id="speed" type="range" min="0.1" max="1.5" step="0.05" value="0.5"><span id="spdl">0.50×</span></label>
+    <button id="play" class="on" title="space">❚❚ pause</button>
+    <button id="btoggle" class="on" title="show the cut point">B marker</button>
+    <button id="reset" title="reset zoom (double-click a pane)">reset view</button>
+    <span class="clock" id="clock"></span>
+  </div>
+
+  <div class="panes" id="panes"></div>
+
+  <div class="legend" id="legend"></div>
+  <div class="foot"><span class="foot-desktop">
+    Every square shows the <b>same</b> real A→B input (grey) into the same target; only the finish differs.
+    Drag to pan, scroll to zoom (all squares stay in sync), space to pause, ←/→ to change example.
+    Data: real players, raw hardware counts at 1 kHz. Generated: the shipped planner + renderer, nothing cherry-picked.
+    </span><span class="foot-mobile">Both cards share the <b>same</b> real A→B input. Choose finishes above and scroll normally over the curves. Real 1 kHz data; shipped model; nothing cherry-picked.</span>
+    <a id="repolink" href="https://github.com/optima-manent/ABCurves">Code &amp; the full story in the README</a>.
+  </div>
+</div>
+
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+"use strict";
+/* ---------------- data ---------------- */
+const DATA = JSON.parse(document.getElementById('payload').textContent).examples;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {human:css('--human'), prefix:css('--prefix'), target:css('--target'), b:css('--b'),
+             avg:css('--avg'), gen:css('--gen'), ink:css('--ink'),
+             s:[css('--s0'),css('--s1'),css('--s2'),css('--s3')]};
+const HOLD = 380;               // ms pause at the finish line before looping
+const st = {view:'spread', ex:0, t:0, hold:0, play:true, speed:0.5, showB:true,
+            ch:0, samp:0, Z:1, ox:0, oy:0, fit:null, drag:false};
+let panes = [];                 // [{cv, kind:'traj'|'tex', path|row, color, title}]
+let lastTs = null;
+
+const SUBS = {
+  spread: `One real movement, five squares. The <b>left</b> square is what the human actually did after the cut at
+           <b>B</b>. The four squares on the <b>right</b> are ABCurves finishing the <i>same</i> A→B four times:
+           four different, equally plausible finishes, because humans don't repeat themselves either.`,
+  average: `Train a model to “just copy the truth” on every example and it learns the average of all human finishes:
+           smooth, sensible, and always the same conservative middle path. It fooled the eye; it never fooled
+           statistics. This trap is why ABCurves samples from 16 learned tendencies instead.`,
+  texture: `Zoom into what a mouse actually sends: integer counts, one packet per millisecond. Mostly zeros, then
+           bursts. Top: the real hardware stream. Bottom: the ABCurves renderer finishing the same movement.
+           Grey is the shared A→B input; colour starts at the cut B.`
+};
+
+const MOBILE_SUBS = {
+  spread: `The same real A&rarr;B input twice. <b>Human</b> is on the left; the selected <b>ABCurves</b> finish is on the right.`,
+  average: `The real finish beside the conservative &ldquo;average&rdquo; path. Plausible-looking is not the same as human variation.`,
+  texture: `Raw integer mouse counts at 1 kHz: real hardware first, the selected ABCurves finish beneath it.`
+};
+const TAB_LABELS = {
+  spread: ['Human vs ABCurves','Human / model'],
+  average: ['Why not \u201cthe average\u201d?','Average trap'],
+  texture: ['The 1 kHz texture','1 kHz packets']
+};
+const PHONE = window.matchMedia('(max-width: 900px)');
+const isPhone = () => PHONE.matches;
+
+function renderResponsiveText(){
+  document.getElementById('viewSub').innerHTML = (isPhone()?MOBILE_SUBS:SUBS)[st.view];
+  document.querySelectorAll('#tabs button').forEach(b=>{
+    b.textContent = TAB_LABELS[b.dataset.view][isPhone()?1:0];
+    b.setAttribute('role','tab');
+    b.setAttribute('aria-selected', String(b.dataset.view===st.view));
+  });
+}
+
+function syncResponsivePanes(redraw=true){
+  const phone=isPhone();
+  panes.forEach(p=>{
+    const hidden = phone && st.view==='spread' && p.sampleIndex!=null && p.sampleIndex!==st.samp;
+    p.el.classList.toggle('mobile-hidden',hidden);
+    if (p.titleEl) p.titleEl.textContent = phone?p.mobileTitle:p.fullTitle;
+  });
+  document.getElementById('chanSeg').style.display = st.view==='texture'?'':'none';
+  document.getElementById('sampSeg').style.display = (st.view==='texture'||(phone&&st.view==='spread'))?'':'none';
+  document.querySelectorAll('#sampSeg button').forEach(b=>{
+    const on=+b.dataset.s===st.samp; b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on));
+  });
+  document.querySelectorAll('#chanSeg button').forEach(b=>{
+    const on=+b.dataset.ch===st.ch; b.classList.toggle('on',on); b.setAttribute('aria-pressed',String(on));
+  });
+  renderResponsiveText();
+  if (redraw && panes.length) requestAnimationFrame(()=>{ fitAll(); draw(); });
+}
+
+/* ---------------- helpers ---------------- */
+const cur = () => DATA[st.ex];
+const P   = () => cur().prefix.length - 1;                    // prefix duration (ms)
+function viewCurves(){                                        // futures shown in this view
+  const e = cur();
+  if (st.view === 'spread')  return isPhone()?[e.samples[st.samp]]:e.samples;
+  if (st.view === 'average') return [e.average];
+  return [e.samples[st.samp]];
+}
+function futLen(){ return Math.max(cur().real.length - 1, ...viewCurves().map(c => c.length - 1)); }
+function total(){ return P() + futLen(); }
+
+function bbox(){
+  const e = cur(); let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+  const paths = isPhone() && st.view==='spread'
+    ? [e.prefix,e.real,e.samples[st.samp]]
+    : [e.prefix,e.real,...e.samples,e.average];
+  for (const p of paths) for (const q of p){
+    if (q[0]<x0)x0=q[0]; if (q[1]<y0)y0=q[1]; if (q[0]>x1)x1=q[0]; if (q[1]>y1)y1=q[1];
+  }
+  x0 = Math.min(x0, e.target[0]-e.radius); x1 = Math.max(x1, e.target[0]+e.radius);
+  y0 = Math.min(y0, e.target[1]-e.radius); y1 = Math.max(y1, e.target[1]+e.radius);
+  const px = Math.max(25,(x1-x0)*.09), py = Math.max(25,(y1-y0)*.09);
+  return {x0:x0-px, y0:y0-py, x1:x1+px, y1:y1+py};
+}
+function fitAll(){   // every square frames the same world bbox, each at its own best scale
+  const bb = bbox();
+  st.fit = {cx:(bb.x0+bb.x1)/2, cy:(bb.y0+bb.y1)/2};
+  for (const p of panes){ if (p.kind!=='traj'||p.el.classList.contains('mobile-hidden')) continue;
+    const r = p.cv.getBoundingClientRect();
+    p.cv._baseS = (r.width>10 && r.height>10)
+      ? Math.min(r.width/(bb.x1-bb.x0), r.height/(bb.y1-bb.y0)) : 1;
+  }
+  st.Z = 1; st.ox = 0; st.oy = 0;
+}
+const S = cv => (cv._baseS || 1) * st.Z;
+function w2s(cv,x,y){ const r=cv.getBoundingClientRect();
+  return [r.width/2 + (x-st.fit.cx-st.ox)*S(cv), r.height/2 + (y-st.fit.cy-st.oy)*S(cv)]; }
+function s2w(cv,sx,sy){ const r=cv.getBoundingClientRect();
+  return [st.fit.cx+st.ox+(sx-r.width/2)/S(cv), st.fit.cy+st.oy+(sy-r.height/2)/S(cv)]; }
+
+function prep(cv){
+  const r = cv.getBoundingClientRect(), dpr = Math.max(1, window.devicePixelRatio||1);
+  const W = Math.round(r.width*dpr), H = Math.round(r.height*dpr);
+  if (cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,r.width,r.height);
+  return [g, r];
+}
+
+/* ---------------- trajectory squares ---------------- */
+function stroke(g,cv,path,color,w,nPts){
+  const n = Math.min(path.length, Math.max(0, nPts|0)); if (n<2) return;
+  g.strokeStyle=color; g.lineWidth=w; g.lineJoin='round'; g.lineCap='round'; g.beginPath();
+  let p=w2s(cv,path[0][0],path[0][1]); g.moveTo(p[0],p[1]);
+  for(let i=1;i<n;i++){ p=w2s(cv,path[i][0],path[i][1]); g.lineTo(p[0],p[1]); }
+  g.stroke();
+}
+function dot(g,cv,pt,color,r){
+  const p=w2s(cv,pt[0],pt[1]);
+  g.fillStyle=color; g.strokeStyle='#fff'; g.lineWidth=1.6;
+  g.beginPath(); g.arc(p[0],p[1],r,0,7); g.fill(); g.stroke();
+}
+function drawTraj(pane){
+  const [g] = prep(pane.cv), cv = pane.cv, e = cur();
+  // target
+  const tp = w2s(cv, e.target[0], e.target[1]);
+  g.fillStyle='#ecfdf5'; g.strokeStyle=COL.target; g.lineWidth=1.7;
+  g.beginPath(); g.arc(tp[0],tp[1],Math.max(2,e.radius*S(cv)),0,7); g.fill(); g.stroke();
+  // shared A->B prefix (grey), revealed by the clock
+  stroke(g, cv, e.prefix, COL.prefix, 2.4, Math.min(Math.floor(st.t)+2, e.prefix.length));
+  // this square's single finish
+  const ft = Math.floor(st.t) - P();
+  if (ft > 0) stroke(g, cv, pane.path, pane.color, pane.big?2.8:2.4, ft+2);
+  // markers
+  dot(g, cv, e.prefix[0], COL.ink, 4.2);
+  if (st.showB) dot(g, cv, e.b, COL.b, 5.2);
+}
+
+/* ---------------- texture strips ---------------- */
+function deltas(path){ const d=new Array(path.length-1);
+  for(let i=1;i<path.length;i++) d[i-1]=path[i][st.ch]-path[i-1][st.ch]; return d; }
+function texRows(){
+  const e = cur();
+  const tex = e.samples;      // the same four random finishes as the spread view
+  return [
+    {title:'real hardware', color:COL.human, pre:deltas(e.prefix), fut:deltas(e.real)},
+    {title:'ABCurves renderer', color:COL.gen, pre:deltas(e.prefix), fut:deltas(tex[st.samp])},
+  ];
+}
+function drawTex(pane){
+  const [g, r] = prep(pane.cv), row = pane.row;
+  const rows = texRows();
+  const L = P() + Math.max(...rows.map(q=>q.fut.length));       // shared x span (ms)
+  let ymax = 3;
+  for (const q of rows) for (const v of q.pre.concat(q.fut)) ymax = Math.max(ymax, Math.abs(v));
+  ymax *= 1.12;
+  const x = i => 8 + i*(r.width-16)/L;
+  const y = v => r.height/2 - v*(r.height/2-12)/ymax;
+  // baseline + B line
+  g.strokeStyle='#e4e7eb'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(8,y(0)); g.lineTo(r.width-8,y(0)); g.stroke();
+  g.strokeStyle='#efe9fb'; g.lineWidth=st.showB?2:0;
+  if (st.showB){ g.beginPath(); g.moveTo(x(P()),8); g.lineTo(x(P()),r.height-8); g.stroke(); }
+  const upto = Math.floor(st.t);
+  const step = (vals, i0, color, lw) => {          // step-plot a run of per-ms values
+    g.strokeStyle=color; g.lineWidth=lw; g.beginPath();
+    let started=false;
+    for(let i=0;i<vals.length;i++){
+      const gx0=x(i0+i), gx1=x(i0+i+1), gy=y(vals[i]);
+      if(!started){ g.moveTo(gx0,gy); started=true; } else g.lineTo(gx0,gy);
+      g.lineTo(gx1,gy);
+    }
+    g.stroke();
+  };
+  const preN = Math.min(row.pre.length, upto);
+  const futN = Math.min(row.fut.length, Math.max(0, upto-P()));
+  if (preN>0) step(row.pre.slice(0,preN), 0, COL.prefix, 1.4);
+  if (futN>0) step(row.fut.slice(0,futN), P(), row.color, 1.6);
+  // playhead
+  const ph = Math.min(upto, L);
+  g.strokeStyle='rgba(31,41,51,.30)'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(x(ph),8); g.lineTo(x(ph),r.height-8); g.stroke();
+  // labels
+  g.fillStyle='rgba(31,41,51,.62)'; g.font='11.5px Segoe UI,Arial';
+  g.fillText(`±${Math.round(ymax)} counts/ms`, 10, 16);
+  if (st.showB) g.fillText('B', x(P())+4, 16);
+}
+
+/* ---------------- pane construction ---------------- */
+function buildPanes(){
+  const host = document.getElementById('panes');
+  host.className = 'panes ' + st.view;
+  host.innerHTML = '';
+  panes = [];
+  const e = cur();
+  const mk = (title, chipColor, big) => {
+    const d = document.createElement('div'); d.className='pane'+(big?' big':'');
+    d.innerHTML = `<h2>${chipColor?`<i class="chip" style="background:${chipColor}"></i>`:''}<span class="pane-title">${title}</span><span class="ms"></span></h2>
+                   <div class="cv"><canvas></canvas></div>`;
+    host.appendChild(d);
+    return {el:d, cv:d.querySelector('canvas'), msEl:d.querySelector('.ms'),
+            titleEl:d.querySelector('.pane-title'), fullTitle:title, mobileTitle:title};
+  };
+  if (st.view === 'spread'){
+    const h = mk('A real human', COL.human, true);
+    h.mobileTitle='Human finish';
+    panes.push({...h, kind:'traj', path:e.real, color:COL.human, big:true, title:'human'});
+    e.samples.forEach((sp,i)=>{
+      const p = mk(`ABCurves · finish ${i+1}`, COL.s[i], false);
+      p.mobileTitle=`ABCurves ${i+1}`;
+      panes.push({...p, kind:'traj', path:sp, color:COL.s[i], big:false, sampleIndex:i});
+    });
+  } else if (st.view === 'average'){
+    const h = mk('A real human', COL.human, false);
+    panes.push({...h, kind:'traj', path:e.real, color:COL.human, big:false});
+    const a = mk('the “average” model: one conservative guess, every time', COL.avg, false);
+    panes.push({...a, kind:'traj', path:e.average, color:COL.avg, big:false});
+  } else {
+    texRows().forEach((row,i)=>{
+      const p = mk(i===0?'real hardware · counts per millisecond':'ABCurves renderer · counts per millisecond',
+                   row.color, false);
+      panes.push({...p, kind:'tex', row, idx:i});
+    });
+  }
+  syncResponsivePanes(false);
+  panes.forEach(p => {
+    p.cv.setAttribute('role','img');
+    p.cv.setAttribute('aria-label',p.fullTitle);
+    installNav(p.cv);
+  });
+  requestAnimationFrame(()=>{ fitAll(); draw(); });
+}
+
+function draw(){
+  if (!st.fit) fitAll();
+  st.t = Math.max(0, Math.min(total(), st.t));
+  for (const p of panes){
+    if (p.el.classList.contains('mobile-hidden')) continue;
+    if (p.kind==='tex') p.row = texRows()[p.idx];        // channel / sample may have changed
+    p.kind==='traj' ? drawTraj(p) : drawTex(p);
+  }
+  // per-pane durations
+  const e = cur();
+  for (const p of panes){
+    if (p.el.classList.contains('mobile-hidden')) continue;
+    if (p.kind!=='traj'){ p.msEl.textContent = `${st.ch===0?'dx':'dy'}`; continue; }
+    p.msEl.textContent = `${p.path.length-1} ms`;
+  }
+  document.getElementById('clock').textContent =
+    `${String(Math.round(st.t)).padStart(3,' ')} / ${total()} ms`;
+  legend();
+}
+
+function legend(){
+  const L = document.getElementById('legend');
+  const line=(c,t)=>`<span><i class="sw" style="background:${c}"></i>${t}</span>`;
+  const dk =(c,t)=>`<span><i class="dotk" style="background:${c}"></i>${t}</span>`;
+  let h = line(COL.prefix,'A→B (the real human input)') + dk(COL.ink,'A (start)');
+  if (st.showB) h += dk(COL.b,'B (the cut)');
+  h += dk('#a7f3d0','target C');
+  if (st.view==='spread'){
+    h += line(COL.human,'real finish');
+    h += isPhone()
+      ? line(COL.s[st.samp],`ABCurves finish ${st.samp+1}`)
+      : line('#94a3b8','coloured squares: 4 sampled finishes').replace('#94a3b8','linear-gradient(90deg,'+COL.s.join(',')+')');
+  }
+  else if (st.view==='average')h += line(COL.human,'real finish') + line(COL.avg,'the average model');
+  else                         h += line(COL.human,'real packets') + line(COL.gen,'rendered packets');
+  L.innerHTML = h.replace('style="background:linear-gradient', 'style="background:linear-gradient');
+}
+
+/* ---------------- interaction ---------------- */
+function installNav(cv){
+  let last=null;
+  cv.addEventListener('wheel', ev=>{
+    ev.preventDefault();
+    const r=cv.getBoundingClientRect(), sx=ev.clientX-r.left, sy=ev.clientY-r.top;
+    const before=s2w(cv,sx,sy);
+    st.Z=Math.max(.15,Math.min(40,st.Z*Math.exp(-ev.deltaY*.0013)));
+    const after=s2w(cv,sx,sy);
+    st.ox+=before[0]-after[0]; st.oy+=before[1]-after[1]; draw();
+  },{passive:false});
+  cv.addEventListener('pointerdown', ev=>{ if(isPhone()&&ev.pointerType==='touch') return;
+    st.drag=true; last=[ev.clientX,ev.clientY];
+    cv.setPointerCapture(ev.pointerId); cv.classList.add('drag'); });
+  cv.addEventListener('pointermove', ev=>{ if(!st.drag||!last)return;
+    const dx=ev.clientX-last[0], dy=ev.clientY-last[1]; last=[ev.clientX,ev.clientY];
+    st.ox-=dx/S(cv); st.oy-=dy/S(cv); draw(); });
+  const stop=ev=>{ st.drag=false; last=null; cv.classList.remove('drag');
+    try{cv.releasePointerCapture(ev.pointerId);}catch(_){} };
+  cv.addEventListener('pointerup',stop); cv.addEventListener('pointercancel',stop);
+  cv.addEventListener('dblclick', ()=>{ fitAll(); draw(); });
+}
+
+function setView(v){
+  st.view=v;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  document.getElementById('btoggle').style.display = '';
+  resetLoop(); buildPanes();
+}
+function setEx(i){
+  st.ex=(i+DATA.length)%DATA.length;
+  document.getElementById('pick').value=st.ex;
+  resetLoop(); buildPanes();
+}
+function resetLoop(){ st.t=0; st.hold=0; lastTs=null; }
+
+function initPick(){
+  const sel=document.getElementById('pick'); sel.innerHTML='';
+  DATA.forEach((e,i)=>{ const o=document.createElement('option'); o.value=i;
+    o.textContent=`${String(i+1).padStart(2,'0')} · ${e.kind} · ${e.real.length-1} ms`;
+    sel.appendChild(o); });
+}
+
+/* ---------------- clock ---------------- */
+function tick(ts){
+  if (lastTs==null) lastTs=ts;
+  const dt=Math.min(80, ts-lastTs); lastTs=ts;
+  if (st.play){
+    const T=total();
+    if (st.t>=T){ st.hold+=dt; if (st.hold>=HOLD) resetLoop(); }
+    else { st.t=Math.min(T,st.t+dt*st.speed); if (st.t>=T) st.hold=0; }
+    draw();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------------- wiring ---------------- */
+document.getElementById('prev').onclick=()=>setEx(st.ex-1);
+document.getElementById('next').onclick=()=>setEx(st.ex+1);
+document.getElementById('pick').onchange=ev=>setEx(+ev.target.value);
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+document.querySelectorAll('#chanSeg button').forEach(b=>b.onclick=()=>{
+  st.ch=+b.dataset.ch;
+  syncResponsivePanes(false);
+  draw(); });
+document.querySelectorAll('#sampSeg button').forEach(b=>b.onclick=()=>{
+  st.samp=+b.dataset.s;
+  resetLoop(); syncResponsivePanes(); });
+document.getElementById('speed').oninput=ev=>{ st.speed=+ev.target.value;
+  document.getElementById('spdl').textContent=st.speed.toFixed(2)+'×'; };
+document.getElementById('play').onclick=ev=>{ st.play=!st.play;
+  if (st.play&&st.t>=total()) resetLoop();
+  ev.target.classList.toggle('on',st.play);
+  ev.target.setAttribute('aria-pressed',String(st.play));
+  ev.target.textContent=st.play?'❚❚ pause':'▶ play'; };
+document.getElementById('btoggle').onclick=ev=>{ st.showB=!st.showB;
+  ev.target.classList.toggle('on',st.showB); ev.target.setAttribute('aria-pressed',String(st.showB)); draw(); };
+document.getElementById('reset').onclick=()=>{ fitAll(); draw(); };
+window.addEventListener('resize', ()=>{ fitAll(); draw(); });
+const onPhoneLayoutChange=()=>syncResponsivePanes();
+if (PHONE.addEventListener) PHONE.addEventListener('change',onPhoneLayoutChange);
+else PHONE.addListener(onPhoneLayoutChange);
+document.addEventListener('keydown', ev=>{
+  if (ev.key===' '){ ev.preventDefault(); document.getElementById('play').click(); }
+  if (ev.key==='ArrowLeft')  setEx(st.ex-1);
+  if (ev.key==='ArrowRight') setEx(st.ex+1);
+});
+
+/* ---------------- boot ---------------- */
+const LOADMSGS=['Warming up the planner …','Sampling sixteen personalities …',
+                'Sprinkling 1 kHz texture …','Placing the target …'];
+let lm=0;
+const lmTimer=setInterval(()=>{ lm=(lm+1)%LOADMSGS.length;
+  const el=document.getElementById('loadmsg'); if(el) el.textContent=LOADMSGS[lm]; },900);
+window.addEventListener('load', ()=>{
+  initPick();
+  document.getElementById('prev').setAttribute('aria-label','Previous example');
+  document.getElementById('next').setAttribute('aria-label','Next example');
+  document.getElementById('play').setAttribute('aria-pressed','true');
+  document.getElementById('btoggle').setAttribute('aria-pressed','true');
+  setEx(0);
+  requestAnimationFrame(tick);
+  setTimeout(()=>{ document.getElementById('loader').classList.add('hide'); clearInterval(lmTimer); }, 900);
+});
+</script>
+</body>
+</html>

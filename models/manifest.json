@@ -1,0 +1,44 @@
+{
+  "schema": "abcurves.release_models.v1",
+  "release": "1.0.0",
+  "default_seed": 7,
+  "seeds": [7, 23],
+  "pipeline": "planner-E260 + renderer-F0-E12 + causal-C + TP1 + AF1.5",
+  "files": {
+    "planner_seed7.pt": {
+      "bytes": 1500345,
+      "sha256": "d82c93071224f7eb225d1f2bcf46d52669a7270db414431d7622e032439b280d",
+      "tensor_sha256": "78b6d104f9877b846fd3edd0d833a3d5a72167591b56e00b09dd6b9d0e0d3795"
+    },
+    "planner_seed23.pt": {
+      "bytes": 1500389,
+      "sha256": "d691ba155c4fa9b403c5a3e2ed9c44123fe00d3d1bee15c55ee9226f4531a23e",
+      "tensor_sha256": "5d05a4aaf9afee66ccccfb13ea499e8fb796d017ed8f97b227fd6a58a77d7877"
+    },
+    "renderer_seed7.pt": {
+      "bytes": 328114,
+      "sha256": "eb805d5849e105eabba565e0aae286e629f53eae066682890316a6191d53f146",
+      "tensor_sha256": "cc97e825989da9f9eb5b82dcf7742a3c0ede89048a3ce9e27d20c1927db54e2b"
+    },
+    "renderer_seed23.pt": {
+      "bytes": 328129,
+      "sha256": "cbc731ce2beaedccd611c8590d5fa5c07026dc12a7696fbfaaeb7cbe8f49666d",
+      "tensor_sha256": "abcd422b4b0f365a24f7d9ec38b1ef5ce4279c06eff66e4957a11f407a0967b1"
+    },
+    "renderer_adapter_seed7.pt": {
+      "bytes": 6568,
+      "sha256": "56d2b10b782dbd20e6416eb58dddafa13db5c0f434ecf6fdbd4339b2a93cbd4a",
+      "tensor_sha256": "20ac2be26a0d03e0da2eea4ef6f2bae9e5ca74485273727c7dd8bcf2800f2a56"
+    },
+    "renderer_adapter_seed23.pt": {
+      "bytes": 6641,
+      "sha256": "f1c5698df9152ab2355459839694384d451626bb90393b6f08a9665b6e0ddaba",
+      "tensor_sha256": "657d478216d1d18b3f2b3e9b0b803d4d9499b6b3f528635e409872110f9d2f04"
+    },
+    "style_scorer.json": {
+      "bytes": 21550,
+      "sha256": "1227c1a8fdd9186fa10a6a0f7a598bf63b20877063c9ec058e4e6b1ba0f4d69f",
+      "contract_sha256": "0b941a3d453353fd62a13689d19d218b5b9f95ab661254ba2a21d606bb776ebb"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abcurves"
+version = "1.0.0"
+description = "Human-conditioned A-to-B-to-C mouse-movement continuation at raw hardware resolution."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Optima Manent" }]
+dependencies = [
+  "numba>=0.60",
+  "numpy>=1.26",
+  "torch>=2.2",
+]
+
+[project.optional-dependencies]
+data = ["pandas>=2.1"]
+evaluation = ["matplotlib>=3.8", "scipy>=1.12"]
+all = [
+  "matplotlib>=3.8",
+  "pandas>=2.1",
+  "scipy>=1.12",
+]
+dev = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/optima-manent/ABCurves"
+Demo = "https://optima-manent.github.io/ABCurves/"
+Issues = "https://github.com/optima-manent/ABCurves/issues"
+
+[project.scripts]
+abcurves-evaluate = "evaluation.cli:main"
+
+[tool.setuptools]
+packages = ["abcurves", "evaluation"]
+
+[tool.setuptools.data-files]
+models = [
+  "models/manifest.json",
+  "models/planner_seed7.pt",
+  "models/planner_seed23.pt",
+  "models/renderer_seed7.pt",
+  "models/renderer_seed23.pt",
+  "models/renderer_adapter_seed7.pt",
+  "models/renderer_adapter_seed23.pt",
+  "models/style_scorer.json",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

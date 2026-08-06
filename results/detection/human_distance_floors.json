@@ -1,0 +1,23 @@
+{
+  "schema": "abcurves.release.human_distance_floors.v1",
+  "status": "COMPLETE",
+  "candidate": "final_e260_pipeline",
+  "question": "How far apart are matched and unmatched samples of human behavior, and where does generated-versus-matching-human distance sit on that ruler?",
+  "not_a_detector": true,
+  "target_clean_history_may_be_used": true,
+  "panel": "Full49",
+  "metric": "mean per-feature standardized Wasserstein-1 distance",
+  "anchors": {
+    "same_session_independent_halves": 0.272369,
+    "same_installation_key_other_session_mean": 0.295468,
+    "nearest_different_installation_key": 0.290924,
+    "different_installation_key_mean": 0.496151,
+    "final_e260_generated_vs_matching_human_session": 0.2904651244912148,
+    "generated_to_same_session_floor_ratio": 1.0664397621411474
+  },
+  "interpretation": "The final pipeline is 6.64% above the finite-sample same-session floor, slightly below the same-key cross-session mean, essentially level with the nearest different-key human pair, and far below the mean different-key distance. These anchors use known correspondence and therefore cannot be substituted for an unknown-person false-positive experiment.",
+  "identity_semantics": "The persistent installation key is a leakage-control identifier, not a verified biological identity.",
+  "source_receipt": {
+    "promotion_manifest_sha256": "b13c0c76dd5fe166cd00f597aa382974357f581d5bb4fc0020c8fc73677f8642"
+  }
+}

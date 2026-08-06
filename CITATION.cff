@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If ABCurves helps your work, please cite the software repository."
+title: "ABCurves: Real-Time Human-Conditioned Mouse-Motion Continuation"
+type: software
+authors:
+  - name: "Optima Manent"
+repository-code: "https://github.com/optima-manent/ABCurves"
+url: "https://optima-manent.github.io/ABCurves/"
+license: MIT
+version: 1.0.0
+date-released: 2026-08-06
