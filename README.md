@@ -139,7 +139,7 @@ steps. Many reports are zero, motion arrives in short bursts, and the rhythm cha
 with speed, direction, the hand, and the device.
 
 <p align="center">
-  <img src="assets/renderer_texture.png" width="720" alt="A smooth plan becoming the bursts, zeros, and integer reports of mouse hardware.">
+  <img src="assets/renderer_texture.png" width="720" alt="Real hardware texture compared with a smooth plan, simple rounding, statistical jitter, and the ABCurves Renderer.">
 </p>
 
 The global Renderer learns this translation from uninterrupted 1 kHz recordings
