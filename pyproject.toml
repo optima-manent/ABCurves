@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=70.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "abcurves"
-version = "1.0.0"
-description = "Human-conditioned A-to-B-to-C mouse-movement continuation at raw hardware resolution."
+version = "1.5.0"
+description = "Human-conditioned movement planning with a compact global hardware-texture renderer."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -35,18 +35,56 @@ Issues = "https://github.com/optima-manent/ABCurves/issues"
 abcurves-evaluate = "evaluation.cli:main"
 
 [tool.setuptools]
-packages = ["abcurves", "evaluation"]
+packages = ["abcurves", "abcurves._native", "evaluation"]
+
+[tool.setuptools.package-data]
+abcurves = ["_native/*.dll", "_native/*.so", "_native/*.dylib"]
 
 [tool.setuptools.data-files]
 models = [
+  "models/README.md",
   "models/manifest.json",
   "models/planner_seed7.pt",
   "models/planner_seed23.pt",
-  "models/renderer_seed7.pt",
-  "models/renderer_seed23.pt",
-  "models/renderer_adapter_seed7.pt",
-  "models/renderer_adapter_seed23.pt",
-  "models/style_scorer.json",
+  "models/renderer_global_h80.bin",
+  "models/renderer_global_h80_float.pt",
+]
+"results/detection" = [
+  "results/detection/manifest.json",
+  "results/detection/README.md",
+  "results/detection/pipeline_b80.json",
+  "results/detection/renderer_oracle_b80.json",
+]
+"results/inference" = [
+  "results/inference/benchmark_this_machine.json",
+  "results/inference/native_renderer_windows_x64.json",
+  "results/inference/renderer_promotion.json",
+  "results/inference/manifest.json",
+]
+"runtime/c" = ["runtime/c/CMakeLists.txt", "runtime/c/README.md"]
+"runtime/c/include" = [
+  "runtime/c/include/abc_fixed.h",
+  "runtime/c/include/abc_online.h",
+  "runtime/c/include/abc_w5_stream.h",
+]
+"runtime/c/src" = [
+  "runtime/c/src/abc_fixed.c",
+  "runtime/c/src/abc_fixed_internal.h",
+  "runtime/c/src/abc_online.c",
+  "runtime/c/src/abc_w5_stream.c",
+]
+"runtime/c/src/abc_fixed_parts" = [
+  "runtime/c/src/abc_fixed_parts/abc_fixed_000.inc",
+  "runtime/c/src/abc_fixed_parts/abc_fixed_001.inc",
+  "runtime/c/src/abc_fixed_parts/abc_fixed_002.inc",
+  "runtime/c/src/abc_fixed_parts/abc_fixed_003.inc",
+  "runtime/c/src/abc_fixed_parts/abc_fixed_004.inc",
+  "runtime/c/src/abc_fixed_parts/abc_fixed_005.inc",
+  "runtime/c/src/abc_fixed_parts/abc_fixed_006.inc",
+]
+"runtime/c/tests" = [
+  "runtime/c/tests/test_loader.c",
+  "runtime/c/tests/benchmark_runtime.c",
 ]
 
 [tool.pytest.ini_options]

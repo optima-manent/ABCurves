@@ -1,0 +1,14 @@
+{
+  "schema": "abcurves.native_renderer_benchmark.v1",
+  "status": "host_microbenchmark_not_usb_latency",
+  "artifact": {"bytes": 44484, "sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b"},
+  "protocol": {"cycles": 128, "context_reports_per_cycle": 256, "generated_reports_per_cycle": 800, "timer": "monotonic high-resolution wall clock", "includes_timer_overhead": true},
+  "compiler": {"family": "MSVC", "full_version": 194435227, "reproducible_link": true},
+  "host": {"processor_identifier": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD"},
+  "measurements": {
+    "observe_one_report": {"samples": 32768, "mean_us": 12.5468445, "p50_us": 12, "p95_us": 14.3999939, "p99_us": 15.6000061},
+    "begin_after_report_256": {"samples": 128, "mean_us": 6.32109439, "p50_us": 6.1000061, "p95_us": 8.5, "p99_us": 9.69999695},
+    "generate_one_report": {"samples": 102400, "mean_us": 19.6771142, "p50_us": 18.9999847, "p95_us": 23.5000153, "p99_us": 25.6000061}
+  },
+  "limitations": ["Host CPU only; excludes USB/HID transport and application scheduling.", "Run this executable on the intended target before making a real-time claim."]
+}

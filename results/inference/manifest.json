@@ -1,0 +1,21 @@
+{
+  "schema": "abcurves.release.inference_manifest.v2",
+  "release": "1.5.0",
+  "artifacts": {
+    "benchmark_this_machine.json": {
+      "scope": "composed Python quickstart benchmark with explicit quiet context padding",
+      "bytes": 927,
+      "sha256": "7898da86d751806139c42a378ca992753d296fbe984380d67a63d4d2c27c4e4a"
+    },
+    "native_renderer_windows_x64.json": {
+      "scope": "native Renderer-core benchmark; excludes USB, HID, Planner, and application scheduling",
+      "bytes": 1165,
+      "sha256": "906de4c3f77e96d56aba3b6dcde907e45dce9a5e6be4636e639521c2fed934fe"
+    },
+    "renderer_promotion.json": {
+      "scope": "frozen non-protected carried-session promotion receipt",
+      "bytes": 4060,
+      "sha256": "a8910ad9f176faef7861db2d2058931fda66f69d8c1aebe86b1241b671ddce53"
+    }
+  }
+}

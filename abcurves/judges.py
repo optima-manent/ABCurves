@@ -3,9 +3,9 @@
 The functions in this module answer controlled, labeled two-sample questions:
 given human/generated labels and leakage-aware groups, how much held-out
 separation remains?  AUC 0.5 is chance and AUC 1.0 is complete separation.
-Wasserstein tables show which marginal descriptors differ, while the raw CNN
-can find temporal structure outside the hand-designed panel.
-
+The descriptor judge tests named measurements; the optional raw CNN reads the
+count sequence directly so it can expose temporal patterns those measurements
+did not anticipate.
 These scores are intentionally separate from unknown-identity attribution. A
 labeled classifier may expose a population signature without supplying a
 false-positive-safe threshold for a collection key absent from fitting and
@@ -17,7 +17,7 @@ human distance floors live in :mod:`evaluation.floors`.
 from __future__ import annotations
 
 import math
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
 import numpy as np
 import torch
@@ -846,42 +846,12 @@ def c2st_report(
     }
 
 
-def c2st_auc(
-    real_feats: np.ndarray,
-    fake_feats: np.ndarray,
-    *,
-    folds: int = 5,
-    seed: int = 7,
-    groups=None,
-    real_groups=None,
-    fake_groups=None,
-    repeats: int = 1,
-) -> float:
-    """Backward-compatible scalar grouped logistic C2ST AUC.
+class _RawSequenceCnn(torch.nn.Module):
+    """Small temporal judge used only for labeled two-sample evaluation."""
 
-    For confidence intervals and permutation nulls use :func:`c2st_report`.
-    """
-
-    return float(
-        c2st_report(
-            real_feats,
-            fake_feats,
-            folds=folds,
-            repeats=repeats,
-            seed=seed,
-            groups=groups,
-            real_groups=real_groups,
-            fake_groups=fake_groups,
-            bootstrap=0,
-            permutations=0,
-        )["auc"]
-    )
-
-
-class _CnnJudge(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
-        self.net = torch.nn.Sequential(
+        self.convolutions = torch.nn.Sequential(
             torch.nn.Conv1d(3, 16, kernel_size=9, stride=2, padding=4),
             torch.nn.ReLU(),
             torch.nn.Conv1d(16, 32, kernel_size=9, stride=2, padding=4),
@@ -889,29 +859,43 @@ class _CnnJudge(torch.nn.Module):
             torch.nn.Conv1d(32, 32, kernel_size=7, stride=2, padding=3),
             torch.nn.ReLU(),
         )
-        self.drop = torch.nn.Dropout(0.2)
-        self.fc = torch.nn.Linear(64, 1)
+        self.dropout = torch.nn.Dropout(0.2)
+        self.output = torch.nn.Linear(64, 1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        z = self.net(x)
-        pooled = torch.cat([z.mean(dim=2), z.amax(dim=2)], dim=1)
-        return self.fc(self.drop(pooled)).squeeze(-1)
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        encoded = self.convolutions(values)
+        pooled = torch.cat([encoded.mean(dim=2), encoded.amax(dim=2)], dim=1)
+        return self.output(self.dropout(pooled)).squeeze(-1)
 
 
-def raw_crops(streams: list[np.ndarray], crop: int = 256) -> np.ndarray:
-    """Fixed-length ``[N, 3, crop]`` crops (dx, dy, active flag) for the CNN judge."""
+def raw_crops(streams: Sequence[np.ndarray], crop: int = 256) -> np.ndarray:
+    """Convert raw ``dx, dy`` streams to fixed-length CNN inputs.
 
-    out = np.zeros((len(streams), 3, crop), dtype=np.float32)
-    for i, v in enumerate(streams):
-        v = np.asarray(v, dtype=np.float32)
-        t = min(len(v), crop)
-        if t == 0:
+    The three channels are clipped/scaled ``dx``, clipped/scaled ``dy``, and
+    an active-report flag. Short streams are zero padded and long streams are
+    cut after ``crop`` ticks. The function deliberately performs no descriptor
+    extraction: the CNN receives the temporal count pattern itself.
+    """
+
+    crop = int(crop)
+    if crop < 1:
+        raise ValueError("crop must be a positive number of ticks")
+    output = np.zeros((len(streams), 3, crop), dtype=np.float32)
+    for index, stream in enumerate(streams):
+        values = np.asarray(stream)
+        if values.ndim != 2 or values.shape[1] != 2:
+            raise ValueError(f"stream {index} must have shape [ticks, 2]")
+        if not np.all(np.isfinite(values)):
+            raise ValueError(f"stream {index} contains non-finite values")
+        ticks = min(len(values), crop)
+        if ticks == 0:
             continue
-        clipped = np.clip(v[:t], -16.0, 16.0) / 8.0
-        out[i, 0, :t] = clipped[:, 0]
-        out[i, 1, :t] = clipped[:, 1]
-        out[i, 2, :t] = (np.abs(v[:t]).max(axis=1) > 0).astype(np.float32)
-    return out
+        sample = values[:ticks].astype(np.float32, copy=False)
+        output[index, :2, :ticks] = (np.clip(sample, -16.0, 16.0) / 8.0).T
+        output[index, 2, :ticks] = (np.max(np.abs(sample), axis=1) > 0.0).astype(
+            np.float32
+        )
+    return output
 
 
 def cnn_c2st(
@@ -927,122 +911,92 @@ def cnn_c2st(
     real_groups=None,
     fake_groups=None,
 ) -> float:
-    """Grouped held-out AUC of a small 1D CNN reading raw count crops.
+    """Grouped held-out AUC for a CNN reading raw count sequences.
 
-    AUC is computed inside each fold and then pair-count weighted; logits from
-    independently trained fold models are never pooled. Use ``groups`` for
-    paired real/generated crops from the same source trials.
+    This is a complementary labeled diagnostic, not a cold attribution rule.
+    Every row sharing a group stays in one fold, including paired human and
+    generated rows from the same source trial. Fold AUCs are computed before
+    aggregation so logits from independently trained networks are never mixed.
     """
 
-    dev = torch.device(device)
-    x = np.concatenate([real_crops, fake_crops]).astype(np.float32)
-    y = np.concatenate([np.zeros(len(real_crops)), np.ones(len(fake_crops))]).astype(np.float32)
+    real = np.asarray(real_crops, dtype=np.float32)
+    fake = np.asarray(fake_crops, dtype=np.float32)
+    if real.ndim != 3 or fake.ndim != 3:
+        raise ValueError("real_crops and fake_crops must have shape [rows, 3, ticks]")
+    if real.shape[1] != 3 or fake.shape[1] != 3 or real.shape[2:] != fake.shape[2:]:
+        raise ValueError("real_crops and fake_crops must have matching [3, ticks] shapes")
+    if len(real) < 2 or len(fake) < 2:
+        raise ValueError("each raw crop bag must contain at least two rows")
+    if real.shape[2] < 1:
+        raise ValueError("raw crops must contain at least one tick")
+    if not np.all(np.isfinite(real)) or not np.all(np.isfinite(fake)):
+        raise ValueError("raw crop tensors must be finite")
+    epochs = int(epochs)
+    if epochs < 1:
+        raise ValueError("epochs must be at least 1")
+
+    try:
+        resolved_device = torch.device(device)
+    except (RuntimeError, TypeError) as exc:
+        raise ValueError(f"invalid torch device: {device!r}") from exc
+    if resolved_device.type == "cuda" and not torch.cuda.is_available():
+        raise ValueError("CUDA was requested but is not available")
+
+    inputs = np.concatenate([real, fake]).astype(np.float32, copy=False)
+    labels = np.concatenate(
+        [np.zeros(len(real), dtype=np.float32), np.ones(len(fake), dtype=np.float32)]
+    )
     resolved_groups = _resolve_groups(
-        len(real_crops),
-        len(fake_crops),
+        len(real),
+        len(fake),
         groups=groups,
         real_groups=real_groups,
         fake_groups=fake_groups,
     )
-    plans = _split_plans(y, resolved_groups, folds=folds, repeats=repeats, seed=seed)
+    plans = _split_plans(
+        labels,
+        resolved_groups,
+        folds=int(folds),
+        repeats=int(repeats),
+        seed=int(seed),
+    )
 
-    def fit_predict(train_idx: np.ndarray, test_idx: np.ndarray, fold_seed: int) -> np.ndarray:
+    def fit_predict(
+        train_idx: np.ndarray, test_idx: np.ndarray, fold_seed: int
+    ) -> np.ndarray:
         torch.manual_seed(fold_seed)
-        if dev.type == "cuda":
+        if resolved_device.type == "cuda":
             torch.cuda.manual_seed_all(fold_seed)
-        model = _CnnJudge().to(dev)
-        opt = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
-        xt = torch.from_numpy(x[train_idx]).to(dev)
-        yt = torch.from_numpy(y[train_idx]).to(dev)
-        n_train = len(train_idx)
+        model = _RawSequenceCnn().to(resolved_device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-4)
+        train_x = torch.from_numpy(inputs[train_idx]).to(resolved_device)
+        train_y = torch.from_numpy(labels[train_idx]).to(resolved_device)
+
         model.train()
         for _ in range(epochs):
-            order = torch.randperm(n_train, device=dev)
-            for bstart in range(0, n_train, 128):
-                idx = order[bstart : bstart + 128]
-                loss = torch.nn.functional.binary_cross_entropy_with_logits(model(xt[idx]), yt[idx])
-                opt.zero_grad()
+            order = torch.randperm(len(train_idx), device=resolved_device)
+            for start in range(0, len(train_idx), 128):
+                batch = order[start : start + 128]
+                loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                    model(train_x[batch]), train_y[batch]
+                )
+                optimizer.zero_grad()
                 loss.backward()
-                opt.step()
+                optimizer.step()
+
         model.eval()
         with torch.no_grad():
-            return model(torch.from_numpy(x[test_idx]).to(dev)).cpu().numpy()
+            test_x = torch.from_numpy(inputs[test_idx]).to(resolved_device)
+            return model(test_x).cpu().numpy()
 
-    repeat_aucs, _ = _run_cv(y, resolved_groups, plans, fit_predict, seed=seed)
+    repeat_aucs, _ = _run_cv(
+        labels,
+        resolved_groups,
+        plans,
+        fit_predict,
+        seed=int(seed),
+    )
     return float(np.mean(repeat_aucs))
-
-
-def _wasserstein1(x: np.ndarray, y: np.ndarray) -> float:
-    grid = np.linspace(0.0, 1.0, 201)[1:-1]
-    return float(np.mean(np.abs(np.quantile(x, grid) - np.quantile(y, grid))))
-
-
-def w1_table(real_feats: np.ndarray, fake_feats: np.ndarray, names: tuple[str, ...]) -> dict[str, float]:
-    """Per-descriptor Wasserstein-1 gap (standardized by the real spread).
-
-    Sorted high-to-low, this reads out *which* statistics separate the fake bag
-    from the real bag -- the diagnostic that told us what to fix next.
-    """
-
-    real = np.asarray(real_feats, dtype=np.float64)
-    fake = np.asarray(fake_feats, dtype=np.float64)
-    scale = real.std(axis=0)
-    scale[scale < 1e-6] = 1.0
-    table = {names[j]: float(_wasserstein1(fake[:, j] / scale[j], real[:, j] / scale[j])) for j in range(len(names))}
-    return dict(sorted(table.items(), key=lambda kv: -kv[1]))
-
-
-# ---------------------------------------------------------------------------
-# Convenience: a full raw-level panel on two bags of streams
-# ---------------------------------------------------------------------------
-def raw_texture_panel(
-    real_streams: list[np.ndarray],
-    fake_streams: list[np.ndarray],
-    *,
-    seed: int = 7,
-    device: str = "cpu",
-    run_cnn: bool = True,
-    groups=None,
-    repeats: int = 1,
-) -> dict[str, object]:
-    """Judge two bags of raw B->C count streams end to end.
-
-    Returns descriptor-C2ST AUC, CNN-C2ST AUC (optional), and the top W1 gaps.
-    Feed real human streams and generated streams of the *same events* (so any
-    difference is texture, not situation).
-    """
-
-    def pad(streams: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray]:
-        h = max(len(s) for s in streams)
-        arr = np.zeros((len(streams), h, 2), dtype=np.float32)
-        msk = np.zeros((len(streams), h), dtype=np.float32)
-        for i, s in enumerate(streams):
-            arr[i, : len(s)] = s
-            msk[i, : len(s)] = 1.0
-        return arr, msk
-
-    real_arr, real_msk = pad(real_streams)
-    fake_arr, fake_msk = pad(fake_streams)
-    real_feats = texture_features(real_arr, real_msk)
-    fake_feats = texture_features(fake_arr, fake_msk)
-    result: dict[str, object] = {
-        "descriptor_c2st_auc": c2st_auc(
-            real_feats, fake_feats, seed=seed, groups=groups, repeats=repeats
-        ),
-        "top_w1": dict(list(w1_table(real_feats, fake_feats, TEXTURE_FEATURE_NAMES).items())[:6]),
-        "n_real": len(real_streams),
-        "n_fake": len(fake_streams),
-    }
-    if run_cnn:
-        result["cnn_c2st_auc"] = cnn_c2st(
-            raw_crops(real_streams),
-            raw_crops(fake_streams),
-            seed=seed,
-            device=device,
-            groups=groups,
-            repeats=repeats,
-        )
-    return result
 
 
 __all__ = [
@@ -1054,10 +1008,7 @@ __all__ = [
     "TEXTURE_FEATURE_NAMES",
     "TARGET_EVENT_FEATURE_NAMES",
     "FULL_SYSTEM_FEATURE_NAMES",
-    "c2st_auc",
     "c2st_report",
-    "cnn_c2st",
     "raw_crops",
-    "w1_table",
-    "raw_texture_panel",
+    "cnn_c2st",
 ]

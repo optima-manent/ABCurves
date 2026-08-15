@@ -4,12 +4,16 @@
 Example:
 
     python tools/build_descriptor_bundle.py examples/aim_test.npz \
-        results/local/example_descriptors.npz --rows 256
+        results/local/example_descriptors.npz --rows 256 --assume-quiet-preroll
 
-One row nearest B80 is selected per physical source. The shipped pipeline then
-generates exactly one continuation for the same context. Human and generated
+One row nearest B80 is selected per physical source. The final pipeline then
+generates exactly one continuation using an explicit 256-report Renderer
+context. Human and generated
 rows keep the same source/session/key binding so grouped and complete-key
 holdouts cannot split siblings across fitting and query populations.
+
+``--event-seed-domain`` selects a deterministic full-pipeline draw cell: it
+changes both the Planner head draw and the Renderer sampling draw.
 """
 
 from __future__ import annotations
@@ -110,11 +114,26 @@ def _select_rows(
     return np.asarray(selected, dtype=np.int64)
 
 
-def _event_seed(source_id: str, model_seed: int) -> int:
+def _event_seed(source_id: str, model_seed: int, domain: str) -> int:
     digest = hashlib.sha256(
-        f"abcurves.public-bundle|{model_seed}|{source_id}".encode("utf-8")
+        f"abcurves.public-bundle|{domain}|{model_seed}|{source_id}".encode("utf-8")
     ).digest()
     return int.from_bytes(digest[:8], "little")
+
+
+def _event_seeds(
+    source_id: str, model_seed: int, event_seed_domain: str
+) -> tuple[int, int]:
+    """Return the independent Planner and Renderer seeds for one audit cell."""
+
+    return (
+        _event_seed(
+            source_id, model_seed, f"planner:{event_seed_domain}"
+        ),
+        _event_seed(
+            source_id, model_seed, f"renderer:{event_seed_domain}"
+        ),
+    )
 
 
 def build_bundle(
@@ -122,7 +141,15 @@ def build_bundle(
     *,
     rows: int,
     model_seed: int,
+    assume_quiet_preroll: bool = False,
+    event_seed_domain: str = "default",
+    float_renderer_checkpoint: Path | None = None,
+    float_renderer_device: str = "cpu",
 ) -> tuple[DescriptorBundle, dict[str, Any]]:
+    if rows != 0 and rows < 2:
+        raise ValueError("rows must be zero (all sources) or at least two")
+    if not event_seed_domain.strip():
+        raise ValueError("event_seed_domain must not be empty")
     with np.load(dataset, allow_pickle=False) as data:
         required = {
             "prefix_raw_dxdy",
@@ -141,7 +168,8 @@ def build_bundle(
         sources_all = _source_ids(data, total)
         keys_all = _installation_keys(data, total)
         progress_all = np.asarray(data["progress"], dtype=np.float64).reshape(-1)
-        selected = _select_rows(sources_all, keys_all, progress_all, min(rows, total))
+        row_limit = total if rows == 0 else min(rows, total)
+        selected = _select_rows(sources_all, keys_all, progress_all, row_limit)
         if len(selected) < 2:
             raise ValueError("at least two distinct physical sources are required")
 
@@ -163,21 +191,67 @@ def build_bundle(
         )
         task_all = _text_array(data, "task_type", total, "public-example")
         tasks = task_all[selected].astype(str)
+        target_role_all = _text_array(data, "target_role", total, "default")
+        target_roles = target_role_all[selected].astype(str)
+        if "block_order" in data:
+            block_order_all = np.asarray(data["block_order"], dtype=np.int64).reshape(-1)
+        elif "row_event_index" in data:
+            block_order_all = np.asarray(data["row_event_index"], dtype=np.int64).reshape(-1)
+        else:
+            block_order_all = np.arange(total, dtype=np.int64)
+        if len(block_order_all) != total:
+            raise ValueError("block_order must contain one value per dataset row")
+        block_order = block_order_all[selected]
+        causal_context = np.column_stack(
+            [targets[:, 0], targets[:, 1], radii, progress]
+        ).astype(np.float32)
+        if "renderer_context_raw_dxdy" in data:
+            renderer_context = np.asarray(
+                data["renderer_context_raw_dxdy"][selected]
+            )
+            context_source = "dataset field renderer_context_raw_dxdy"
+        elif assume_quiet_preroll:
+            renderer_context = np.zeros((len(selected), 256, 2), dtype=np.int16)
+            for local in range(len(selected)):
+                valid = prefix[local][prefix_mask[local] > 0.5]
+                take = min(len(valid), 256)
+                renderer_context[local, -take:] = np.rint(valid[-take:]).astype(
+                    np.int16
+                )
+            context_source = "explicit quiet left-padding assumption"
+        else:
+            raise ValueError(
+                "final Renderer evaluation needs renderer_context_raw_dxdy with "
+                "shape [N,256,2]; use --assume-quiet-preroll only for a smoke demo"
+            )
+        if renderer_context.shape != (len(selected), 256, 2):
+            raise ValueError("renderer_context_raw_dxdy must have shape [N,256,2]")
 
     horizon = human.shape[1]
     generated = np.zeros((len(selected), horizon, 2), dtype=np.float32)
     generated_mask = np.zeros((len(selected), horizon), dtype=np.float32)
-    with Pipeline(model_seed=model_seed, prewarm=True) as pipeline:
+    with Pipeline(
+        model_seed=model_seed,
+        float_renderer_checkpoint=float_renderer_checkpoint,
+        float_renderer_device=float_renderer_device,
+        prewarm=True,
+    ) as pipeline:
         for local, source in enumerate(source_ids):
             valid_prefix = prefix[local][prefix_mask[local] > 0.5]
-            seed = _event_seed(str(source), model_seed)
-            continuation = pipeline.generate(
+            planner_seed, renderer_seed = _event_seeds(
+                str(source), model_seed, event_seed_domain
+            )
+            pending = pipeline.begin_at_b(
                 valid_prefix,
+                renderer_context_raw_dxdy=renderer_context[local],
+            )
+            continuation = pending.finish(
                 target_rel_at_B=targets[local],
                 target_radius=float(radii[local]),
                 progress_center=float(progress[local]),
-                seed=seed,
-            )
+                planner_seed=planner_seed,
+                renderer_event_seed_u64=renderer_seed,
+            ).render_remaining()
             take = min(len(continuation), horizon)
             generated[local, :take] = continuation[:take]
             generated_mask[local, :take] = 1.0
@@ -198,6 +272,7 @@ def build_bundle(
     )
     count = len(selected)
     origins = np.asarray(["human"] * count + ["generated"] * count)
+    cell = f"planner-{model_seed}:{event_seed_domain}"
     bundle = DescriptorBundle(
         features=features,
         origin=origins,
@@ -215,16 +290,38 @@ def build_bundle(
             ),
             "full": (0, len(FULL_SYSTEM_FEATURE_NAMES)),
         },
+        generator_cell=np.asarray(["human"] * count + [cell] * count),
+        target_role=np.concatenate([target_roles, target_roles]),
+        causal_context=np.concatenate([causal_context, causal_context], axis=0),
+        block_order=np.concatenate([block_order, block_order]),
     )
     metadata = {
-        "schema": "abcurves.public_descriptor_build.v1",
+        "schema": "abcurves.public_descriptor_build.v2",
         "source_dataset": dataset.name,
         "source_dataset_sha256": _sha256(dataset),
         "model_seed": int(model_seed),
+        "event_seed_domain": event_seed_domain,
+        "event_seed_derivation": {
+            "algorithm": "first 8 SHA-256 digest bytes as little-endian uint64",
+            "planner_input": (
+                "abcurves.public-bundle|planner:"
+                f"{event_seed_domain}|{model_seed}|<source_id>"
+            ),
+            "renderer_input": (
+                "abcurves.public-bundle|renderer:"
+                f"{event_seed_domain}|{model_seed}|<source_id>"
+            ),
+        },
+        "generator_cell": cell,
         "physical_sources": int(count),
         "human_rows": int(count),
         "generated_rows": int(count),
         "selection": "one B80-nearest row per source, key-balanced",
+        "renderer_context": context_source,
+        "planner_artifact": pipeline.model_files.planner.name,
+        "planner_artifact_sha256": _sha256(pipeline.model_files.planner),
+        "renderer_backend": pipeline.renderer_receipt.get("backend", "native_fixed_online"),
+        "renderer_artifact_sha256": pipeline.renderer_receipt["artifact_sha256"],
     }
     return bundle, metadata
 
@@ -233,17 +330,42 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dataset", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--rows", type=int, default=256)
+    parser.add_argument(
+        "--rows",
+        type=int,
+        default=256,
+        help="maximum physical sources; 0 keeps every source",
+    )
     parser.add_argument("--model-seed", type=int, choices=(7, 23), default=7)
+    parser.add_argument(
+        "--event-seed-domain",
+        default="default",
+        help="stable label for an independent Planner-and-Renderer draw cell",
+    )
+    parser.add_argument(
+        "--float-renderer-checkpoint",
+        type=Path,
+        help="use a safely loaded retrained float checkpoint instead of the native artifact",
+    )
+    parser.add_argument("--float-renderer-device", default="cpu")
+    parser.add_argument(
+        "--assume-quiet-preroll",
+        action="store_true",
+        help="smoke-test only: left-pad the event prefix to 256 with quiet reports",
+    )
     args = parser.parse_args()
-    if args.rows < 2:
-        raise SystemExit("--rows must be at least two")
+    if args.rows != 0 and args.rows < 2:
+        raise SystemExit("--rows must be zero (all sources) or at least two")
     if not args.dataset.is_file():
         raise SystemExit(f"dataset does not exist: {args.dataset}")
     bundle, metadata = build_bundle(
         args.dataset,
         rows=int(args.rows),
         model_seed=int(args.model_seed),
+        assume_quiet_preroll=bool(args.assume_quiet_preroll),
+        event_seed_domain=str(args.event_seed_domain),
+        float_renderer_checkpoint=args.float_renderer_checkpoint,
+        float_renderer_device=str(args.float_renderer_device),
     )
     destination = write_descriptor_bundle(args.output, bundle, metadata=metadata)
     print(

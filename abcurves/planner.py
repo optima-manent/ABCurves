@@ -42,20 +42,15 @@ from .features import summary_features
 from .prefix_representation import (
     DEFAULT_PREFIX_EMA_ALPHA,
     RAW_PREFIX_REPRESENTATION,
-    PlannerPrefixContract,
     PrefixRepresentationSpec,
     apply_prefix_representation,
-    planner_prefix_contract_from_config,
-    planner_prefix_contract_from_payload,
+    prefix_representation_from_config,
+    prefix_representation_from_payload,
 )
 from .prodmp import ProDMP, ProDMPConfig
 
 CONTRACTED_PLANNER_SCHEMA = "abcurves.planner.v2"
-SPLIT_PREFIX_PLANNER_SCHEMA = "abcurves.planner.v3"
-SUPPORTED_PLANNER_SCHEMAS = {
-    CONTRACTED_PLANNER_SCHEMA,
-    SPLIT_PREFIX_PLANNER_SCHEMA,
-}
+SUPPORTED_PLANNER_SCHEMAS = {CONTRACTED_PLANNER_SCHEMA}
 
 
 # ---------------------------------------------------------------------------
@@ -71,21 +66,15 @@ class PlannerConfig:
     weight_ridge: float = 1e-3
     eps_scale: float = 1.0
     prefix_len: int = 160
-    # Input ablation. Public and live APIs still receive raw count ticks; this
-    # checkpointed choice controls the view consumed by summaries, the TCN,
-    # and the ProDMP boundary velocity.
+    # Frozen raw-prefix metadata retained in every exported checkpoint.
     prefix_representation: str = RAW_PREFIX_REPRESENTATION
     prefix_ema_alpha: float = DEFAULT_PREFIX_EMA_ALPHA
-    # Optional explicit ProDMP boundary view. ``None`` uses the encoder view.
-    boundary_prefix_representation: str | None = None
-    boundary_prefix_ema_alpha: float | None = None
     use_summary_features: bool = True
     hidden: int = 96
     blocks: int = 3
     dropout: float = 0.15
     batch_size: int = 128
     epochs: int = 260
-    patience: int = 14
     learning_rate: float = 1e-3
     weight_decay: float = 1e-4
     # Differentiable surrogate trajectory loss (normalized-time grid).
@@ -111,9 +100,11 @@ class PlannerConfig:
     turn_hinge_norm: float = 0.5
 
     def __post_init__(self) -> None:
+        if self.epochs < 1:
+            raise ValueError("epochs must be positive")
         if self.wta_anneal_epochs < 1:
             raise ValueError("wta_anneal_epochs must be positive")
-        planner_prefix_contract_from_config(self)
+        prefix_representation_from_config(self)
 
 
 def planner_config_from_dict(raw: dict[str, Any]) -> PlannerConfig:
@@ -275,12 +266,60 @@ class Intent:
     head: int
 
 
+def _validate_plan_inputs(
+    prefix: np.ndarray,
+    target_rel_at_B: tuple[float, float],
+    target_radius: float,
+    progress: float,
+    b_index_ms: float | None,
+) -> tuple[np.ndarray, tuple[float, float], float, float, float | None]:
+    """Apply the public Planner contract before either decoding entry point."""
+
+    prefix_array = np.asarray(prefix)
+    try:
+        prefix_finite = bool(np.all(np.isfinite(prefix_array)))
+    except TypeError:
+        prefix_finite = False
+    if (
+        prefix_array.ndim != 2
+        or prefix_array.shape[1:] != (2,)
+        or len(prefix_array) == 0
+        or not prefix_finite
+    ):
+        raise ValueError("prefix must be a non-empty finite array with shape (P, 2)")
+    try:
+        target = np.asarray(target_rel_at_B, dtype=np.float64).reshape(-1)
+        radius = float(target_radius)
+        progress_value = float(progress)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("target geometry and progress must be numeric") from exc
+    if target.shape != (2,) or not bool(np.all(np.isfinite(target))):
+        raise ValueError("target_rel_at_B must contain two finite count-space values")
+    if not np.isfinite(radius) or radius <= 0.0:
+        raise ValueError("target_radius must be finite and positive")
+    if not np.isfinite(progress_value) or not 0.0 <= progress_value <= 1.0:
+        raise ValueError("progress must lie in [0, 1]")
+    if b_index_ms is None:
+        b_index = None
+    else:
+        b_index = float(b_index_ms)
+        if not np.isfinite(b_index) or b_index < 0.0:
+            raise ValueError("b_index_ms must be finite and non-negative")
+    return (
+        prefix_array,
+        (float(target[0]), float(target[1])),
+        radius,
+        progress_value,
+        b_index,
+    )
+
+
 class Planner:
     """Load-once wrapper around a contracted Planner export.
 
     >>> planner = Planner("models/planner_seed7.pt")
     >>> intent = planner.plan(prefix_counts, target_rel_at_B=(120.0, -35.0),
-    ...                       target_radius=18.0, seed=7)
+    ...                       target_radius=18.0, progress=0.65, seed=7)
     >>> intent.smooth_dxdy[: intent.duration_ms]  # the smooth B->C plan
     """
 
@@ -292,7 +331,11 @@ class Planner:
         prewarm_decode: bool = False,
     ):
         self.path = Path(export_path)
-        payload = torch.load(self.path, map_location="cpu", weights_only=False)
+        # Release Planner exports contain only tensors and primitive metadata.
+        # Keep PyTorch's restricted unpickler enabled even after the manifest
+        # hash check: the digest catches accidents, while ``weights_only`` also
+        # avoids executing arbitrary pickle globals from a replaced container.
+        payload = torch.load(self.path, map_location="cpu", weights_only=True)
         schema = payload.get("schema")
         if schema not in SUPPORTED_PLANNER_SCHEMAS:
             raise RuntimeError(
@@ -307,29 +350,7 @@ class Planner:
             raise RuntimeError(
                 f"contracted planner {self.path} has no causal seam contract"
             )
-        if schema == SPLIT_PREFIX_PLANNER_SCHEMA:
-            if payload.get("planner_prefix_contract") is None:
-                raise RuntimeError(
-                    f"split-prefix planner {self.path} has no prefix contract"
-                )
-        elif payload.get("planner_prefix_contract") is not None:
-            raise RuntimeError(
-                "planner_prefix_contract requires planner checkpoint schema "
-                f"{SPLIT_PREFIX_PLANNER_SCHEMA!r}"
-            )
-        self.planner_prefix_contract = planner_prefix_contract_from_payload(
-            payload
-        )
-        self.encoder_prefix_representation_spec = (
-            self.planner_prefix_contract.encoder
-        )
-        self.boundary_prefix_representation_spec = (
-            self.planner_prefix_contract.boundary_velocity
-        )
-        # Concise alias used by callers that precompute summaries.
-        self.prefix_representation_spec = (
-            self.encoder_prefix_representation_spec
-        )
+        self.prefix_representation_spec = prefix_representation_from_payload(payload)
         self.device = torch.device(device)
         config_record = dict(payload["planner_config"])
         config_record.setdefault(
@@ -339,15 +360,6 @@ class Planner:
             "prefix_ema_alpha",
             self.prefix_representation_spec.causal_ema_alpha,
         )
-        if schema == SPLIT_PREFIX_PLANNER_SCHEMA:
-            config_record.setdefault(
-                "boundary_prefix_representation",
-                self.boundary_prefix_representation_spec.name,
-            )
-            config_record.setdefault(
-                "boundary_prefix_ema_alpha",
-                self.boundary_prefix_representation_spec.causal_ema_alpha,
-            )
         cfg = planner_config_from_dict(config_record)
         self.config = cfg
         self.heads = int(payload["heads"])
@@ -405,28 +417,18 @@ class Planner:
         """Return ``(encoder, boundary_velocity)`` views from one raw window.
 
         Right alignment happens before either representation. Matching views
-        reuse the same array, preserving the old/default runtime path.
+        reuse the same array and avoid an unnecessary copy.
         """
 
         raw = np.asarray(prefix)
         if raw.ndim != 2 or raw.shape[1:] != (2,):
             raise ValueError("planner prefix must have shape (P, 2)")
         window = raw[-self.prefix_len :]
-        encoder_spec = getattr(
-            self,
-            "encoder_prefix_representation_spec",
+        represented = apply_prefix_representation(
+            window,
             self.prefix_representation_spec,
         )
-        boundary_spec = getattr(
-            self,
-            "boundary_prefix_representation_spec",
-            encoder_spec,
-        )
-        encoder = apply_prefix_representation(window, encoder_spec)
-        if encoder_spec.metadata() == boundary_spec.metadata():
-            return encoder, encoder
-        boundary = apply_prefix_representation(window, boundary_spec)
-        return encoder, boundary
+        return represented, represented
 
     def boundary_prefix(self, prefix: np.ndarray) -> np.ndarray:
         """Return the checkpoint-declared ProDMP boundary view."""
@@ -510,7 +512,7 @@ class Planner:
         *,
         target_rel_at_B: tuple[float, float],
         target_radius: float,
-        progress: float = 0.0,
+        progress: float,
         seed: int = 7,
         head: int | None = None,
         b_index_ms: float | None = None,
@@ -523,6 +525,18 @@ class Planner:
         samples one of the 16 heads uniformly; pass ``head`` to force a
         specific hypothesis (for inspection / A-B tests).
         """
+
+        chosen: int | None = None
+        if head is not None:
+            chosen = int(head)
+            if not 0 <= chosen < self.heads:
+                raise ValueError(f"Planner head must be in [0, {self.heads - 1}]")
+
+        prefix, target_rel_at_B, target_radius, progress, b_index_ms = (
+            _validate_plan_inputs(
+                prefix, target_rel_at_B, target_radius, progress, b_index_ms
+            )
+        )
 
         represented, boundary = self.represented_prefix_views(prefix)
         feats = summary_features(
@@ -537,8 +551,7 @@ class Planner:
         if head is None:
             rng = np.random.default_rng(seed)
             chosen = int(rng.integers(0, self.heads))
-        else:
-            chosen = int(np.clip(int(head), 0, self.heads - 1))
+        assert chosen is not None
         ydot_b = (
             boundary[-1].astype(np.float64)
             if len(boundary)
@@ -558,10 +571,16 @@ class Planner:
         *,
         target_rel_at_B: tuple[float, float],
         target_radius: float,
-        progress: float = 0.0,
+        progress: float,
         b_index_ms: float | None = None,
     ) -> list[Intent]:
         """Decode all 16 hypotheses (visualization / best-of-K evaluation)."""
+
+        prefix, target_rel_at_B, target_radius, progress, b_index_ms = (
+            _validate_plan_inputs(
+                prefix, target_rel_at_B, target_radius, progress, b_index_ms
+            )
+        )
 
         represented, boundary = self.represented_prefix_views(prefix)
         feats = summary_features(
@@ -597,8 +616,6 @@ __all__ = [
     "TemporalBlock",
     "decode_heads",
     "CONTRACTED_PLANNER_SCHEMA",
-    "SPLIT_PREFIX_PLANNER_SCHEMA",
     "SUPPORTED_PLANNER_SCHEMAS",
     "PrefixRepresentationSpec",
-    "PlannerPrefixContract",
 ]

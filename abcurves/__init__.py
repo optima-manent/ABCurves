@@ -1,4 +1,4 @@
-"""ABCurves: human-conditioned A -> B -> C movement continuation."""
+"""ABCurves: plan a human continuation, then restore hardware texture."""
 
 from . import judges
 from .capture_preprocess import (
@@ -8,7 +8,6 @@ from .capture_preprocess import (
     ShotFilterPolicy,
 )
 from .model_store import ModelIntegrityError
-from .personalization import CausalStyleState, zero_causal_state
 from .pipeline import (
     InferenceContractError,
     PendingB,
@@ -16,17 +15,21 @@ from .pipeline import (
     PreparedStream,
 )
 from .planner import Intent, Planner
+from .portable_renderer import (
+    PortableRendererEvent,
+    PortableRendererModel,
+    PreparedRendererContext,
+    RendererRuntimeError,
+)
+from .renderer import (
+    FloatRendererEvent,
+    FloatRendererModel,
+    PreparedFloatRendererContext,
+)
 from .prodmp import ProDMP, ProDMPConfig
 from .seam import BFire, BReject, BTrigger, OnsetDetector, OnsetEvent
-from .style_scorer import (
-    FrozenStyleScorer,
-    causal_context_features,
-    completed_human_context,
-    planned_trajectory_features,
-    renderer_context,
-)
 
-__version__ = "1.0.0"
+__version__ = "1.5.0"
 
 __all__ = [
     "BFire",
@@ -34,25 +37,25 @@ __all__ = [
     "BTrigger",
     "CausalBConfig",
     "CausalOnsetConfig",
-    "CausalStyleState",
-    "FrozenStyleScorer",
     "InferenceContractError",
     "Intent",
+    "FloatRendererEvent",
+    "FloatRendererModel",
     "ModelIntegrityError",
     "OnsetDetector",
     "OnsetEvent",
     "PendingB",
     "Pipeline",
     "Planner",
+    "PortableRendererEvent",
+    "PortableRendererModel",
+    "PreparedRendererContext",
+    "PreparedFloatRendererContext",
     "PreparedStream",
     "ProDMP",
     "ProDMPConfig",
     "SeamEligibility",
     "ShotFilterPolicy",
+    "RendererRuntimeError",
     "judges",
-    "causal_context_features",
-    "completed_human_context",
-    "planned_trajectory_features",
-    "renderer_context",
-    "zero_causal_state",
 ]

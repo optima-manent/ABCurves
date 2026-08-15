@@ -1,0 +1,86 @@
+{
+  "schema": "abcurves.release.renderer_promotion.v1",
+  "status": "FROZEN_POST_TRAINING_PROMOTION_RECEIPT",
+  "artifact": {
+    "path": "models/renderer_global_h80.bin",
+    "bytes": 44484,
+    "sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b"
+  },
+  "float_source": {
+    "clean_export": "models/renderer_global_h80_float.pt",
+    "clean_export_bytes": 144457,
+    "clean_export_sha256": "696efe3bbcbc7e8991e26058bc9b8195285e5f5cb5e5f8cc5f64fcd30d1ac840",
+    "active_tensor_sha256": "d09a4a269be583eac6e123bf6be9226bf8ee8e1c9fa8f51faed243b965187206",
+    "selected_source_container_sha256": "e9951a9bc25b69bf652cebbca8749badd02b8c0675a5f1ad4cde7f1a8624132a"
+  },
+  "panel": {
+    "name": "eight-session carried-session development panel",
+    "sessions": 8,
+    "users": 8,
+    "future_ticks": 11414503,
+    "segments": 22291,
+    "smoothing": "triangular_moving_average_path:window=5",
+    "model_training_seed": 7,
+    "renderer_draw_seed": 7001,
+    "session_seed_derivation": "little-endian uint64 from the first 8 bytes of SHA256(ascii(draw_seed) || NUL || 'renderer-stream' || NUL || session_id)",
+    "lateral_offset_penalty": 1.5,
+    "protected_data_used": false,
+    "scope": "non-protected development promotion audit"
+  },
+  "score": {
+    "name": "S",
+    "lower_is_better": true,
+    "formula": "Texture19_W1/0.05 + packet_ratio_error/log(1.05) + false_zero_activation/0.001 + relative_session_net_displacement_error/0.01",
+    "packet_ratio_error": "mean absolute log-ratio error over active rate, L1 rate, L2 rate, and x-axis sign-flip rate",
+    "fixed_online": {
+      "S": 1.432846724,
+      "texture19_w1": 0.0609384878,
+      "packet_ratio_error": 0.0099073631,
+      "false_zero_activation": 0.0,
+      "relative_session_net_displacement_error": 0.0001101631,
+      "pooled_texture19_w1": 0.0525965537
+    },
+    "float_source_S": 1.4311796747,
+    "fixed_online_relative_change_percent": 0.11648079
+  },
+  "corpus_ablation": {
+    "status": "FROZEN_PRE_PROMOTION_MODEL_SELECTION_RECEIPT",
+    "comparison": "complete original P0 cohort versus four-session-pruned R03; not the rejected all-90 expansion",
+    "panel": {
+      "name": "eight-session carried-session development grid",
+      "model_training_seeds": [7, 23],
+      "smoothing_views": ["w3", "w5"],
+      "renderer_draw_seeds": [7001, 7002],
+      "grid_cells": 8,
+      "users_per_cell": 8,
+      "segments_per_cell": 22291,
+      "protected_data_used": false,
+      "aggregation": "user-macro within each cell, then mean across the eight model-seed/smoothing/draw cells"
+    },
+    "lower_is_better": true,
+    "full_p0_S": 1.273029682369816,
+    "pruned_r03_S": 1.2723730632963408,
+    "full_p0_relative_change_percent": 0.051605860923675806,
+    "full_p0_grid_cell_wins": 2,
+    "grid_cells": 8,
+    "full_p0_user_cell_wins": 31,
+    "user_cells": 64,
+    "interpretation": "P0 was slightly higher/worse in aggregate and the two were treated as a practical tie; pruning bought no meaningful gain.",
+    "sealed_research_summary_sha256": "d8335ed88817aa0245c3db18154362087a4a8f732455627e17e2afd4330b6d28"
+  },
+  "handoff_equivalence": {
+    "comparison": "fixed online rank-16 handoff versus the same fixed model with reference warm replay",
+    "reference_warm_replay_S": 1.4328471334,
+    "output_components": 22829006,
+    "differing_components": 8,
+    "maximum_absolute_difference_counts": 1,
+    "not_float_vs_quantized": true
+  },
+  "source_receipt_sha256": "5a8b417edc0bd293ab51bbf6f50d1c27c3fd3e4ca050353c0715ad079bf3b004",
+  "limitations": [
+    "This is a frozen promotion receipt, not a paper-level confidence analysis.",
+    "The eight-session panel is a non-protected development panel; it is not a final untouched-user test.",
+    "The corpus ablation averages eight model-seed/smoothing/draw cells; the float-to-fixed promotion numbers are one seed-7/W5/draw-7001 cell and must not be compared directly.",
+    "The eight one-count differences measure online-handoff equivalence, not float-to-fixed quantization error."
+  ]
+}

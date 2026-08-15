@@ -568,6 +568,19 @@ def summary_features_for_row(
 ) -> dict[str, float]:
     """Build the full summary dict for a one-event arrays row (research shape)."""
 
+    required = {
+        "target_rel_x_at_B",
+        "target_rel_y_at_B",
+        "target_radius",
+        "progress",
+    }
+    missing = sorted(required - set(row))
+    if missing:
+        raise ValueError(
+            "summary rows require target geometry and progress; missing "
+            + ", ".join(missing)
+        )
+
     live = dict(row)
     live["future_mask"] = np.ones((1, int(horizon)), dtype=np.float32)
     p = np.asarray(prefix, dtype=np.float32)
@@ -583,7 +596,7 @@ def summary_features(
     prefix: np.ndarray,
     target_rel_at_B: tuple[float, float],
     target_radius: float,
-    progress: float = 0.0,
+    progress: float,
     *,
     horizon: int = 1000,
     b_index_ms: float | None = None,
@@ -592,8 +605,9 @@ def summary_features(
 
     ``prefix`` is the raw 1 kHz A->B count stream ``[P, 2]``.
     ``target_rel_at_B`` is the target center relative to the cursor at B, in
-    counts.  ``progress`` is the fraction of the initial A->target distance
-    already covered at B (0 if unknown -- the planner tolerates it).
+    counts. ``progress`` is the fraction of the initial A-to-target distance
+    already covered at B. It is required because zero is a learned value, not
+    a neutral substitute for missing context.
     """
 
     p = np.asarray(prefix, dtype=np.float32)

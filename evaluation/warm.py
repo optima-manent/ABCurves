@@ -1,8 +1,8 @@
 """Warm, same-session distribution diagnostics and the frozen bag gate.
 
-The primary release study used a *warm* detector: every evaluated 32-curve
-roster had a trusted, disjoint pool of human movement from the same recorded
-session.  This module contains the exact directional part of that protocol:
+The warm study gives every evaluated 32-curve roster a trusted, disjoint pool
+of human movement from the same recorded session. This module contains the
+exact directional part of that deliberately favorable protocol:
 
 * leave the evaluated session and generated seed/draw cell out of direction
   fitting;

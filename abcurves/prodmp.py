@@ -60,7 +60,6 @@ is implemented for faithfulness to the paper.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 

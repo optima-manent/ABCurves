@@ -1,21 +1,21 @@
-"""Portable, auditable dataset preparation for ABCurves.
+"""Portable, auditable event preparation for the ABCurves Planner.
 
 The native ABCurves-Capture ZIP format is intentionally not decoded here.  The
 input is either a validated ``abcurves.research_export.v1`` directory produced
 by Capture, or :data:`PORTABLE_EVENT_SCHEMA`.  Both routes yield dense 1 ms
 mouse-count events from causal movement onset A through fixed terminal event C.
-This module then makes the model-specific choices:
+This module then makes the Planner-specific choices:
 
 * Planner: a dense, adaptive B78--B90/B92 seam family, clean-shot and
   trajectory-shape filtering, physical-event vetoes for signature-like
   motion, source-balanced weights, and an optional tiny-target curriculum.
-* Renderer: exactly one causal B80 seam per physical event, with no Planner
-  shape filter, dense-B duplication, or target-size augmentation.
-
 The output stores each accepted physical event once and represents training
 rows as seam indices into those events.  Dense cuts therefore do not duplicate
 raw motion in the file and, more importantly, cannot multiply a source's
 optimizer mass.
+
+The global Renderer deliberately does not use these A-to-C event crops.  Its
+dense whole-session builder lives in :mod:`abcurves.global_data`.
 """
 
 from __future__ import annotations
@@ -34,7 +34,6 @@ import numpy as np
 from .capture_preprocess import (
     CausalBConfig,
     CausalOnsetConfig,
-    SUCCESS_OUTCOMES,
     SeamEligibility,
     ShotFilterPolicy,
     causal_seam_contract_record,
@@ -48,7 +47,6 @@ from .smoothing import smooth_dxdy
 
 PORTABLE_EVENT_SCHEMA = "abcurves.portable_events.v1"
 PREPARED_CUT_SCHEMA = "abcurves.prepared_cuts.v1"
-PREPARATION_CONFIG_SCHEMA = "abcurves.dataset_preparation.v1"
 PREPARATION_MANIFEST_SCHEMA = "abcurves.dataset_preparation_manifest.v1"
 
 
@@ -239,34 +237,6 @@ class PlannerPreparationConfig:
 
 
 @dataclass(frozen=True)
-class RendererPreparationConfig:
-    """Renderer F0 preparation: one physical B80 continuation per source."""
-
-    b_threshold: float = 0.80
-    seam: SeamPreparationConfig = field(default_factory=SeamPreparationConfig)
-    materialization: MaterializationConfig = field(default_factory=MaterializationConfig)
-    require_success: bool = True
-    require_clean_technical_outcome: bool = True
-
-    def __post_init__(self) -> None:
-        if not 0 < self.b_threshold < 1:
-            raise DatasetPreparationError("Renderer B threshold must lie inside (0, 1)")
-        if self.materialization.future_horizon_ms < self.seam.max_future_ms:
-            raise DatasetPreparationError("materialized horizon must cover max_future_ms")
-
-
-@dataclass(frozen=True)
-class DatasetPreparationConfig:
-    schema: str = PREPARATION_CONFIG_SCHEMA
-    planner: PlannerPreparationConfig = field(default_factory=PlannerPreparationConfig)
-    renderer: RendererPreparationConfig = field(default_factory=RendererPreparationConfig)
-
-    def __post_init__(self) -> None:
-        if self.schema != PREPARATION_CONFIG_SCHEMA:
-            raise DatasetPreparationError(f"unsupported configuration schema: {self.schema!r}")
-
-
-@dataclass(frozen=True)
 class PreparedCut:
     """A model row referring to one seam in one physical source event."""
 
@@ -292,7 +262,7 @@ class PreparationResult:
     events: tuple[PortableEvent, ...]
     cuts: tuple[PreparedCut, ...]
     rejected: Mapping[str, tuple[str, ...]]
-    config: PlannerPreparationConfig | RendererPreparationConfig
+    config: PlannerPreparationConfig
 
     def source_weight_error(self) -> float:
         totals: dict[str, float] = {}
@@ -984,9 +954,8 @@ def _planner_base_reasons(event: PortableEvent, config: PlannerPreparationConfig
             policy=config.quality,
         )
     )
-    # The old angle-only rejection was deliberately narrowed: a clean,
-    # efficient correction is recovered, then the count-scale signature gates
-    # decide whether it is a repeated behavioral pattern.
+    # A clean, efficient correction is retained here. The count-scale signature
+    # gates decide separately whether it is a repeated behavioral pattern.
     if reasons == ["excessive_turning"] and (
         quality.path_efficiency <= config.recover_turn_only_if_path_efficiency_at_most
         and quality.radial_return_fraction <= config.recover_turn_only_if_radial_return_at_most
@@ -1143,64 +1112,6 @@ def prepare_planner(
     result = PreparationResult("planner", rows, weighted, rejected, cfg)
     if result.source_weight_error() > 1e-6:
         raise DatasetPreparationError("Planner source weights do not sum to one")
-    return result
-
-
-def prepare_renderer(
-    events: Iterable[PortableEvent],
-    config: RendererPreparationConfig | None = None,
-) -> PreparationResult:
-    """Prepare exactly one B80 continuation per accepted physical source."""
-
-    cfg = config or RendererPreparationConfig()
-    rows = tuple(events)
-    _validate_unique_sources(rows)
-    cuts: list[PreparedCut] = []
-    rejected: dict[str, tuple[str, ...]] = {}
-    for event_index, event in enumerate(rows):
-        reasons: list[str] = []
-        if cfg.require_success and event.outcome not in SUCCESS_OUTCOMES:
-            reasons.append("not_success")
-        if cfg.require_clean_technical_outcome and event.technical_outcome not in {"", "none"}:
-            reasons.append("technical_outcome")
-        if reasons:
-            rejected[event.source_trial_id] = tuple(reasons)
-            continue
-        decision = _seam_decision(event, event.target_radius, cfg.b_threshold, cfg.seam)
-        if not decision.training_eligible or decision.seam is None:
-            rejected[event.source_trial_id] = (
-                decision.reason,
-                *decision.eligibility_reasons,
-            )
-            continue
-        seam = decision.seam
-        future_ms = len(event.dxdy) - seam.split_index
-        edge_margin = math.hypot(seam.target_rel_at_b_x, seam.target_rel_at_b_y) - event.target_radius
-        if future_ms > cfg.seam.max_future_ms:
-            rejected[event.source_trial_id] = ("future_exceeds_horizon",)
-            continue
-        if edge_margin < cfg.seam.min_edge_margin_counts:
-            rejected[event.source_trial_id] = ("edge_margin_under_minimum",)
-            continue
-        cuts.append(
-            PreparedCut(
-                event_index=event_index,
-                source_trial_id=event.source_trial_id,
-                variant_id="native",
-                requested_index=0,
-                split_index=seam.split_index,
-                threshold=cfg.b_threshold,
-                realized_progress=seam.realized_progress,
-                center_progress=seam.center_progress,
-                target_rel_at_b_x=seam.target_rel_at_b_x,
-                target_rel_at_b_y=seam.target_rel_at_b_y,
-                target_radius=event.target_radius,
-                example_weight=1.0,
-            )
-        )
-    result = PreparationResult("renderer", rows, tuple(cuts), rejected, cfg)
-    if len({cut.source_trial_id for cut in cuts}) != len(cuts):
-        raise DatasetPreparationError("Renderer preparation produced more than one row per source")
     return result
 
 
@@ -1523,74 +1434,12 @@ def save_prepared_dataset(result: PreparationResult, path: str | Path) -> tuple[
     return destination, manifest_path
 
 
-def load_preparation_config(path: str | Path) -> DatasetPreparationConfig:
-    """Load the typed JSON preset, rejecting unknown or malformed settings."""
-
-    record = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(record, dict):
-        raise DatasetPreparationError("configuration root must be an object")
-    unknown = sorted(set(record) - {"schema", "planner", "renderer"})
-    if unknown:
-        raise DatasetPreparationError(
-            f"unknown top-level configuration fields: {', '.join(unknown)}"
-        )
-    schema = str(record.get("schema", ""))
-    planner_raw = dict(record.get("planner", {}))
-    renderer_raw = dict(record.get("renderer", {}))
-
-    planner_seam = SeamPreparationConfig(**dict(planner_raw.pop("seam", {})))
-    planner_materialization_raw = dict(planner_raw.pop("materialization", {}))
-    planner_onset = CausalOnsetConfig(
-        **dict(planner_materialization_raw.pop("onset", {}))
-    )
-    planner_materialization = MaterializationConfig(
-        onset=planner_onset,
-        **planner_materialization_raw,
-    )
-    quality = ShotFilterPolicy(**dict(planner_raw.pop("quality", {})))
-    shape = PlannerShapeConfig(**dict(planner_raw.pop("shape", {})))
-    tiny_raw = dict(planner_raw.pop("tiny_target", {}))
-    quota_raw = tiny_raw.pop("radius_quotas", None)
-    if quota_raw is not None:
-        if not isinstance(quota_raw, dict):
-            raise DatasetPreparationError("tiny_target.radius_quotas must be an object")
-        tiny_raw["radius_quotas"] = tuple(
-            (float(radius), int(quota)) for radius, quota in sorted(quota_raw.items(), key=lambda item: float(item[0]))
-        )
-    tiny = TinyTargetConfig(**tiny_raw)
-    planner = PlannerPreparationConfig(
-        seam=planner_seam,
-        materialization=planner_materialization,
-        quality=quality,
-        shape=shape,
-        tiny_target=tiny,
-        **planner_raw,
-    )
-    renderer_seam = SeamPreparationConfig(**dict(renderer_raw.pop("seam", {})))
-    renderer_materialization_raw = dict(renderer_raw.pop("materialization", {}))
-    renderer_onset = CausalOnsetConfig(
-        **dict(renderer_materialization_raw.pop("onset", {}))
-    )
-    renderer_materialization = MaterializationConfig(
-        onset=renderer_onset,
-        **renderer_materialization_raw,
-    )
-    renderer = RendererPreparationConfig(
-        seam=renderer_seam,
-        materialization=renderer_materialization,
-        **renderer_raw,
-    )
-    return DatasetPreparationConfig(schema=schema, planner=planner, renderer=renderer)
-
-
 __all__ = [
-    "DatasetPreparationConfig",
     "DatasetPreparationError",
     "EVENT_LEVEL_SHAPE_REASONS",
     "NativeCaptureExporterUnavailable",
     "MaterializationConfig",
     "PORTABLE_EVENT_SCHEMA",
-    "PREPARATION_CONFIG_SCHEMA",
     "PREPARATION_MANIFEST_SCHEMA",
     "PREPARED_CUT_SCHEMA",
     "PlannerPreparationConfig",
@@ -1598,18 +1447,15 @@ __all__ = [
     "PortableEvent",
     "PreparationResult",
     "ResearchExportConversion",
-    "RendererPreparationConfig",
     "SeamPreparationConfig",
     "TinyTargetConfig",
     "adaptive_planner_thresholds",
     "load_portable_events",
-    "load_preparation_config",
     "load_research_export_events",
     "planner_shape_metrics",
     "planner_shape_reasons",
     "preparation_manifest",
     "prepare_planner",
-    "prepare_renderer",
     "save_prepared_dataset",
     "subset_preparation_result",
     "write_portable_events",

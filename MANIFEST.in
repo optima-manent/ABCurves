@@ -1,0 +1,16 @@
+include LICENSE README.md DETECTION.md CITATION.cff
+include setup.py
+include configs/final.json
+include models/README.md models/manifest.json models/planner_seed7.pt models/planner_seed23.pt
+include models/renderer_global_h80.bin
+include models/renderer_global_h80_float.pt
+include abcurves/_native/abcurves_renderer.dll
+recursive-include runtime/c *.c *.h *.inc CMakeLists.txt README.md
+prune runtime/c/build
+recursive-include docs *.md *.html
+recursive-include examples *.py *.npz
+recursive-include assets *.png
+recursive-include evaluation *.md
+recursive-include results *.json *.md
+recursive-include tools *.py
+recursive-include training *.py

@@ -37,6 +37,8 @@ def main() -> int:
 
     with np.load(ROOT / "examples" / "aim_test.npz", allow_pickle=False) as data:
         prefix = data["prefix_raw_dxdy"][0][data["prefix_mask"][0] > 0.5]
+        renderer_context = np.zeros((256, 2), dtype=np.int16)
+        renderer_context[-len(prefix) :] = np.rint(prefix).astype(np.int16)
         target = (
             float(data["target_rel_x_at_B"][0]),
             float(data["target_rel_y_at_B"][0]),
@@ -53,7 +55,10 @@ def main() -> int:
     try:
         for trial in range(args.trials):
             begin = time.perf_counter_ns()
-            pending = pipeline.begin_at_b(prefix)
+            pending = pipeline.begin_at_b(
+                prefix,
+                renderer_context_raw_dxdy=renderer_context,
+            )
             stream = pending.finish(
                 target_rel_at_B=target,
                 target_radius=radius,
@@ -74,8 +79,10 @@ def main() -> int:
         pipeline.close()
 
     result = {
-        "schema": "abcurves.runtime_benchmark.v1",
+        "schema": "abcurves.runtime_benchmark.v2",
         "model_seed": 7,
+        "renderer_artifact_sha256": pipeline.renderer_receipt["artifact_sha256"],
+        "renderer_context": "256 reports; example-only quiet left padding",
         "trials": args.trials,
         "clock": "time.perf_counter_ns",
         "device": "CPU",

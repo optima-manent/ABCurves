@@ -1,7 +1,7 @@
 # Running the measurements
 
 If you want the result and the intuition behind it, start with
-[`docs/DETECTION.md`](../docs/DETECTION.md). This page is for people who want to run
+[`DETECTION.md`](../DETECTION.md). This page is for people who want to run
 the measurement code themselves.
 
 The most important rule is simple. A comparison may use the known matching human
@@ -11,6 +11,28 @@ being generated**.
 
 The code keeps those two jobs separate.
 
+## Select a Renderer by sampled full-session texture
+
+Renderer checkpoint selection is separate from detection. It uses uninterrupted
+dense sessions because teacher-forced loss can improve while a free-running sampler
+gets worse. Score a fresh float checkpoint with:
+
+```bash
+python -m evaluation renderer-selection full_sessions/sessions.json \
+  --backend float --model runs/renderer_p118345.pt \
+  --specs w3 w5 --seed 7001 \
+  --output runs/renderer_p118345_selection.json
+```
+
+Use `--backend native` without `--model` to score the authenticated packed release.
+The evaluator verifies source hashes, observes the first 256 physical reports once,
+carries one rollout through the complete remaining session, and reports the
+carried-session `T/R/Z/D/S` user-macro score. Its JSON replaces private IDs with
+ordinal aliases and records source-content hashes. The supplied panel determines the
+meaning of the result; the private eight-session panel is not bundled. One invocation
+scores one artifact and one draw seed. The frozen multi-model, multi-view,
+multi-draw aggregation must be assembled from separately retained cells.
+
 ## Try the public example first
 
 This builds one human/generated descriptor bundle from the included test movements:
@@ -19,8 +41,12 @@ This builds one human/generated descriptor bundle from the included test movemen
 python -m pip install -e ".[evaluation]"
 
 python tools/build_descriptor_bundle.py examples/aim_test.npz \
-  results/local/descriptors.npz --rows 256
+  results/local/descriptors.npz --rows 256 --assume-quiet-preroll
 ```
+
+That flag is explicit because the compact example begins at A and lacks 96 earlier
+reports. It left-pads the missing history with quiet reports for a smoke run only.
+For a real result, omit the flag and supply `renderer_context_raw_dxdy [N,256,2]`.
 
 You can then measure human variation and run the labeled judge:
 
@@ -47,6 +73,42 @@ python -m evaluation cold-smoke results/local/descriptors.npz \
 
 Its output says `not_release_protocol: true`. It is a useful code check, not a
 reproduction of the final study.
+
+## Build a complete warm/cold audit bundle
+
+For a real audit, first generate at least two independent full-pipeline cells over
+the same source roster. `--rows 0` keeps one B80-nearest row from every physical
+source:
+
+```bash
+python tools/build_descriptor_bundle.py events_with_renderer_context.npz \
+  results/local/draw_a.npz --rows 0 --event-seed-domain draw-a
+
+python tools/build_descriptor_bundle.py events_with_renderer_context.npz \
+  results/local/draw_b.npz --rows 0 --event-seed-domain draw-b
+
+python tools/build_audit_bundle.py \
+  --cell draw-a=results/local/draw_a.npz \
+  --cell draw-b=results/local/draw_b.npz \
+  --output results/local/enriched_audit.npz
+```
+
+The first tool records the generation-known target geometry as causal context and
+keeps each generated row bound to its human source. The second verifies that human
+rows are identical across cells, freezes whole installation keys into reference and
+held populations using a declared SHA-256 seed, and selects exactly 32 audit rows per
+held session without reading generated outcomes.
+
+The exact warm protocol also needs a disjoint 32-row validation group and at least 48
+trusted reference rows in every held session. The builder therefore requires at least
+112 human sources per held session, at least two held sessions, and at least two
+reference plus two held installation keys. It fails with a direct explanation rather
+than creating a smaller study under the same name.
+
+To evaluate a retrained Renderer instead of the native artifact, pass the same
+`--float-renderer-checkpoint runs/renderer_p118345.pt` to both descriptor commands.
+Use distinct `--event-seed-domain` values to redraw both the Planner head and
+Renderer sampling, keeping the complete pipeline cells independent.
 
 ## Running the real unknown-person test
 
@@ -112,9 +174,16 @@ There is also a `warm` command. It asks a different and easier technical questio
 what can a detector notice when it already owns a large, trusted set of clean human
 movement from the same recorded session?
 
+That is deliberately a best-case laboratory condition. In ordinary use, sensitivity,
+mousepad, grip, posture, fatigue, and habits can change enough that an older reference
+no longer describes the person's current movement. Warm results therefore measure
+what perfectly matched history can reveal; they are not a promise that a real-world
+baseline stays valid.
+
 Its primary gate is the maximum over cross-fitted Trajectory14, Texture19 and Full49
-directional dense, sparse-tail/Berk-Jones, and subgroup statistics. A disjoint human
-validation group selects `alpha=0.01` before the frozen panel or any generated
+directional dense, sparse-tail/Berk-Jones, and subgroup statistics. Here `alpha` is
+the accusation cutoff: a smaller value requires stronger evidence. A disjoint human
+validation group selects `alpha=0.0025` before the frozen panel or any generated
 outcome is evaluated.
 
 ```bash
@@ -153,17 +222,16 @@ The public repository can:
 
 ```bash
 python -m evaluation verify-results
+python -m evaluation verify-results results/inference/manifest.json
 ```
 
-The exact published population numbers also need the contributed hardware corpus
-and frozen E260 panel. Those rows include 25 reference installation keys, six wholly
-held keys across ten sessions and four generator cells. They are not redistributed
-yet.
+The final tables additionally need the frozen 320-row panel and the contributed
+hardware recordings. Those private rows are not redistributed. The two compact
+receipts in [`results/detection/`](../results/detection/) keep the boundaries clear:
+`renderer_oracle_b80.json` records the isolated Renderer ruler, while
+`pipeline_b80.json` records the complete Planner→Renderer cold and warm tests. Both
+bind the exact artifacts, protocol, aggregate outcomes, and sealed source digests.
 
-The compact files in [`results/detection/`](../results/detection/) keep the final
-numbers and their source hashes auditable without pretending the private movement
-rows are already public. The deterministic known-history calculation was checked
-against its sealed runner at the level of direction fits, four direction channels,
-all twelve dense/sparse/subgroup statistics, nested mixture masks, and empirical
-p-values. The precise verification boundary is recorded in
-[`protocol_parity.json`](../results/detection/protocol_parity.json).
+A clone can therefore authenticate the published result and run the same algorithms
+on another correctly structured corpus. It cannot recreate the exact numeric tables
+without the private source movements, and the documentation says so directly.

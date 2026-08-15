@@ -1,9 +1,13 @@
 * text=auto eol=lf
 
 *.gif binary
+*.bin binary
+*.dll binary
+*.dylib binary
 *.npz binary
 *.png binary
 *.pt binary
+*.so binary
 *.jpg binary
 *.jpeg binary
 *.webp binary

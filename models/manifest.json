@@ -1,9 +1,95 @@
 {
-  "schema": "abcurves.release_models.v1",
-  "release": "1.0.0",
+  "schema": "abcurves.release_models.v2",
+  "release": "1.5.0",
   "default_seed": 7,
   "seeds": [7, 23],
-  "pipeline": "planner-E260 + renderer-F0-E12 + causal-C + TP1 + AF1.5",
+  "pipeline": "Planner + global whole-session Renderer + rank-16 online handoff + W5 + AF1.5",
+  "renderer": {
+    "scope": "global whole-session count texture",
+    "corpus": "P0 full cohort",
+    "training_seed": 7,
+    "training_windows": 81737,
+    "training_sessions": 54,
+    "training_users": 45,
+    "validation_windows": 10807,
+    "validation_sessions": 8,
+    "validation_users": 8,
+    "split_seed": "abcurves.continuous_v1.user_split",
+    "presentation_budget": 118345,
+    "optimizer_steps": 463,
+    "passes_over_training_windows": 1.4478755031,
+    "optimizer": "Adam",
+    "weight_decay": 0.00001,
+    "sampler": "frozen_epoch_view_sampler_v1",
+    "deterministic_algorithms": true,
+    "context_ticks": 256,
+    "float_recurrent_warm_ticks": 128,
+    "future_ticks": 800,
+    "features": 20,
+    "hidden": 80,
+    "joint_offset_classes": 121,
+    "teacher_base_hysteresis": 1.0,
+    "deployment_base_hysteresis": 0.5,
+    "training_smoothing": [
+      "triangular_moving_average_path:window=3",
+      "triangular_moving_average_path:window=5"
+    ],
+    "deployment_smoothing": "triangular_moving_average_path:window=5",
+    "lateral_offset_penalty": 1.5,
+    "zero_intent_threshold_float": 1e-7,
+    "zero_intent_threshold_q16": 0,
+    "zero_accumulator_threshold": 0.5,
+    "safety_release_threshold": 32.0,
+    "maximum_axis_emission_counts": 127,
+    "lateral_offset_penalty_law": "offset_logit -= 1.5 * max(abs(offset dot normal) - 1 count, 0)",
+    "generation_core": "int8/fixed-point",
+    "observer_and_begin": "mixed float/double",
+    "online_handoff_rank": 16,
+    "windows_x64_caller_state_bytes": 5088,
+    "windows_x64_model_view_bytes": 208,
+    "target_size_contract": "query abc_online_renderer_size() and abc_online_model_size() on the target ABI",
+    "generated_tick_int8_macs": 33760,
+    "handoff_contract": "reset, exactly 256 observations, one begin; arbitrary-length and rolling observation are not validated",
+    "selection": "sampled carried full-session texture; teacher-forced loss is diagnostic only",
+    "promotion_receipt": "results/inference/renderer_promotion.json",
+    "native_benchmark_receipt": "results/inference/native_renderer_windows_x64.json",
+    "promotion_validation": {
+      "panel": "eight carried sessions",
+      "panel_scope": "non-protected development panel",
+      "sessions": 8,
+      "users": 8,
+      "future_ticks": 11414503,
+      "segments": 22291,
+      "model_training_seed": 7,
+      "renderer_draw_seed": 7001,
+      "metric": "S = Texture19_W1/0.05 + packet_ratio_error/log(1.05) + false_zero_activation/0.001 + relative_session_net_displacement_error/0.01; lower is better",
+      "float_source": 1.4311797,
+      "fixed_online": 1.4328467,
+      "relative_change_percent": 0.11648,
+      "handoff_equivalence": "same fixed model with reference warm replay",
+      "compared_output_components": 22829006,
+      "differing_components": 8,
+      "maximum_absolute_difference_counts": 1
+    },
+    "source_float_container_sha256": "e9951a9bc25b69bf652cebbca8749badd02b8c0675a5f1ad4cde7f1a8624132a",
+    "clean_float_export": "renderer_global_h80_float.pt",
+    "clean_float_tensor_sha256": "d09a4a269be583eac6e123bf6be9226bf8ee8e1c9fa8f51faed243b965187206",
+    "selected_corpus_logical_float32_sha256": {
+      "train_prefix": "82bffe0f3c76c072468740e84f62defb2e1daea78b4f2cdc3ee07be07c526908",
+      "train_future": "4acce5e30331c4b8f1866b1cb263a6ea8fddf2b773960d0d04c81aea3b8dab4b",
+      "val_prefix": "93c90094d9bc98d9861ff07b152d4c26b7e1a4aadcc31c7c627e83895e960969",
+      "val_future": "f0c7e3b9b765a82ac57d53224a20d04a631702cbca5539a126f6f5c32c31e342"
+    }
+  },
+  "native_libraries": {
+    "abcurves/_native/abcurves_renderer.dll": {
+      "platform": "Windows x64",
+      "bytes": 37376,
+      "sha256": "730bafac2b6a8431628401fc6e2239a12b787cd730791d453b4dec0cb47d3a41",
+      "public_exports": 8,
+      "reproducible_link": "MSVC /Brepro"
+    }
+  },
   "files": {
     "planner_seed7.pt": {
       "bytes": 1500345,
@@ -15,30 +101,19 @@
       "sha256": "d691ba155c4fa9b403c5a3e2ed9c44123fe00d3d1bee15c55ee9226f4531a23e",
       "tensor_sha256": "5d05a4aaf9afee66ccccfb13ea499e8fb796d017ed8f97b227fd6a58a77d7877"
     },
-    "renderer_seed7.pt": {
-      "bytes": 328114,
-      "sha256": "eb805d5849e105eabba565e0aae286e629f53eae066682890316a6191d53f146",
-      "tensor_sha256": "cc97e825989da9f9eb5b82dcf7742a3c0ede89048a3ce9e27d20c1927db54e2b"
+    "renderer_global_h80.bin": {
+      "bytes": 44484,
+      "sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b",
+      "format": "ABCFIX1 off-row base followed by OHV1R16 online handoff adapter",
+      "base_bytes": 39512,
+      "adapter_bytes": 4972
     },
-    "renderer_seed23.pt": {
-      "bytes": 328129,
-      "sha256": "cbc731ce2beaedccd611c8590d5fa5c07026dc12a7696fbfaaeb7cbe8f49666d",
-      "tensor_sha256": "abcd422b4b0f365a24f7d9ec38b1ef5ce4279c06eff66e4957a11f407a0967b1"
-    },
-    "renderer_adapter_seed7.pt": {
-      "bytes": 6568,
-      "sha256": "56d2b10b782dbd20e6416eb58dddafa13db5c0f434ecf6fdbd4339b2a93cbd4a",
-      "tensor_sha256": "20ac2be26a0d03e0da2eea4ef6f2bae9e5ca74485273727c7dd8bcf2800f2a56"
-    },
-    "renderer_adapter_seed23.pt": {
-      "bytes": 6641,
-      "sha256": "f1c5698df9152ab2355459839694384d451626bb90393b6f08a9665b6e0ddaba",
-      "tensor_sha256": "657d478216d1d18b3f2b3e9b0b803d4d9499b6b3f528635e409872110f9d2f04"
-    },
-    "style_scorer.json": {
-      "bytes": 21550,
-      "sha256": "1227c1a8fdd9186fa10a6a0f7a598bf63b20877063c9ec058e4e6b1ba0f4d69f",
-      "contract_sha256": "0b941a3d453353fd62a13689d19d218b5b9f95ab661254ba2a21d606bb776ebb"
+    "renderer_global_h80_float.pt": {
+      "bytes": 144457,
+      "sha256": "696efe3bbcbc7e8991e26058bc9b8195285e5f5cb5e5f8cc5f64fcd30d1ac840",
+      "tensor_sha256": "d09a4a269be583eac6e123bf6be9226bf8ee8e1c9fa8f51faed243b965187206",
+      "source_container_sha256": "e9951a9bc25b69bf652cebbca8749badd02b8c0675a5f1ad4cde7f1a8624132a",
+      "format": "sanitized phase-free 20-feature active float graph"
     }
   }
 }

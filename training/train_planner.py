@@ -52,24 +52,16 @@ from abcurves.capture_preprocess import (
 from abcurves.features import build_feature_table, causal_context_arrays
 from abcurves.planner import (
     CONTRACTED_PLANNER_SCHEMA,
-    SPLIT_PREFIX_PLANNER_SCHEMA,
     MultiHeadModel,
     PlannerConfig,
 )
 from abcurves.prefix_representation import (
-    DEFAULT_PREFIX_EMA_ALPHA,
-    RAW_PREFIX_REPRESENTATION,
-    SUPPORTED_PREFIX_REPRESENTATIONS,
-    PlannerPrefixContract,
-    PrefixRepresentationSpec,
-    apply_prefix_representation,
-    planner_prefix_contract_from_config,
+    prefix_representation_from_config,
 )
 from abcurves.preprocessing import PREPARED_CUT_SCHEMA
 from abcurves.prodmp import ProDMP, ProDMPConfig
 
 DUR_BINS = ((0.0, 150.0), (150.0, 250.0), (250.0, np.inf))
-CUT_SAMPLING_MODES = ("all_weighted", "one_per_source_per_epoch")
 MULTIB_AUGMENTATION_SCHEMA = "abcurves.planner_multib_augmentation.v1"
 SOURCE_BALANCED_CUT_SCHEDULE = "source_specific_shuffled_cycle.v1"
 
@@ -351,21 +343,12 @@ def source_balanced_epoch_indices(
     )
 
 
-def represented_planner_arrays(
+def planner_input_arrays(
     arrays: dict,
-    spec: PrefixRepresentationSpec,
     *,
     prefix_len: int | None = None,
 ) -> dict:
-    """Return the exact prefix view used by every planner training input.
-
-    ``raw`` returns the input mapping unchanged when it already fits the
-    deployable window.
-    Otherwise the same right-aligned window used at inference is enforced.
-    ``causal_ema`` recomputes the representation from raw valid ticks and
-    refreshes all prefix-derived context columns so the summary table, TCN
-    tensor, ProDMP fit, and surrogate boundary velocity see one signal.
-    """
+    """Return the exact raw, right-aligned prefix used by every Planner input."""
 
     raw = np.asarray(arrays["prefix_raw_dxdy"], dtype=np.float32)
     mask = np.asarray(arrays["prefix_mask"], dtype=bool)
@@ -375,18 +358,13 @@ def represented_planner_arrays(
         )
     window = raw.shape[1] if prefix_len is None else max(1, int(prefix_len))
     needs_truncation = raw.shape[1] > window
-    if spec.name == RAW_PREFIX_REPRESENTATION and not needs_truncation:
+    if not needs_truncation:
         return arrays
     effective_mask = mask.copy()
     if needs_truncation:
         effective_mask[:, : raw.shape[1] - window] = False
-    represented = np.zeros_like(raw, dtype=np.float32)
-    for index in range(len(raw)):
-        valid = raw[index, effective_mask[index]]
-        represented[index, effective_mask[index]] = apply_prefix_representation(
-            valid,
-            spec,
-        )
+    represented = raw.copy()
+    represented[~effective_mask] = 0.0
 
     out = dict(arrays)
     out["prefix_raw_dxdy"] = represented
@@ -404,40 +382,6 @@ def represented_planner_arrays(
     out["speed_at_B"] = speed_at_b
     out["accel_at_B"] = accel_at_b
     return out
-
-
-def planner_training_views(
-    arrays: dict,
-    contract: PlannerPrefixContract,
-    *,
-    prefix_len: int | None = None,
-) -> tuple[dict, dict]:
-    """Return encoder/summary and ProDMP-boundary training views.
-
-    Both are constructed from the same raw right-aligned window. Matching
-    declarations reuse the same mapping.
-    """
-
-    encoder = represented_planner_arrays(
-        arrays,
-        contract.encoder,
-        prefix_len=prefix_len,
-    )
-    if contract.views_match:
-        return encoder, encoder
-    boundary = represented_planner_arrays(
-        arrays,
-        contract.boundary_velocity,
-        prefix_len=prefix_len,
-    )
-    if not np.array_equal(
-        np.asarray(encoder["prefix_mask"]),
-        np.asarray(boundary["prefix_mask"]),
-    ):
-        raise RuntimeError(
-            "encoder and boundary prefix views produced different windows"
-        )
-    return encoder, boundary
 
 
 def weighted_mean_std(
@@ -629,25 +573,9 @@ def train(
     val_arrays,
     cfg: PlannerConfig,
     device: str,
-    *,
-    cut_sampling: str = "all_weighted",
-    model_selection_interval: int | None = None,
 ):
-    if cut_sampling not in CUT_SAMPLING_MODES:
-        raise ValueError(f"cut_sampling must be one of {CUT_SAMPLING_MODES}")
-    if model_selection_interval is None:
-        model_selection_interval = int(cfg.epochs)
-    if int(model_selection_interval) < 1:
-        raise ValueError("model_selection_interval must be positive")
-    if int(cfg.epochs) % int(model_selection_interval) != 0:
-        raise ValueError(
-            "epochs must be divisible by model_selection_interval so the final "
-            "epoch is eligible for checkpoint selection"
-        )
     seam_contract = planner_seam_contract(train_arrays, val_arrays)
-    source_summary = None
-    if cut_sampling == "one_per_source_per_epoch":
-        source_summary = source_trial_weight_summary(train_arrays)
+    source_summary = source_trial_weight_summary(train_arrays)
     train_source_grid_raw = _metadata_text(
         train_arrays,
         "complete_source_grid_thresholds_json",
@@ -676,17 +604,17 @@ def train(
                 "train and validation complete source grids must match and be non-empty"
             )
         complete_source_grid = train_source_grid
-    prefix_contract = planner_prefix_contract_from_config(cfg)
-    train_encoder_inputs, train_boundary_inputs = planner_training_views(
+    prefix_representation_from_config(cfg)
+    train_encoder_inputs = planner_input_arrays(
         train_arrays,
-        prefix_contract,
         prefix_len=cfg.prefix_len,
     )
-    val_encoder_inputs, val_boundary_inputs = planner_training_views(
+    val_encoder_inputs = planner_input_arrays(
         val_arrays,
-        prefix_contract,
         prefix_len=cfg.prefix_len,
     )
+    train_boundary_inputs = train_encoder_inputs
+    val_boundary_inputs = val_encoder_inputs
     prodmp = ProDMP(ProDMPConfig(n_basis=cfg.n_basis, alpha=cfg.alpha, alpha_phase=cfg.alpha_phase, ridge=cfg.weight_ridge))
 
     # summary features (train-fit normalizer)
@@ -808,33 +736,21 @@ def train(
     np.random.seed(cfg.seed)
     model = MultiHeadModel(tr["summary"].shape[1], y_tr_raw.shape[1], cfg.heads, cfg).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
-    gen = torch.Generator(device="cpu")
-    gen.manual_seed(cfg.seed)
     anneal_epochs = max(1, int(cfg.wta_anneal_epochs))
-    n = tr["target"].shape[0]
-    optimizer_examples_per_epoch = (
-        int(source_summary["source_trials"])
-        if source_summary is not None
-        else int(n)
-    )
+    optimizer_examples_per_epoch = int(source_summary["source_trials"])
 
-    best_val = float("inf")
-    best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
-    stale = 0
+    val_metric = float("nan")
     for epoch in range(1, cfg.epochs + 1):
         model.train()
-        if cut_sampling == "one_per_source_per_epoch":
-            perm = torch.as_tensor(
-                source_balanced_epoch_indices(
-                    train_arrays,
-                    epoch=epoch,
-                    seed=cfg.seed,
-                ),
-                dtype=torch.long,
-                device=device,
-            )
-        else:
-            perm = torch.randperm(n, generator=gen).to(device)
+        perm = torch.as_tensor(
+            source_balanced_epoch_indices(
+                train_arrays,
+                epoch=epoch,
+                seed=cfg.seed,
+            ),
+            dtype=torch.long,
+            device=device,
+        )
         eps = cfg.wta_eps_start + (cfg.wta_eps_end - cfg.wta_eps_start) * min(
             1.0, (epoch - 1) / float(anneal_epochs)
         )
@@ -849,11 +765,7 @@ def train(
             q = torch.full_like(d, eps / max(k - 1, 1))
             q.scatter_(1, winner[:, None], 1.0 - eps)
             per_example = (q * d).sum(dim=1)
-            batch_weights = (
-                torch.ones_like(tr["weight"][idx])
-                if cut_sampling == "one_per_source_per_epoch"
-                else tr["weight"][idx]
-            )
+            batch_weights = torch.ones_like(tr["weight"][idx])
             loss = (per_example * batch_weights).sum() / batch_weights.sum().clamp_min(1e-9)
             opt.zero_grad()
             loss.backward()
@@ -869,33 +781,18 @@ def train(
             val_metric = float(
                 (best * va["weight"]).sum() / va["weight"].sum().clamp_min(1e-9)
             )
-        selection_epoch = epoch % int(model_selection_interval) == 0
         if epoch % 5 == 0 or epoch == 1:
             print(f"epoch {epoch:3d}  train {np.mean(losses):.4f}  val best-of-16 {val_metric:.4f}  eps {eps:.3f}")
-        if selection_epoch:
-            if val_metric < best_val - 1e-6:
-                best_val, stale = val_metric, 0
-                best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
-            else:
-                stale += 1
-            if stale >= cfg.patience:
-                print(f"early stop at epoch {epoch} (best val {best_val:.4f})")
-                break
-    model.load_state_dict(best_state)
     return model, cfg, dict(
         feature_names=feature_names, summ_mean=summ_mean, summ_std=summ_std,
         pmean=pmean, pstd=pstd, y_mean=y_mean, y_std=y_std, horizon=horizon,
-        thresholds=thresholds, best_val=best_val,
+        thresholds=thresholds, best_val=val_metric,
         train_event_weight_sum=float(tr_weights.sum()),
         val_event_weight_sum=float(va_weights.sum()),
         seam_contract=seam_contract,
-        cut_sampling=cut_sampling,
-        cut_schedule=(
-            SOURCE_BALANCED_CUT_SCHEDULE
-            if cut_sampling == "one_per_source_per_epoch"
-            else None
-        ),
-        model_selection_interval=int(model_selection_interval),
+        cut_sampling="one_per_source_per_epoch",
+        cut_schedule=SOURCE_BALANCED_CUT_SCHEDULE,
+        model_selection_interval=int(cfg.epochs),
         complete_source_grid=complete_source_grid,
         train_source_trial_summary=source_summary,
         optimizer_examples_per_epoch=optimizer_examples_per_epoch,
@@ -906,29 +803,13 @@ def export(model, cfg, meta, out_path: Path):
     seam_contract = meta.get("seam_contract")
     if not isinstance(seam_contract, dict):
         raise ValueError("Planner export requires a causal seam contract")
-    prefix_contract = planner_prefix_contract_from_config(cfg)
-    split_contract = cfg.boundary_prefix_representation is not None
+    prefix_spec = prefix_representation_from_config(cfg)
     planner_config = {
         **cfg.__dict__,
         "turn_hinge_thresholds": list(cfg.turn_hinge_thresholds),
     }
-    if split_contract:
-        planner_config["boundary_prefix_representation"] = (
-            prefix_contract.boundary_velocity.name
-        )
-        planner_config["boundary_prefix_ema_alpha"] = (
-            prefix_contract.boundary_velocity.causal_ema_alpha
-        )
-    else:
-        # A one-view export must not contain orphaned split-contract fields.
-        planner_config.pop("boundary_prefix_representation", None)
-        planner_config.pop("boundary_prefix_ema_alpha", None)
     payload = {
-        "schema": (
-            SPLIT_PREFIX_PLANNER_SCHEMA
-            if split_contract
-            else CONTRACTED_PLANNER_SCHEMA
-        ),
+        "schema": CONTRACTED_PLANNER_SCHEMA,
         "created_at": _dt.datetime.now().isoformat(timespec="seconds"),
         "note": "ABCurves planner (RWTA-16). Trained by training/train_planner.py.",
         "model_state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
@@ -947,7 +828,7 @@ def export(model, cfg, meta, out_path: Path):
         "hinge_thresholds": meta["thresholds"],
         "train_event_weight_sum": meta["train_event_weight_sum"],
         "val_event_weight_sum": meta["val_event_weight_sum"],
-        "cut_sampling": meta.get("cut_sampling", "all_weighted"),
+        "cut_sampling": meta.get("cut_sampling", "one_per_source_per_epoch"),
         "cut_schedule": meta.get("cut_schedule"),
         "model_selection_interval": int(meta.get("model_selection_interval", 1)),
         "complete_source_grid": meta.get("complete_source_grid"),
@@ -960,10 +841,7 @@ def export(model, cfg, meta, out_path: Path):
         "val_dataset_sha256": meta.get("val_dataset_sha256"),
         "prodmp": {"n_basis": cfg.n_basis, "alpha": cfg.alpha, "alpha_phase": cfg.alpha_phase, "ridge": cfg.weight_ridge},
     }
-    if split_contract:
-        payload["planner_prefix_contract"] = prefix_contract.metadata()
-    else:
-        payload["prefix_representation"] = prefix_contract.encoder.metadata()
+    payload["prefix_representation"] = prefix_spec.metadata()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(payload, out_path)
 
@@ -990,59 +868,6 @@ def main() -> int:
     )
     ap.add_argument("--heads", type=int, default=16)
     ap.add_argument("--seed", type=int, default=7)
-    ap.add_argument(
-        "--prefix-representation",
-        choices=sorted(SUPPORTED_PREFIX_REPRESENTATIONS),
-        default=RAW_PREFIX_REPRESENTATION,
-        help=(
-            "planner encoder/summary representation (default: raw); unless "
-            "--boundary-prefix-representation is provided, it also controls "
-            "the ProDMP boundary"
-        ),
-    )
-    ap.add_argument(
-        "--prefix-ema-alpha",
-        type=float,
-        default=DEFAULT_PREFIX_EMA_ALPHA,
-        help="causal EMA alpha for the encoder/summary representation",
-    )
-    ap.add_argument(
-        "--boundary-prefix-representation",
-        choices=sorted(SUPPORTED_PREFIX_REPRESENTATIONS),
-        default=None,
-        help=(
-            "explicit ProDMP boundary-velocity view; omitted maps the encoder "
-            "view to the boundary"
-        ),
-    )
-    ap.add_argument(
-        "--boundary-prefix-ema-alpha",
-        type=float,
-        default=None,
-        help=(
-            "causal EMA alpha for an explicit boundary view "
-            f"(default when needed: {DEFAULT_PREFIX_EMA_ALPHA:g})"
-        ),
-    )
-    ap.add_argument(
-        "--cut-sampling",
-        choices=CUT_SAMPLING_MODES,
-        default="one_per_source_per_epoch",
-        help=(
-            "all_weighted visits every materialized cut; "
-            "one_per_source_per_epoch samples one available B cut per source "
-            "trial so multi-B arms have baseline-comparable optimizer steps"
-        ),
-    )
-    ap.add_argument(
-        "--model-selection-interval",
-        type=int,
-        default=0,
-        help=(
-            "only epochs divisible by this interval may become the exported "
-            "checkpoint; 0 means terminal epoch only (the release recipe)"
-        ),
-    )
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = ap.parse_args()
 
@@ -1060,23 +885,9 @@ def main() -> int:
         heads=args.heads,
         seed=args.seed,
         wta_anneal_epochs=args.wta_anneal_epochs,
-        prefix_representation=args.prefix_representation,
-        prefix_ema_alpha=args.prefix_ema_alpha,
-        boundary_prefix_representation=args.boundary_prefix_representation,
-        boundary_prefix_ema_alpha=args.boundary_prefix_ema_alpha,
     )
     t0 = time.time()
-    model, cfg, meta = train(
-        train_arrays,
-        val_arrays,
-        cfg,
-        args.device,
-        cut_sampling=args.cut_sampling,
-        model_selection_interval=(
-            args.epochs if args.model_selection_interval == 0
-            else args.model_selection_interval
-        ),
-    )
+    model, cfg, meta = train(train_arrays, val_arrays, cfg, args.device)
     meta.update(
         {
             "train_dataset": str(train_path.resolve()),

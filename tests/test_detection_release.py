@@ -156,25 +156,76 @@ def test_warm_smoke_declares_matching_history() -> None:
 def test_compact_result_manifest_and_semantic_boundary() -> None:
     result = verify_result_manifest(ROOT / "results" / "detection" / "manifest.json")
     assert result["ok"], result["failures"]
-    floors = json.loads(
-        (ROOT / "results" / "detection" / "human_distance_floors.json").read_text(
+    assert {artifact["path"] for artifact in result["artifacts"]} == {
+        "README.md",
+        "pipeline_b80.json",
+        "renderer_oracle_b80.json",
+    }
+    inference = verify_result_manifest(ROOT / "results" / "inference" / "manifest.json")
+    assert inference["ok"], inference["failures"]
+    current = json.loads(
+        (ROOT / "results" / "detection" / "renderer_oracle_b80.json").read_text(
             encoding="utf-8"
         )
     )
-    cold = json.loads(
-        (ROOT / "results" / "detection" / "cold_unknown_person.json").read_text(
+    assert current["candidate"]["sha256"] == (
+        "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b"
+    )
+    assert current["scope"]["component"] == "Renderer_only"
+    assert "composed Planner-to-Renderer evaluation" in current["scope"]["excludes"]
+    ruler = current["known_matching_similarity_ruler"]
+    assert ruler["status"] == "descriptive_known_metadata_not_a_detector"
+    assert ruler["panels"]["Texture19"]["generated_vs_matching_session"]["pairs"] == 10
+    overlap = ruler["texture19_same_session_overlap"]
+    assert overlap["human_same_session_pairs"] == 35
+    assert overlap["human_same_session_pairs_above_renderer_mean"] == 3
+    assert overlap["human_same_session_maximum"] > overlap["renderer_vs_matching_mean"]
+    pipeline = json.loads(
+        (ROOT / "results" / "detection" / "pipeline_b80.json").read_text(
             encoding="utf-8"
         )
     )
-    warm = json.loads(
-        (ROOT / "results" / "detection" / "warm_known_reference.json").read_text(
-            encoding="utf-8"
-        )
+    assert pipeline["subject"] == (
+        "current shipped Planner to final native Renderer pipeline"
     )
-    assert floors["target_clean_history_may_be_used"] is True
-    assert cold["threat_model"]["target_clean_history_used"] is False
-    assert warm["threat_model"]["target_clean_history_used"] is True
-    assert cold["held_human"]["installation_keys_falsely_flagged"] == 1
+    assert (
+        pipeline["generation_contract"]["human_future_passed_to_planner_or_renderer"]
+        is False
+    )
+    assert len(pipeline["cells"]) == 4
+    warm = pipeline["detection"]["warm_known_session"]
+    assert warm["tuning"]["alpha"] == 0.0025
+    assert warm["human_panel"]["cell_flags"] == 2
+    assert warm["mixture_power"][-1]["flags"] == 36
+    assert warm["mixture_power"][-1]["evaluations"] == 40
+    sweep = warm["cutoff_sweep"]
+    assert sweep["selected_alpha"] == 0.0025
+    assert [row["alpha"] for row in sweep["rows"]] == [
+        0.0005,
+        0.001,
+        0.0025,
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+    ]
+    assert [row["generated_flags"] for row in sweep["rows"]] == [
+        36,
+        36,
+        36,
+        36,
+        37,
+        39,
+        40,
+    ]
+    assert [row["human_flags"] for row in sweep["rows"]] == [0, 0, 2, 2, 2, 8, 8]
+    cold = pipeline["detection"]["cold_unknown_person"]
+    assert cold["curve_envelope"]["generated_flags"] == 0
+    assert cold["curve_envelope"]["human_flags"] == 0
+    assert cold["candidate_power"][-1]["flags"] == 6
+    assert cold["candidate_power"][-1]["evaluations"] == 40
+    assert cold["held_human"]["keys_flagged"] == 2
+    assert cold["held_human"]["keys_evaluated"] == 6
 
 
 def test_release_detector_code_has_no_machine_specific_paths() -> None:

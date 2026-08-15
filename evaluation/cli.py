@@ -6,7 +6,11 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
+import site
+import sys
+import tempfile
 from typing import Any, Sequence
 
 import numpy as np
@@ -37,7 +41,28 @@ def _emit(report: Any, output: str | None) -> None:
     if output:
         destination = Path(output)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(payload, encoding="utf-8", newline="\n")
+        temporary: Path | None = None
+        try:
+            descriptor, name = tempfile.mkstemp(
+                dir=destination.parent,
+                prefix=f".{destination.name}.",
+                suffix=".tmp",
+            )
+            temporary = Path(name)
+            with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            # Hard-link publication is atomic and fails if another process
+            # created the requested destination while the report was running.
+            os.link(temporary, destination)
+        except FileExistsError as error:
+            raise FileExistsError(
+                f"refusing to overwrite result: {destination}"
+            ) from error
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
     else:
         print(payload, end="")
 
@@ -66,17 +91,41 @@ def verify_result_manifest(path: str | Path) -> dict[str, Any]:
         artifact = manifest_path.parent / relative
         actual = _sha256(artifact) if artifact.is_file() else None
         expected = str(receipt["sha256"])
-        ok = actual == expected
-        checked.append({"path": relative, "sha256": actual, "ok": ok})
+        actual_bytes = artifact.stat().st_size if artifact.is_file() else None
+        expected_bytes = int(receipt["bytes"])
+        ok = actual == expected and actual_bytes == expected_bytes
+        checked.append(
+            {
+                "path": relative,
+                "bytes": actual_bytes,
+                "sha256": actual,
+                "ok": ok,
+            }
+        )
         if not ok:
             failures.append(relative)
     return {
-        "schema": "abcurves.detection_result_verification.v1",
+        "schema": "abcurves.result_verification.v2",
         "manifest": str(manifest_path),
         "ok": not failures,
         "failures": failures,
         "artifacts": checked,
     }
+
+
+def default_result_manifest() -> Path:
+    """Locate the compact release receipts in a clone or installed wheel."""
+
+    relative = Path("results") / "detection" / "manifest.json"
+    candidates = (
+        Path(__file__).resolve().parents[1] / relative,
+        Path(sys.prefix) / relative,
+        Path(site.getuserbase()) / relative,
+    )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return candidates[0]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -162,9 +211,40 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument(
         "manifest",
         nargs="?",
-        default=str(Path(__file__).resolve().parents[1] / "results" / "detection" / "manifest.json"),
+        default=str(default_result_manifest()),
     )
     verify.add_argument("--output")
+
+    renderer_selection = commands.add_parser(
+        "renderer-selection",
+        help="score one Renderer on hash-bound, carried full sessions",
+    )
+    renderer_selection.add_argument(
+        "sessions",
+        help="abcurves.full_sessions.v1 manifest/directory or validated export root",
+    )
+    renderer_selection.add_argument(
+        "--backend", choices=("native", "float"), default="native"
+    )
+    renderer_selection.add_argument(
+        "--model",
+        help="artifact/checkpoint path (defaults to the shipped model for the backend)",
+    )
+    renderer_selection.add_argument(
+        "--library", help="native library override; invalid for --backend float"
+    )
+    renderer_selection.add_argument(
+        "--specs",
+        nargs="+",
+        choices=("w3", "w5"),
+        default=("w5",),
+        help="whole-session intent views to score (default: w5)",
+    )
+    renderer_selection.add_argument("--seed", type=int, default=7001)
+    renderer_selection.add_argument(
+        "--device", default="cpu", help="PyTorch device for --backend float"
+    )
+    renderer_selection.add_argument("--output")
     return parser
 
 
@@ -175,6 +255,26 @@ def main(argv: Sequence[str] | None = None) -> None:
         _emit(report, arguments.output)
         if not report["ok"]:
             raise SystemExit(1)
+        return
+    if arguments.command == "renderer-selection":
+        # Keep the ordinary descriptor commands light; Renderer selection also
+        # needs Torch and the native binding, so import that route only here.
+        from .renderer_selection import evaluate_renderer_selection
+
+        if arguments.output and Path(arguments.output).exists():
+            raise FileExistsError(
+                f"refusing to overwrite selection report: {Path(arguments.output)}"
+            )
+        report = evaluate_renderer_selection(
+            arguments.sessions,
+            backend=arguments.backend,
+            model=arguments.model,
+            library=arguments.library,
+            specs=arguments.specs,
+            seed=arguments.seed,
+            device=arguments.device,
+        )
+        _emit(report, arguments.output)
         return
     bundle = load_descriptor_bundle(arguments.bundle)
     if arguments.command == "floors":

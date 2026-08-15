@@ -1,34 +1,51 @@
-# What is in this folder?
+# Detection results
 
-These are the small, publishable result files behind the detection write-up. The
-private mouse recordings and large group-by-group audit records are not copied into the
-repository, so each file keeps the final numbers in a compact form and
-`manifest.json` hashes them.
+This directory keeps the compact, publishable record behind
+[`DETECTION.md`](../../DETECTION.md). The private mouse recordings and large
+per-group ledgers are not copied into the repository.
 
-The easiest place to understand the story is
-[`docs/DETECTION.md`](../../docs/DETECTION.md). The files here are the receipts:
+[`renderer_oracle_b80.json`](renderer_oracle_b80.json) is the isolated Renderer
+result. It records:
 
-- `human_distance_floors.json` compares ABCurves with its matching human and with
-  ordinary human variation. It is allowed to know which recordings match because it
-  is measuring closeness, not trying to detect an unknown person.
-- `labeled_judges.json` records how well classifiers separate already-labeled human
-  and generated populations.
-- `cold_unknown_person.json` contains the result that matters for the real
-  false-positive question. The identity being judged and all of its sessions were
-  absent from fitting and human-only threshold selection.
-- `protocol_parity.json` says exactly which release-code calculations were checked
-  against the sealed runners and which private-data rerun was not repeated.
-- `warm_known_reference.json` and `warm_power.csv` contain the separate technical
-  experiment where trusted same-session human history is available. They are not
-  evidence for the unknown-person claim.
+- the exact 44,484-byte native Renderer and its SHA-256;
+- the 320-row, ten-session panel using window-5-smoothed human intent at the 0.80 handoff;
+- the 256 genuine reports supplied before generation and the AF1.5 lateral safeguard;
+- the three descriptor views and labeled AUC diagnostic;
+- the known-matching human-distance ruler; and
+- the supporting Renderer-only diagnostics.
 
-The headline result is straightforward. **Among the people held completely out, we
-did not find a useful detector that caught the final ABCurves pipeline without also
-accusing real human movement.**
+[`pipeline_b80.json`](pipeline_b80.json) is the complete-pipeline detection result.
+It records:
 
-Verify every file with:
+- the same frozen B80 human panel;
+- two Planner seeds and two Renderer draws per movement;
+- the false-positive-free and broader cold searches; and
+- the warm mixture sweep and its predeclared cutoff sensitivity.
+
+The files keep the aggregate counts, exact artifact identities, test boundaries, and
+digests of the sealed research record. They do not contain the private source
+movements needed to recalculate those exact numbers from a clone.
+
+The matching-human ruler isolates the Renderer, while the published cold and warm
+results run the complete Planner→Renderer pipeline. The ruler and population tables
+also use different aggregations, so values should be compared within each section
+rather than across them.
+
+Warm and cold results answer different questions: warm detection owns trusted
+movement from the same session, while cold detection must judge a completely
+held-out installation key. The warm case is a best-case laboratory assumption. A
+changed sensitivity, mousepad, grip, posture, fatigue level, or habit can make a real
+person's old reference stop matching; the compact result does not treat such a
+reference as permanently stable.
+
+`manifest.json` authenticates the compact result artifacts by byte count and
+SHA-256. Verify them with:
 
 ```bash
 python -m pip install -e ".[evaluation]"
 python -m evaluation verify-results
 ```
+
+See [`evaluation/README.md`](../../evaluation/README.md) for descriptor-bundle
+fields, runnable commands, and the distinction between smoke runs and the full
+warm and cold studies.

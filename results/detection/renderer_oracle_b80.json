@@ -1,0 +1,84 @@
+{
+  "schema": "abcurves.release.renderer_oracle_b80.v1",
+  "status": "FROZEN_RENDERER_ONLY_DIAGNOSTIC",
+  "candidate": {
+    "name": "global_h80_p0_online",
+    "artifact": "models/renderer_global_h80.bin",
+    "bytes": 44484,
+    "sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b",
+    "lateral_offset_penalty": 1.5
+  },
+  "scope": {
+    "component": "Renderer_only",
+    "intent": "oracle_human_smoothed_w5",
+    "rows": 320,
+    "sessions": 10,
+    "draws": 2,
+    "evaluation_base_seed": 7,
+    "context_reports": 256,
+    "observer_reset": "B_minus_256",
+    "future_raw_passed": false,
+    "excludes": [
+      "composed Planner-to-Renderer evaluation",
+      "arbitrary rolling observation"
+    ]
+  },
+  "metrics": {
+    "Trajectory14": {
+      "pooled_w1": 0.04614708119498991,
+      "equal_session_w1": 0.07226702228158957,
+      "auc_orientation_free": 0.5766398111979166
+    },
+    "Texture19": {
+      "pooled_w1": 0.08034778768897022,
+      "equal_session_w1": 0.12785918434853438,
+      "auc_orientation_free": 0.6507975260416666
+    },
+    "Full49": {
+      "pooled_w1": 0.05199770504833559,
+      "equal_session_w1": 0.08196488466196906,
+      "auc_orientation_free": 0.6586100260416667
+    }
+  },
+  "known_matching_similarity_ruler": {
+    "status": "descriptive_known_metadata_not_a_detector",
+    "identity_semantics": "installation_key is a persistent collection key used for leakage control; it is not a verified biological identity",
+    "point_estimates_only": true,
+    "confidence_interval_claimed": false,
+    "panels": {
+      "Trajectory14": {
+        "generated_vs_matching_session": {"mean": 0.32319998917305137, "pairs": 10},
+        "human_same_session_half": {"mean": 0.21882656750784213, "pairs": 35},
+        "human_same_key_cross_session": {"mean": 0.2860788770385564, "pairs": 5},
+        "human_nearest_different_key": {"mean": 0.2891622804748201, "pairs": 35},
+        "human_all_different_key": {"mean": 0.5609493779405089, "pairs": 590}
+      },
+      "Texture19": {
+        "generated_vs_matching_session": {"mean": 0.26324426077447555, "pairs": 10},
+        "human_same_session_half": {"mean": 0.1498704248986955, "pairs": 35},
+        "human_same_key_cross_session": {"mean": 0.2395718446335377, "pairs": 5},
+        "human_nearest_different_key": {"mean": 0.2796221226334715, "pairs": 35},
+        "human_all_different_key": {"mean": 0.6388376134637812, "pairs": 590}
+      },
+      "Full49": {
+        "generated_vs_matching_session": {"mean": 0.24296729484861465, "pairs": 10},
+        "human_same_session_half": {"mean": 0.15739553393455138, "pairs": 35},
+        "human_same_key_cross_session": {"mean": 0.23089138795150452, "pairs": 5},
+        "human_nearest_different_key": {"mean": 0.2577550927309343, "pairs": 35},
+        "human_all_different_key": {"mean": 0.5090530853672982, "pairs": 590}
+      }
+    },
+    "texture19_same_session_overlap": {
+      "renderer_vs_matching_mean": 0.26324426077447555,
+      "human_same_session_pairs": 35,
+      "human_same_session_pairs_above_renderer_mean": 3,
+      "human_same_session_maximum": 0.5022493007131686
+    },
+    "interpretation": "The current Renderer lies near same-key and nearest-other-key variation and far below average different-key variation on this ten-session ruler. Its mean remains above the same-session split-half floor, although 3 of 35 real Texture19 split pairs exceed the Renderer-to-matching-human mean. Matching metadata makes this a scale ruler, not a cold detection rule."
+  },
+  "claim_boundary": {
+    "valid": "Exact final artifact, genuine source-native 256-report contexts, frozen oracle-B80 panel, two common-random-number draws, W5 and AF1.5.",
+    "not_valid": "The observer was reset at B-256. This does not validate arbitrary rolling handoff, session-start state carried to an arbitrary B, or the composed Planner-to-Renderer pipeline."
+  },
+  "sealed_research_receipt_sha256": "dd2d5cb1120dc0452b73af8fbc78525e3d0bf2a52b171154623ab7781237c1f0"
+}

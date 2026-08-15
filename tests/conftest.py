@@ -17,8 +17,14 @@ def example_row() -> dict[str, object]:
         row = 0
         prefix = np.asarray(data["prefix_raw_dxdy"][row], dtype=np.float32)
         prefix = prefix[np.asarray(data["prefix_mask"][row]) > 0.5]
+        # The public event fixture has no pre-A session history.  Its runtime
+        # smoke test therefore makes the cold-start assumption explicit: the
+        # device was quiet before the recorded Planner prefix.
+        renderer_context = np.zeros((256, 2), dtype=np.int16)
+        renderer_context[-len(prefix) :] = np.rint(prefix).astype(np.int16)
         return {
             "prefix": prefix,
+            "renderer_context": renderer_context,
             "target": (
                 float(data["target_rel_x_at_B"][row]),
                 float(data["target_rel_y_at_B"][row]),

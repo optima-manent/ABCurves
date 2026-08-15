@@ -1,39 +1,43 @@
-"""The optimized ABCurves Planner -> Renderer streaming pipeline.
+"""The final Planner -> global Renderer streaming pipeline.
 
-Create one :class:`Pipeline` at process startup, then reuse it for every
-movement.  At B, :meth:`Pipeline.begin_at_b` immediately launches the
-target-independent Renderer prefix warm-up.  :meth:`PendingB.finish` runs the
-selected Planner head once the final target geometry is known and returns a
-stream whose :meth:`PreparedStream.step` method emits one raw integer mouse
-report per millisecond.
-
-The public runtime is the optimized runtime.  It does not select among several
-backends and it does not run best-of-K inference: one of the Planner's sixteen
-heads is sampled uniformly for each request.
+The Planner reads the human A->B movement and chooses one smooth finish.  In
+parallel, the global Renderer observes exactly 256 chronological hardware
+reports.  The default fixed-point C core performs its bounded online handoff
+and emits one integer report per millisecond.  A checkpoint produced by the
+public trainer can instead be supplied explicitly; that research backend
+replays the same context through the float graph and pre-renders the event.
 """
 
 from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
-from dataclasses import dataclass
-import time
-from types import SimpleNamespace
+from dataclasses import asdict, dataclass
 from pathlib import Path
+import time
 from typing import Any
 
 import numpy as np
 import torch
 
-from .fast_kernels import NumbaPlannerForward, _tcn_forward
-from .fast_renderer import FastRendererEvent, FastRendererKernel, PrefixWarmState
+from .fast_planner import NumbaPlannerForward, _tcn_forward
 from .fast_summary import CompiledSummaryVector
-from .model_store import ModelFiles, resolve_model_files
+from .model_store import resolve_model_files
 from .planner import Intent, Planner
-from .renderer import CountTextureModel, renderer_config_from_dict
+from .portable_renderer import (
+    CONTEXT_TICKS,
+    PortableRendererEvent,
+    PortableRendererModel,
+    PreparedRendererContext,
+)
+from .renderer import (
+    FloatRendererEvent,
+    FloatRendererModel,
+    PreparedFloatRendererContext,
+)
 
 
 class InferenceContractError(RuntimeError):
-    """Raised when a model or live input violates the frozen release contract."""
+    """Raised when a model or live input violates the release contract."""
 
 
 def _require(condition: bool, message: str) -> None:
@@ -218,68 +222,12 @@ class FastPlanner:
         )
 
 
-def _load_release_renderer(files: ModelFiles) -> tuple[FastRendererKernel, dict[str, Any]]:
-    payload = torch.load(files.renderer, map_location="cpu", weights_only=False)
-    report = dict(payload.get("report", {}))
-    _require(
-        report.get("schema") == "abcurves.renderer.v1"
-        and report.get("release_schema") == "abcurves.release_renderer.v1",
-        "release Renderer checkpoint schema differs",
-    )
-    _require(
-        report.get("arm") == "F0"
-        and int(report.get("seed", -1)) == files.seed
-        and int(report.get("training_contract", {}).get("epochs", -1)) == 12,
-        "release Renderer checkpoint identity differs",
-    )
-    model = CountTextureModel(renderer_config_from_dict(dict(report["config"])))
-    expected_names = tuple(model.feature_names)
-    _require(
-        tuple(report.get("feature_names", ())) == expected_names,
-        "release Renderer feature names differ",
-    )
-    model.load_state_dict(payload["state_dict"], strict=True)
-    model.to("cpu").eval()
-    model.sync_cell()
-
-    adapter_payload = torch.load(
-        files.renderer_adapter, map_location="cpu", weights_only=False
-    )
-    architecture = dict(adapter_payload.get("architecture", {}))
-    _require(
-        adapter_payload.get("schema") == "abcurves.renderer_adapter.v1"
-        and int(adapter_payload.get("seed", -1)) == files.seed,
-        "release Renderer adapter identity differs",
-    )
-    _require(
-        int(architecture.get("rank", -1)) == 4
-        and int(architecture.get("state_width", -1)) == 3
-        and int(architecture.get("hidden_width", -1)) == 96,
-        "release Renderer adapter geometry differs",
-    )
-    state = adapter_payload.get("state_dict", {})
-    _require(set(state) == {"Wh", "Ws", "U"}, "Renderer adapter tensors differ")
-    adapter = SimpleNamespace(
-        base=model,
-        Wh=state["Wh"],
-        Ws=state["Ws"],
-        U=state["U"],
-    )
-    kernel = FastRendererKernel(model, adapter)
-    return kernel, {
-        "seed": files.seed,
-        "renderer": files.renderer.name,
-        "adapter": files.renderer_adapter.name,
-        "route": "F0-E12 / TP1 / causal-C / AF1.5",
-    }
-
-
 @dataclass(frozen=True)
 class PipelineTiming:
-    b_to_prefix_submit_us: float
+    b_to_context_submit_us: float
     finish_planner_us: float
-    wait_for_renderer_warm_us: float
-    future_and_begin_us: float
+    wait_for_renderer_context_us: float
+    renderer_begin_us: float
     finish_total_us: float
 
 
@@ -287,7 +235,7 @@ class PipelineTiming:
 class PreparedStream:
     """A state-owning, one-tick-at-a-time Renderer stream."""
 
-    renderer: FastRendererEvent
+    renderer: PortableRendererEvent | FloatRendererEvent
     planned: PlannedIntent
     timing: PipelineTiming
 
@@ -300,31 +248,28 @@ class PreparedStream:
         return self.renderer.complete
 
     def step(self) -> np.ndarray:
-        """Return the next integer ``[dx, dy]`` report."""
-
         return self.renderer.step()
 
     def render_remaining(self) -> np.ndarray:
-        """Finish the stream and return only its valid ``(duration, 2)`` ticks."""
-
-        output = self.renderer.render_remaining()
-        return output[: self.renderer.duration].copy()
+        return self.renderer.render_remaining().copy()
 
 
 class PendingB:
-    """The interval in which Renderer warming overlaps target correction."""
+    """Planner work overlapped with the 256-report Renderer observation."""
 
     def __init__(
         self,
         owner: "Pipeline",
         prefix: np.ndarray,
-        warm_future: Future[PrefixWarmState],
+        context_future: Future[
+            PreparedRendererContext | PreparedFloatRendererContext
+        ],
         started_ns: int,
         submitted_ns: int,
     ) -> None:
         self.owner = owner
         self.prefix = prefix
-        self.warm_future = warm_future
+        self.context_future = context_future
         self.started_ns = int(started_ns)
         self.submitted_ns = int(submitted_ns)
         self._finished = False
@@ -337,12 +282,9 @@ class PendingB:
         progress_center: float,
         planner_seed: int,
         renderer_event_seed_u64: int,
-        causal_c_state: np.ndarray | None = None,
         planner_head: int | None = None,
         b_index_ms: float | None = None,
     ) -> PreparedStream:
-        """Bind the B geometry and return a ready streaming continuation."""
-
         _require(not self._finished, "PendingB.finish() may only be called once")
         self._finished = True
         planned = self.owner.planner.plan(
@@ -355,46 +297,37 @@ class PendingB:
             b_index_ms=b_index_ms,
         )
         planner_done = time.perf_counter_ns()
-        wait_started = planner_done
-        warm = self.warm_future.result()
-        warm_done = time.perf_counter_ns()
-        future = self.owner.renderer.prepare_future(
+        prepared = self.context_future.result()
+        context_done = time.perf_counter_ns()
+        event = prepared.begin(
             planned.intent.smooth_dxdy,
             planned.intent.mask,
-            warm.last_direction,
-        )
-        state = (
-            np.zeros(3, dtype=np.float32)
-            if causal_c_state is None
-            else np.asarray(causal_c_state, dtype=np.float32)
-        )
-        event = self.owner.renderer.begin_event(
-            warm,
-            future,
-            state,
-            int(renderer_event_seed_u64),
+            event_seed=int(renderer_event_seed_u64),
         )
         finished = time.perf_counter_ns()
         return PreparedStream(
             renderer=event,
             planned=planned,
             timing=PipelineTiming(
-                b_to_prefix_submit_us=(self.submitted_ns - self.started_ns) / 1_000.0,
+                b_to_context_submit_us=(self.submitted_ns - self.started_ns) / 1_000.0,
                 finish_planner_us=(planner_done - self.submitted_ns) / 1_000.0,
-                wait_for_renderer_warm_us=(warm_done - wait_started) / 1_000.0,
-                future_and_begin_us=(finished - warm_done) / 1_000.0,
+                wait_for_renderer_context_us=(context_done - planner_done) / 1_000.0,
+                renderer_begin_us=(finished - context_done) / 1_000.0,
                 finish_total_us=(finished - self.started_ns) / 1_000.0,
             ),
         )
 
 
 class Pipeline:
-    """Load-once release pipeline with an overlapped B-entry path.
+    """Load-once final pipeline.
 
-    Parameters are intentionally sparse.  Seed 7 is the default model cell;
-    seed 23 is an independently trained replication.  ``prewarm=True`` pays
-    model loading, ProDMP cache construction, JIT compilation, and worker
-    startup once rather than on the first live movement.
+    ``model_seed`` chooses one of the two independently trained Planners.  The
+    selected global Renderer is shared by both Planner cells.  Pass
+    ``float_renderer_checkpoint`` to use a newly trained PyTorch checkpoint
+    through the same API without claiming it is the authenticated native image.
+    Either Renderer context is exactly 256 chronological hardware reports; when
+    the Planner prefix is shorter, pass it separately with
+    ``renderer_context_raw_dxdy``.
     """
 
     def __init__(
@@ -402,6 +335,10 @@ class Pipeline:
         model_seed: int = 7,
         *,
         model_dir: str | Path | None = None,
+        renderer_library: str | Path | None = None,
+        float_renderer_checkpoint: str | Path | None = None,
+        float_renderer_device: str = "cpu",
+        float_renderer_prefix_smoothing_spec: str | None = None,
         verify_models: bool = True,
         prewarm: bool = True,
         torch_threads: int | None = 1,
@@ -414,32 +351,46 @@ class Pipeline:
         )
         self.model_seed = self.model_files.seed
         self.planner = FastPlanner(self.model_files.planner, prewarm=prewarm)
-        self.renderer, self.renderer_receipt = _load_release_renderer(self.model_files)
-        if prewarm:
-            self.renderer.prewarm()
-        self._warm_worker = ThreadPoolExecutor(
+        if float_renderer_checkpoint is None:
+            self.renderer = PortableRendererModel(
+                self.model_files.renderer,
+                library=renderer_library,
+                verify=verify_models,
+            )
+        else:
+            _require(
+                renderer_library is None,
+                "renderer_library cannot be combined with a float Renderer checkpoint",
+            )
+            self.renderer = FloatRendererModel(
+                float_renderer_checkpoint,
+                device=float_renderer_device,
+                prefix_smoothing_spec=float_renderer_prefix_smoothing_spec,
+            )
+        self.renderer_receipt = asdict(self.renderer.receipt)
+        self._context_worker = ThreadPoolExecutor(
             max_workers=1,
-            thread_name_prefix=f"abcurves-prefix-{self.model_seed}",
+            thread_name_prefix="abcurves-renderer-context",
         )
         self._closed = False
         if prewarm:
-            startup = np.zeros((160, 2), dtype=np.float32)
-            startup[-1, 0] = 1.0
-            self._warm_worker.submit(self.renderer.prepare_prefix, startup).result()
+            context = np.zeros((CONTEXT_TICKS, 2), dtype=np.int16)
+            self._context_worker.submit(self.renderer.prepare_context, context).result()
 
     @classmethod
     def from_pretrained(cls, **kwargs: Any) -> "Pipeline":
-        """Construct the bundled seed-7 release pipeline."""
-
         return cls(model_seed=7, **kwargs)
 
-    def begin_at_b(self, prefix_raw_dxdy: np.ndarray) -> PendingB:
-        """Freeze A->B and start target-independent Renderer warming."""
+    def begin_at_b(
+        self,
+        prefix_raw_dxdy: np.ndarray,
+        *,
+        renderer_context_raw_dxdy: np.ndarray | None = None,
+    ) -> PendingB:
+        """Freeze A->B and start the exact 256-report Renderer observation."""
 
         _require(not self._closed, "Pipeline is closed")
         started = time.perf_counter_ns()
-        # Always own the causal B snapshot: a view into a live USB ring could
-        # otherwise change while the worker and Planner read it.
         prefix = np.array(prefix_raw_dxdy, dtype=np.float32, order="C", copy=True)
         _require(
             prefix.ndim == 2
@@ -448,15 +399,32 @@ class Pipeline:
             and bool(np.all(np.isfinite(prefix))),
             "B prefix must be a non-empty finite array with shape (P, 2)",
         )
+        if renderer_context_raw_dxdy is None:
+            _require(
+                len(prefix) == CONTEXT_TICKS,
+                "global Renderer needs exactly 256 chronological reports; pass "
+                "renderer_context_raw_dxdy when the Planner prefix has another length",
+            )
+            context = np.array(prefix, copy=True)
+        else:
+            context = np.array(renderer_context_raw_dxdy, copy=True)
         prefix.setflags(write=False)
-        warm = self._warm_worker.submit(self.renderer.prepare_prefix, prefix)
+        context.setflags(write=False)
+        prepared = self._context_worker.submit(self.renderer.prepare_context, context)
         submitted = time.perf_counter_ns()
-        return PendingB(self, prefix, warm, started, submitted)
+        return PendingB(self, prefix, prepared, started, submitted)
 
-    def prepare(self, prefix_raw_dxdy: np.ndarray, **finish_kwargs: Any) -> PreparedStream:
-        """Single-call form of ``begin_at_b(prefix).finish(...)``."""
-
-        return self.begin_at_b(prefix_raw_dxdy).finish(**finish_kwargs)
+    def prepare(
+        self,
+        prefix_raw_dxdy: np.ndarray,
+        *,
+        renderer_context_raw_dxdy: np.ndarray | None = None,
+        **finish_kwargs: Any,
+    ) -> PreparedStream:
+        return self.begin_at_b(
+            prefix_raw_dxdy,
+            renderer_context_raw_dxdy=renderer_context_raw_dxdy,
+        ).finish(**finish_kwargs)
 
     def generate(
         self,
@@ -466,22 +434,20 @@ class Pipeline:
         target_radius: float,
         progress_center: float,
         seed: int = 7,
-        causal_c_state: np.ndarray | None = None,
+        renderer_context_raw_dxdy: np.ndarray | None = None,
         planner_head: int | None = None,
         b_index_ms: float | None = None,
     ) -> np.ndarray:
-        """Generate a complete ``(duration, 2)`` int16 B->C stream."""
-
         event_seed = int(seed)
         _require(0 <= event_seed < 2**64, "seed must fit in uint64")
         stream = self.prepare(
             prefix_raw_dxdy,
+            renderer_context_raw_dxdy=renderer_context_raw_dxdy,
             target_rel_at_B=target_rel_at_B,
             target_radius=target_radius,
             progress_center=progress_center,
             planner_seed=event_seed,
             renderer_event_seed_u64=event_seed,
-            causal_c_state=causal_c_state,
             planner_head=planner_head,
             b_index_ms=b_index_ms,
         )
@@ -489,13 +455,13 @@ class Pipeline:
 
     def close(self) -> None:
         if not self._closed:
-            self._warm_worker.shutdown(wait=True, cancel_futures=False)
+            self._context_worker.shutdown(wait=True, cancel_futures=False)
             self._closed = True
 
     def __enter__(self) -> "Pipeline":
         return self
 
-    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+    def __exit__(self, _exc_type: Any, _exc: Any, _traceback: Any) -> None:
         self.close()
 
 

@@ -978,7 +978,6 @@ def cold_smoke_report(
         fit_human = human & (keys != held_key)
         fit_generated = generated & (keys != held_key)
         held_human = human & (keys == held_key)
-        held_generated = generated & (keys == held_key)
         # This assertion is intentionally near the fit call: a future refactor
         # must not silently turn complete-key holdout into row-level CV.
         if np.any(keys[fit_human] == held_key) or np.any(keys[fit_generated] == held_key):

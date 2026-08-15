@@ -13,7 +13,6 @@ from abcurves.preprocessing import (
     PREPARED_CUT_SCHEMA,
     PlannerPreparationConfig,
     PortableEvent,
-    RendererPreparationConfig,
     TinyTargetConfig,
     adaptive_planner_thresholds,
     load_portable_events,
@@ -21,7 +20,6 @@ from abcurves.preprocessing import (
     planner_shape_metrics,
     planner_shape_reasons,
     prepare_planner,
-    prepare_renderer,
     save_prepared_dataset,
     subset_preparation_result,
     write_portable_events,
@@ -33,7 +31,6 @@ from training.train_planner import (
     require_prepared_branch,
     source_trial_weight_summary,
 )
-from training.train_renderer import require_renderer_dataset
 
 
 def straight_event(
@@ -71,19 +68,6 @@ def test_adaptive_threshold_cap_is_b90_or_b92() -> None:
     assert short[0] == pytest.approx(0.78)
     assert short[-1] == pytest.approx(0.90)
     assert long[-1] == pytest.approx(0.92)
-
-
-def test_renderer_does_not_inherit_planner_endpoint_filter() -> None:
-    # The final point is inside the target but outside the Planner's inner
-    # 75% cohort.  It remains valid Renderer texture supervision.
-    event = straight_event("border", stop_x=91)
-    planner = prepare_planner([event])
-    renderer = prepare_renderer([event])
-
-    assert "endpoint_not_inner" in planner.rejected[event.source_trial_id]
-    assert len(renderer.cuts) == 1
-    assert renderer.cuts[0].threshold == pytest.approx(0.80)
-    assert renderer.cuts[0].source_trial_id == event.source_trial_id
 
 
 def test_signature_at_one_native_cut_vetoes_physical_planner_event() -> None:
@@ -156,17 +140,17 @@ def test_portable_roundtrip_and_self_contained_prepared_output(tmp_path: Path) -
         assert str(data["schema"]) == PORTABLE_EVENT_SCHEMA
 
     prepared, manifest = save_prepared_dataset(
-        prepare_renderer(loaded, RendererPreparationConfig()),
-        tmp_path / "renderer.npz",
+        prepare_planner(loaded),
+        tmp_path / "planner.npz",
     )
     assert manifest.is_file()
     with np.load(prepared, allow_pickle=False) as data:
         assert str(data["schema"]) == PREPARED_CUT_SCHEMA
-        assert data["row_event_index"].tolist() == [0]
-        assert data["split_index"].shape == (1,)
-        assert data["prefix_raw_dxdy"].shape == (1, 160, 2)
-        assert data["future_raw_dxdy"].shape == (1, 1000, 2)
-        assert data["future_smooth_dxdy"].shape == (1, 1000, 2)
+        assert np.all(data["row_event_index"] == 0)
+        assert data["split_index"].shape[0] >= 1
+        assert data["prefix_raw_dxdy"].shape[1:] == (160, 2)
+        assert data["future_raw_dxdy"].shape[1:] == (1000, 2)
+        assert data["future_smooth_dxdy"].shape[1:] == (1000, 2)
         split = int(data["split_index"][0])
         prefix = data["prefix_raw_dxdy"][0][data["prefix_mask"][0] > 0.5]
         future_len = int(data["future_mask"][0].sum())
@@ -177,12 +161,12 @@ def test_portable_roundtrip_and_self_contained_prepared_output(tmp_path: Path) -
             spec="triangular_moving_average_path:window=5",
         )[split:]
         assert np.array_equal(data["future_smooth_dxdy"][0, :future_len], expected_smooth)
-        assert data["event_weight"].tolist() == [1.0]
-        assert data["source_trial_id"].astype(str).tolist() == ["one"]
+        assert float(data["event_weight"].sum()) == pytest.approx(1.0)
+        assert set(data["source_trial_id"].astype(str)) == {"one"}
         assert "causal_seam_contract_json" in data.files
 
 
-def test_cli_writes_directly_trainable_split_filenames(tmp_path: Path) -> None:
+def test_cli_keeps_portable_event_input_for_planner(tmp_path: Path) -> None:
     source = tmp_path / "events.npz"
     write_portable_events(
         source,
@@ -192,20 +176,20 @@ def test_cli_writes_directly_trainable_split_filenames(tmp_path: Path) -> None:
         ],
     )
     output = tmp_path / "prepared"
-    config = Path(__file__).resolve().parents[1] / "configs" / "final_v2.json"
+    config = Path(__file__).resolve().parents[1] / "configs" / "final.json"
 
     assert prepare_dataset_main(
-        [str(source), str(output), "--config", str(config), "--branch", "both"]
+        [str(source), str(output), "--config", str(config), "--branch", "planner"]
     ) == 0
     for name in (
         "planner_train.npz",
         "planner_val.npz",
-        "renderer_train.npz",
-        "renderer_val.npz",
     ):
         with np.load(output / name, allow_pickle=False) as data:
             assert data["prefix_raw_dxdy"].ndim == 3
             assert data["future_raw_dxdy"].shape[1:] == (1000, 2)
+    assert not (output / "renderer_train.npz").exists()
+    assert not (output / "renderer_train").exists()
     with np.load(output / "planner_train.npz", allow_pickle=False) as train_data:
         train = dict(train_data)
     with np.load(output / "planner_val.npz", allow_pickle=False) as val_data:
@@ -222,8 +206,6 @@ def test_trainers_reject_uncontracted_example_fixtures() -> None:
         fixture = dict(data)
     with pytest.raises(ValueError, match="tools/prepare_dataset.py"):
         require_prepared_branch(fixture, branch="planner", label="train dataset")
-    with pytest.raises(ValueError, match="tools/prepare_dataset.py"):
-        require_renderer_dataset(fixture)
 
 
 def test_planner_requires_explicit_seam_metadata() -> None:

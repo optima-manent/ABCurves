@@ -1,0 +1,656 @@
+{
+  "cells": [
+    {
+      "planner_model_seed": 7,
+      "renderer_draw_label": 47007,
+      "rows": 320
+    },
+    {
+      "planner_model_seed": 7,
+      "renderer_draw_label": 47023,
+      "rows": 320
+    },
+    {
+      "planner_model_seed": 23,
+      "renderer_draw_label": 47007,
+      "rows": 320
+    },
+    {
+      "planner_model_seed": 23,
+      "renderer_draw_label": 47023,
+      "rows": 320
+    }
+  ],
+  "claim_boundary": "This rerun evaluates the exact current shipped Planner artifacts and final native Renderer on the frozen B80 panel. The 256 context reports are genuine, but the online observer is reset at B-256; this does not validate arbitrary live handoff timing from physical session start. Cold and warm are separate questions, and warm assumes trusted same-session history.",
+  "custody": {
+    "current_planner": {
+      "artifact_sha256": {
+        "23": "d691ba155c4fa9b403c5a3e2ed9c44123fe00d3d1bee15c55ee9226f4531a23e",
+        "7": "d82c93071224f7eb225d1f2bcf46d52669a7270db414431d7622e032439b280d"
+      },
+      "source_container_sha256": {
+        "23": "2aaa541c35fa7b54740b1fabc31583f9da72d43a8bd6ffe71077be09d23038e5",
+        "7": "23a542ed38dc74f8e0e1218da6aae292a52b9bb476fcc223910cc1c7e899c116"
+      },
+      "tensor_sha256": {
+        "23": "5d05a4aaf9afee66ccccfb13ea499e8fb796d017ed8f97b227fd6a58a77d7877",
+        "7": "78b6d104f9877b846fd3edd0d833a3d5a72167591b56e00b09dd6b9d0e0d3795"
+      }
+    },
+    "final_renderer": {
+      "artifact_bytes": 44484,
+      "artifact_sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b",
+      "lateral_offset_penalty": 1.5,
+      "native_library_sha256": "730bafac2b6a8431628401fc6e2239a12b787cd730791d453b4dec0cb47d3a41"
+    },
+    "frozen_authorities": {
+      "composition_broad_roster_sha256": "90643a74856862538e607cf766ac0f18e960a71b9434c5b4c26dc65060919ab9",
+      "composition_crn_ledger_sha256": "ac494db1fc7d64b624b032c20c40a6a7fb663c7ffd0e92cf88546b7ca3337fe6",
+      "development_dataset_sha256": "d2e690dd6143902ae3b5d5217404153f7a9b6b9b90420a72936da6f498fca5e6",
+      "panel_sha256": "9ce695a556c49359deb7481b3b4779639f7988ffa86eb0de2cb9a806456861e0",
+      "rolling_context_descriptor_sha256": "4cb0fdbc70993cb9555ca4f618818c55a8fe43392720fa20ea29ace85d2a9d5f",
+      "scheduled_head_authority_sha256": {
+        "23": "974295814f4d773ae430bd31c761e5f368d07812e5948991e558046a454c6573",
+        "7": "91d5e4f4deb0402b8512c906edfa2d5fbfaa6baff098dfdf7879ab174c1bbb08"
+      }
+    },
+    "pipeline_outputs": {
+      "cold_report_sha256": "32dd1a8416d0bd241f13aa3738de99f5bd20f660e54e1811b923087ef461fe9b",
+      "enriched_descriptor_bundle_sha256": "f36925e00de64b8b853f59bc10d2000ee2ddbd1a8d79590fbcaeb04bc687c474",
+      "raw_four_cell_cache_sha256": "4ecc1525058d14d2b19b677f187e513af08cb2badd9e02d3711967872228005c",
+      "warm_report_sha256": "dcbb7a5d69aac6401e1e32660e9d1ea10173cbfd05cd17cb4befe72d362962e5"
+    }
+  },
+  "detection": {
+    "cold_unknown_person": {
+      "candidate_power": [
+        {
+          "evaluations": 640,
+          "flag_rate": 0.0,
+          "flags": 0,
+          "fraction": 0.03125,
+          "generated_rows": 1
+        },
+        {
+          "evaluations": 640,
+          "flag_rate": 0.003125,
+          "flags": 2,
+          "fraction": 0.0625,
+          "generated_rows": 2
+        },
+        {
+          "evaluations": 640,
+          "flag_rate": 0.009375,
+          "flags": 6,
+          "fraction": 0.125,
+          "generated_rows": 4
+        },
+        {
+          "evaluations": 640,
+          "flag_rate": 0.0140625,
+          "flags": 9,
+          "fraction": 0.25,
+          "generated_rows": 8
+        },
+        {
+          "evaluations": 640,
+          "flag_rate": 0.025,
+          "flags": 16,
+          "fraction": 0.375,
+          "generated_rows": 12
+        },
+        {
+          "evaluations": 640,
+          "flag_rate": 0.053125,
+          "flags": 34,
+          "fraction": 0.5,
+          "generated_rows": 16
+        },
+        {
+          "evaluations": 640,
+          "flag_rate": 0.0671875,
+          "flags": 43,
+          "fraction": 0.75,
+          "generated_rows": 24
+        },
+        {
+          "evaluations": 40,
+          "flag_rate": 0.15,
+          "flags": 6,
+          "fraction": 1.0,
+          "generated_rows": 32
+        }
+      ],
+      "component_frontier": [
+        {
+          "candidate_power": [
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 1
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 2
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 4
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 8
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 12
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 16
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 24
+            },
+            {
+              "evaluations": 40,
+              "flag_rate": 0.0,
+              "generated_rows": 32
+            }
+          ],
+          "held_human_cell_flags": 0,
+          "held_keys_flagged": 0,
+          "rule": "curve_max"
+        },
+        {
+          "candidate_power": [
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 1
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 2
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.003125,
+              "generated_rows": 4
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.00625,
+              "generated_rows": 8
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0125,
+              "generated_rows": 12
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.021875,
+              "generated_rows": 16
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0375,
+              "generated_rows": 24
+            },
+            {
+              "evaluations": 40,
+              "flag_rate": 0.05,
+              "generated_rows": 32
+            }
+          ],
+          "held_human_cell_flags": 175,
+          "held_keys_flagged": 2,
+          "rule": "concordant_curve"
+        },
+        {
+          "candidate_power": [
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 1
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 2
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.009375,
+              "generated_rows": 4
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.01875,
+              "generated_rows": 8
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.028125,
+              "generated_rows": 12
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.046875,
+              "generated_rows": 16
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.08125,
+              "generated_rows": 24
+            },
+            {
+              "evaluations": 40,
+              "flag_rate": 0.25,
+              "generated_rows": 32
+            }
+          ],
+          "held_human_cell_flags": 10,
+          "held_keys_flagged": 2,
+          "rule": "dense_mean"
+        },
+        {
+          "candidate_power": [
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 1
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.003125,
+              "generated_rows": 2
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.009375,
+              "generated_rows": 4
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0140625,
+              "generated_rows": 8
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.025,
+              "generated_rows": 12
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.053125,
+              "generated_rows": 16
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0671875,
+              "generated_rows": 24
+            },
+            {
+              "evaluations": 40,
+              "flag_rate": 0.15,
+              "generated_rows": 32
+            }
+          ],
+          "held_human_cell_flags": 25,
+          "held_keys_flagged": 2,
+          "rule": "sparse_tail"
+        },
+        {
+          "candidate_power": [
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 1
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 2
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 4
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 8
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 12
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 16
+            },
+            {
+              "evaluations": 640,
+              "flag_rate": 0.0,
+              "generated_rows": 24
+            },
+            {
+              "evaluations": 40,
+              "flag_rate": 0.0,
+              "generated_rows": 32
+            }
+          ],
+          "held_human_cell_flags": 0,
+          "held_keys_flagged": 0,
+          "rule": "subgroup"
+        }
+      ],
+      "curve_envelope": {
+        "generated_curve_evaluations": 1280,
+        "generated_flags": 0,
+        "human_curve_evaluations": 15336,
+        "human_flags": 0
+      },
+      "held_human": {
+        "bag_cell_evaluations": 15516,
+        "bag_cell_flags": 25,
+        "keys_evaluated": 6,
+        "keys_flagged": 2,
+        "unique_flagged_rosters": 8,
+        "unique_rosters": 3764
+      },
+      "interpretation": "The primary curve-envelope route flagged none of the 1,280 generated evaluations and none of the 15,336 human evaluations. A broader bag search produced a few generated flags, but it also flagged held human cells and two of six held human keys; it did not yield a clean, useful cold attribution rule.",
+      "population_counts": {
+        "generator_cells": [
+          "planner_seed23|renderer_global_h80|draw47007",
+          "planner_seed23|renderer_global_h80|draw47023",
+          "planner_seed7|renderer_global_h80|draw47007",
+          "planner_seed7|renderer_global_h80|draw47023"
+        ],
+        "held_human_rows": 3834,
+        "held_installation_keys": 6,
+        "reference_human_rows": 9858,
+        "reference_installation_keys": 25
+      },
+      "protocol_variant": "frozen_reference_held_cell_leaveout",
+      "question": "generated attribution for wholly unseen installation keys",
+      "schema": "abcurves.cold_reference_held_cells.v1",
+      "threat_model": {
+        "bag_rows": 32,
+        "bag_statistics": [
+          "curve_max",
+          "concordant_curve",
+          "dense_mean",
+          "sparse_tail",
+          "subgroup"
+        ],
+        "direction_training": "frozen-panel humans from other held keys and generated rows from other held keys and other predeclared generator cells",
+        "generated_outcomes_used_for_threshold_selection": false,
+        "holdout_unit": "complete held installation key and every session under it",
+        "mixture_ledgers": 16,
+        "panels": [
+          "trajectory",
+          "texture",
+          "full"
+        ],
+        "route_selection": "trajectory, texture, Full panels; pooled directions; nuisance ridge; Mondrian ranks; and five bag statistics fixed before held outcomes",
+        "target_clean_history_used": false,
+        "threshold_selection": "strictly above the maximum complete-search score from reference humans and non-target held humans"
+      }
+    },
+    "warm_known_session": {
+      "cutoff_sweep": {
+        "cutoffs_predeclared_before_outcomes": true,
+        "generated_outcomes_used_to_choose_selected_alpha": false,
+        "interpretation": "The selected alpha remains 0.0025. Sweeping the complete predeclared grid shows the trade-off: loosening the cutoff from 0.001 to 0.0025 adds two human flags without improving the 36-of-40 fully generated result; further loosening eventually raises generated catches to 40 of 40 and human false flags to 8 of 40.",
+        "rows": [
+          {
+            "alpha": 0.0005,
+            "generated_evaluations": 40,
+            "generated_flags": 36,
+            "human_evaluations": 40,
+            "human_flags": 0,
+            "validation_false_positives": 0
+          },
+          {
+            "alpha": 0.001,
+            "generated_evaluations": 40,
+            "generated_flags": 36,
+            "human_evaluations": 40,
+            "human_flags": 0,
+            "validation_false_positives": 0
+          },
+          {
+            "alpha": 0.0025,
+            "generated_evaluations": 40,
+            "generated_flags": 36,
+            "human_evaluations": 40,
+            "human_flags": 2,
+            "validation_false_positives": 0
+          },
+          {
+            "alpha": 0.005,
+            "generated_evaluations": 40,
+            "generated_flags": 36,
+            "human_evaluations": 40,
+            "human_flags": 2,
+            "validation_false_positives": 1
+          },
+          {
+            "alpha": 0.01,
+            "generated_evaluations": 40,
+            "generated_flags": 37,
+            "human_evaluations": 40,
+            "human_flags": 2,
+            "validation_false_positives": 2
+          },
+          {
+            "alpha": 0.025,
+            "generated_evaluations": 40,
+            "generated_flags": 39,
+            "human_evaluations": 40,
+            "human_flags": 8,
+            "validation_false_positives": 7
+          },
+          {
+            "alpha": 0.05,
+            "generated_evaluations": 40,
+            "generated_flags": 40,
+            "human_evaluations": 40,
+            "human_flags": 8,
+            "validation_false_positives": 9
+          }
+        ],
+        "selected_alpha": 0.0025,
+        "status": "descriptive_predeclared_cutoff_sweep"
+      },
+      "human_panel": {
+        "cell_evaluations": 40,
+        "cell_flags": 2,
+        "minimum_pvalue": 0.0014641288433382138,
+        "sessions": 10,
+        "sessions_with_any_flag": 1
+      },
+      "interpretation": "This gate already knows trusted, disjoint movement from the same recorded session. It flagged 2 of 40 all-human evaluations and gained power only as more generated movements were mixed into a 32-row bag. It is conditional same-session evidence, not a practical unknown-person detector.",
+      "mixture_power": [
+        {
+          "evaluations": 40,
+          "flag_rate": 0.05,
+          "flags": 2,
+          "fraction": 0.0,
+          "generated_rows": 0
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.04609375,
+          "flags": 59,
+          "fraction": 0.03125,
+          "generated_rows": 1
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.05546875,
+          "flags": 71,
+          "fraction": 0.0625,
+          "generated_rows": 2
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.06953125,
+          "flags": 89,
+          "fraction": 0.125,
+          "generated_rows": 4
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.096875,
+          "flags": 124,
+          "fraction": 0.1875,
+          "generated_rows": 6
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.1359375,
+          "flags": 174,
+          "fraction": 0.25,
+          "generated_rows": 8
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.29375,
+          "flags": 376,
+          "fraction": 0.375,
+          "generated_rows": 12
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.53046875,
+          "flags": 679,
+          "fraction": 0.5,
+          "generated_rows": 16
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.73125,
+          "flags": 936,
+          "fraction": 0.625,
+          "generated_rows": 20
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.86171875,
+          "flags": 1103,
+          "fraction": 0.75,
+          "generated_rows": 24
+        },
+        {
+          "evaluations": 1280,
+          "flag_rate": 0.90078125,
+          "flags": 1153,
+          "fraction": 0.875,
+          "generated_rows": 28
+        },
+        {
+          "evaluations": 40,
+          "flag_rate": 0.9,
+          "flags": 36,
+          "fraction": 1.0,
+          "generated_rows": 32
+        }
+      ],
+      "not_a_cold_detector": true,
+      "population_counts": {
+        "generator_cells": [
+          "planner_seed23|renderer_global_h80|draw47007",
+          "planner_seed23|renderer_global_h80|draw47023",
+          "planner_seed7|renderer_global_h80|draw47007",
+          "planner_seed7|renderer_global_h80|draw47023"
+        ],
+        "held_human_rows": 3834,
+        "held_sessions": 10,
+        "reference_human_rows": 9858
+      },
+      "protocol_variant": "frozen_same_session_reference_directional_gate",
+      "question": "mixture evidence when trusted, disjoint movement from the same recorded session is already known",
+      "schema": "abcurves.warm_same_session_directional_bag_gate.v1",
+      "threat_model": {
+        "alpha_selection": "disjoint human validation evaluations only",
+        "bag_rows": 32,
+        "generated_outcomes_used_for_alpha_selection": false,
+        "mixture_assignment": "nested source-ID ledgers fixed without outcomes",
+        "null_calibration_draws": 2048,
+        "null_fit_draws": 512,
+        "primary_gate": "maximum over cross-fitted trajectory, texture and full-panel directional dense, sparse-tail and subgroup statistics",
+        "reference_scope": "trusted same-session human history",
+        "target_clean_history_used": true
+      },
+      "tuning": {
+        "alpha": 0.0025,
+        "alpha_grid": [
+          0.05,
+          0.025,
+          0.01,
+          0.005,
+          0.0025,
+          0.001,
+          0.0005
+        ],
+        "empirical_p_resolution": 0.0004880429477794046,
+        "gate_usable": true,
+        "generated_outcomes_used_for_alpha_selection": false,
+        "validation_evaluations": 40,
+        "validation_false_positives": 0,
+        "validation_min_p": 0.0029282576866764276
+      }
+    }
+  },
+  "generation_contract": {
+    "horizon_reports": 1000,
+    "human_future_passed_to_planner_or_renderer": false,
+    "lateral_offset_penalty": 1.5,
+    "panel_rows": 320,
+    "planner_draw_parity_exact": true,
+    "planner_heads": "frozen scheduled head per source and Planner model seed",
+    "renderer_context": "genuine source-native 256 reports immediately before B",
+    "renderer_context_timing": "observer reset at B-256",
+    "renderer_seeds": "two predeclared composition CRN draws"
+  },
+  "known_matching_means": {
+    "included": false,
+    "reason": "Cold and warm are the relevant complete-pipeline tests here. The separate Renderer-only ruler remains the authoritative texture diagnostic."
+  },
+  "planner_runtime_parity_to_frozen_e260_reference": {
+    "23": {
+      "duration_delta_max_abs_ms": 1,
+      "mask_changed_rows": 1,
+      "mask_changed_ticks": 1,
+      "smooth_max_abs": 0.05583244934678078,
+      "smooth_rmse": 0.0003120833425782621
+    },
+    "7": {
+      "duration_delta_max_abs_ms": 1,
+      "mask_changed_rows": 3,
+      "mask_changed_ticks": 3,
+      "smooth_max_abs": 0.06822332739830017,
+      "smooth_rmse": 0.00028695748187601566
+    }
+  },
+  "private_paths_or_identity_values_included": false,
+  "schema": "abcurves.pipeline_b80.v1",
+  "sealed_research_summary_sha256": "026afcf6a27b31b065226190b1a639ce982684dc91a03d25025573b3149d26ad",
+  "status": "complete_current_shipped_pipeline_diagnostic",
+  "subject": "current shipped Planner to final native Renderer pipeline"
+}

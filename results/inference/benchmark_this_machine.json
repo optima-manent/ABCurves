@@ -1,23 +1,23 @@
 {
   "b_to_stream_ready_us": {
-    "max": 840.1,
-    "p50": 587.7,
-    "p95": 744.0049999999999,
-    "p99": 819.774
+    "max": 5073.4,
+    "p50": 3989.8500000000004,
+    "p95": 4746.554999999999,
+    "p99": 4956.6669999999995
   },
   "clock": "time.perf_counter_ns",
   "device": "CPU",
   "first_renderer_tick_us": {
-    "max": 43.9,
-    "p50": 21.5,
-    "p95": 26.505,
-    "p99": 27.812999999999988
+    "max": 83.6,
+    "p50": 43.6,
+    "p95": 58.09499999999997,
+    "p99": 74.76699999999994
   },
   "later_renderer_tick_us": {
-    "max": 79.9,
-    "p50": 9.5,
-    "p95": 12.2,
-    "p99": 15.003999999999905
+    "max": 371.4,
+    "p50": 28.7,
+    "p95": 43.90999999999995,
+    "p99": 69.40299999999993
   },
   "model_seed": 7,
   "platform": {
@@ -26,7 +26,9 @@
     "python": "3.13.14",
     "system": "Windows"
   },
-  "schema": "abcurves.runtime_benchmark.v1",
-  "startup_ms": 1002.9631,
+  "renderer_artifact_sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b",
+  "renderer_context": "256 reports; example-only quiet left padding, not the measured live contract",
+  "schema": "abcurves.runtime_benchmark.v2",
+  "startup_ms": 963.443,
   "trials": 200
 }

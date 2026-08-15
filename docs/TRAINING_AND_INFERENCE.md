@@ -3,29 +3,24 @@
 ABCurves finishes a movement that a person has already started.
 
 The person moves from **A** toward a target. At **B**, ABCurves takes over and
-generates the rest of the movement to **C**. The Planner decides what that finish
-should look like. The Renderer turns the smooth plan into the integer `dx, dy`
-reports a real mouse would send every millisecond.
+generates B→C. The Planner chooses a smooth finish. The global Renderer turns that
+intent into one signed integer `dx, dy` report per millisecond.
 
 ```mermaid
 flowchart LR
-    A["Human A→B prefix\nraw 1 kHz counts"] --> B["Cut at B"]
-    T["Target"] --> B
-    B --> PC["Planner input\nlast 160 ms + 62 causal features"]
-    PC --> P["Planner E260\nTCN + RWTA-16"]
-    P --> I["One sampled ProDMP intent\nup to 1,000 ms"]
-    I --> R["Renderer F0-E12\nGRU + delta-sigma + AF1.5"]
-    B --> W["Renderer warm-up\nlast 128 prefix ticks"]
-    W --> R
-    H["Optional prior-human\nC/M/H style state"] --> R
-    R --> O["TP1 B→C output\none integer report per ms"]
+    A["Human A→B prefix"] --> P["Planner\ncausal TCN · 16 heads"]
+    T["Target at B"] --> P
+    P --> I["One sampled ProDMP intent"]
+    S["Exact 256 physical reports ending at B"] --> R["Global Renderer\n20 features · width 80 · radius 5"]
+    I --> R
+    R --> O["Integer B→C stream\none report per ms"]
 ```
 
-This guide starts with the easiest way to run the finished pipeline. The exact
-training settings are further down the page, after the ideas behind them are clear.
-Dataset preparation has its own [plain-language guide](DATASET.md).
+This guide begins with the release API, then explains the causal A/B seam, the two
+models, training, checkpoint selection, and the native deployment contract. Dataset
+construction is documented separately in [DATASET.md](DATASET.md).
 
-## Try the finished models first
+## Install and run the finished pipeline
 
 Python 3.10 or newer is required. From the repository root:
 
@@ -39,71 +34,110 @@ python -m venv .venv
 # source .venv/bin/activate
 
 python -m pip install -e ".[all,dev]"
+```
+
+The Planner runs on CPU. The Windows release includes the native Renderer library.
+On macOS or Linux, build the C99 library before the first run:
+
+```bash
+cmake -S runtime/c -B runtime/c/build
+cmake --build runtime/c/build --config Release
+ctest --test-dir runtime/c/build -C Release --output-on-failure
+```
+
+The Python binding also accepts an explicit `renderer_library=` path, or the
+`ABCURVES_RENDERER_LIBRARY` environment variable.
+
+Now the same checks work on every supported host:
+
+```bash
 python examples/quickstart.py
 python examples/streaming.py
 python -m pytest
 ```
 
-The released models run on CPU. A CUDA GPU is useful when training them again, but
-it is not needed for inference.
+## The shortest complete Python example
 
-The shortest complete example looks like this:
+The Planner and Renderer look at different lengths of the same live history. Keep
+them separate in the API:
 
 ```python
 import numpy as np
 from abcurves import Pipeline
 
-prefix = np.asarray(prefix_raw_dxdy, dtype=np.float32)
+# Causal A→B movement used by the Planner.
+planner_prefix = np.asarray(prefix_raw_dxdy, dtype=np.float32)
+
+# Exactly 256 chronological physical reports ending at that same B.
+renderer_context = np.asarray(last_256_raw_reports, dtype=np.int16)
+assert renderer_context.shape == (256, 2)
 
 with Pipeline.from_pretrained() as pipeline:
     counts = pipeline.generate(
-        prefix,
+        planner_prefix,
+        renderer_context_raw_dxdy=renderer_context,
         target_rel_at_B=(140.0, -22.0),
         target_radius=18.0,
         progress_center=0.74,
         seed=2026,
     )
 
-# One integer dx, dy mouse report for every millisecond of B -> C.
 print(counts.shape, counts.dtype)  # (duration_ms, 2), int16
 ```
 
-[`examples/quickstart.py`](../examples/quickstart.py) is a runnable version.
+If `planner_prefix` itself has shape `(256, 2)`, the runtime may use it as the
+Renderer context and `renderer_context_raw_dxdy` can be omitted. For every other
+Planner-prefix length, the exact context argument is required.
 
-### What the inputs mean
+There is intentionally no implicit truncation. Passing 300 reports does not mean
+“please choose the last 256,” and passing 160 does not mean “please invent the
+missing history.” Select the exact chronological window in the caller, where its
+meaning is known.
+
+The compact fixture in `examples/quickstart.py` has no earlier session history, so
+that example alone declares a quiet left prefix before its event. This is a demo
+cold-start convention, not the measured live contract. A real application should
+retain genuine reports from the session.
+
+### What each input means
 
 Everything is measured in **raw mouse counts**, before desktop sensitivity or
-cursor acceleration is applied.
+cursor acceleration.
 
-- `prefix_raw_dxdy` is the real A -> B recording. Its shape is `(P, 2)`, with one
-  closed 1 ms `dx, dy` bin per row. The final row ends at B.
-- `target_rel_at_B=(x, y)` says where the target centre is relative to the cursor
-  at B, in the same count space.
-- `target_radius` is the target radius in counts and must be positive.
-- `progress_center` says how far the cursor has travelled from A toward the target
-  centre. It comes from the B trigger described below.
+- `planner_prefix` is the real A→B recording. It is a finite `(P, 2)` array with one
+  closed 1 ms bin per row; the final row ends at B.
+- `renderer_context` is exactly 256 finite, integer-valued physical reports ending
+  at the same B. Values must fit signed int16.
+- `target_rel_at_B=(x, y)` is the target centre relative to the cursor at B, in raw
+  count space.
+- `target_radius` is a positive radius in the same space.
+- `progress_center` is progress from A toward the target centre. Use the value from
+  the causal B trigger, not edge progress.
 
-Do not mix desktop pixels and raw counts. Do not smooth or interpolate the human
-prefix before passing it in. If the mouse reports faster or slower than 1 kHz,
-first collect its reports into causal, closed 1 ms count bins. That is the clock
-the released models learned.
+All three geometry fields are required at every Planner entry point. Passing zero as
+"unknown" is not neutral: radius, target distance, and progress are learned summary
+features and materially change the predicted finish.
 
-The event `seed` makes sampling repeatable. The same input and seed produce the
-same Planner choice and Renderer output. A different seed asks the model for
-another plausible finish. It does not generate several answers and pick the nicest
-one. Renderer sampling uses counter-based SplitMix64 keyed by event seed and tick.
-Each event therefore owns its random stream, and another request cannot quietly
-change the result through process-global randomness.
+Do not mix pixels and raw counts. Do not interpolate or smooth the observed reports.
+If hardware reports faster or slower than 1 kHz, first accumulate them causally into
+closed 1 ms bins. That is the timebase the release learned.
 
-## Running it live
+The event `seed` makes both Planner-head choice and Renderer sampling repeatable. A
+different seed requests another sample; it does not generate several candidates and
+pick the nicest one. Renderer randomness is counter-based and local to the event, so
+another request cannot disturb it through process-global random state.
 
-Create one `Pipeline` when your process starts and keep it alive. At B, the split
-streaming API lets prefix warm-up begin while your application finishes resolving
-the target geometry:
+## Streaming one report at a time
+
+Create one `Pipeline` when the process starts and keep it alive. At B, observation of
+the exact Renderer context can overlap the Planner work:
 
 ```python
 with Pipeline.from_pretrained(prewarm=True) as pipeline:
-    pending = pipeline.begin_at_b(prefix_raw_dxdy)
+    pending = pipeline.begin_at_b(
+        planner_prefix,
+        renderer_context_raw_dxdy=renderer_context,
+    )
 
     stream = pending.finish(
         target_rel_at_B=target_rel_at_B,
@@ -118,478 +152,606 @@ with Pipeline.from_pretrained(prewarm=True) as pipeline:
         send_one_1khz_report(int(dx), int(dy))
 ```
 
-`begin_at_b()` copies the prefix, so the caller may safely reuse its own buffer. It
-also starts the target-independent Renderer warm-up on a worker. `finish()` binds
-the final target geometry, samples one Planner head, and returns a stream that owns
-all state for that event.
+`begin_at_b()` copies both input arrays. Its worker observes all 256 reports while
+the caller finishes binding target geometry. `finish()` samples one Planner head,
+starts the Renderer, and returns an event that owns its state.
 
-Each `PendingB` can be finished once. Never share one `PreparedStream` between
-events. Use `render_remaining()` when you want the complete continuation instead
-of one report at a time. If all B geometry is already known,
-`pipeline.prepare(prefix, ...)` performs both stages in one call.
-
-Compute optional style state once before the event and keep it fixed for the whole
-stream. The runtime copies it into the event, so later history updates cannot change
-an output already in progress.
-
-[`examples/streaming.py`](../examples/streaming.py) shows the full loop.
+Each `PendingB` can be finished once. Each prepared Renderer context can begin one
+event, once. Do not share a `PreparedStream` between events. Use
+`render_remaining()` when a complete array is more convenient than per-tick output.
 
 `prewarm=True` is the default, as is one Torch CPU thread. Prewarming pays for model
-loading, ProDMP caches, Numba compilation, and worker startup once. Creating a new
-pipeline for every movement throws that work away. If you change `torch_threads`,
-benchmark the whole application because PyTorch's thread setting affects the
-process, not only ABCurves.
+loading, ProDMP caches, compiled Planner kernels, the native model view, and worker
+startup once. Creating a new `Pipeline` for every movement discards that work.
+
+### What the runtime does not own
+
+ABCurves emits signed integer reports. It does not open a USB device or schedule HID
+polls. Firmware, permissions, operating-system scheduling, queues, synchronization,
+and final output are caller-owned. Benchmark those layers in the real application.
+
+The selected public handoff is also deliberately narrow: reset, observe exactly 256
+reports, begin one event. A continuously rolling observer and arbitrary-length
+handoff have not been validated as equivalent. Do not silently extend the API and
+assume the published measurements transfer.
 
 ## Finding A and B without looking ahead
 
-The live seam helpers in [`abcurves/seam.py`](../abcurves/seam.py) make their
-decisions only from mouse reports that have already arrived. Feed
-`OnsetDetector` and `BTrigger` once per closed 1 ms bin.
+The helpers in [`abcurves/seam.py`](../abcurves/seam.py) make decisions only from
+reports that have already arrived. Feed `OnsetDetector` and `BTrigger` once per
+closed 1 ms bin.
 
 ### Finding A
 
-A is the estimated start of purposeful movement toward the target. After 12 moving,
+A is the estimated beginning of purposeful target-directed motion. After 12 moving,
 target-aligned bins confirm the movement, A is placed four bins before that run
-began. This puts A closer to the true onset without using future information.
+began. This moves A closer to the true onset without pretending it was known at the
+time.
 
-| Setting | Released value |
+| Setting | Release value |
 | --- | ---: |
 | Quiet/noise window | 24 ms |
-| Normal speed threshold | `max(0.35, median + 6 * MAD)` counts/ms |
-| Minimum target alignment cosine | 0.15 |
+| Speed threshold | `max(0.35, median + 6 × MAD)` counts/ms |
+| Minimum target-alignment cosine | 0.15 |
 | Consecutive qualifying bins | 12 |
-| Backtrack before the qualifying run | 4 ms |
+| Backtrack before confirmed run | 4 ms |
 
-If capture begins after the hand is already moving, the 24 ms baseline can be
-contaminated. When its median is already above `0.35`, the detector falls back to
-the `0.35` floor so the bad baseline cannot hide A.
+If capture starts after the hand is already moving, the quiet estimate can be
+contaminated. When its median already exceeds `0.35`, the detector falls back to the
+fixed floor so a bad baseline cannot hide A.
 
-Keep a short ring buffer. `OnsetEvent.index` points to the estimated earlier A, not
-the tick when the detector finally confirmed it.
+Keep a short ring buffer. `OnsetEvent.index` points to the earlier estimated A, not
+the later tick on which the detector gained enough evidence to confirm it.
 
 ### Choosing B
 
-After A, arm `BTrigger` with the target vector and radius. B fires when the cursor
-has covered 80% of the distance from A to the **near edge of the target**, as long
-as there is still enough useful movement left to generate.
+After A, arm `BTrigger` with the target vector and radius. B fires at 80% of progress
+toward the **near edge of the target**, while the cursor remains outside and enough
+movement remains to generate.
 
-The hand-off is accepted only when all of these are true:
+The handoff is accepted only when:
 
-- the cursor is still outside the target;
 - at least 8 counts remain;
-- progress toward the target centre is no greater than 0.92;
-- A -> B is no longer than 1,500 ms;
+- centre progress is at most 0.92;
+- A→B is at most 1,500 ms; and
 - progress has not regressed by more than 0.18.
 
-The 24 ms prefix and 12 ms future limits belong to offline dataset preparation,
-where the complete recorded movement is available. A live trigger cannot inspect a
-future that has not happened yet.
+The 24 ms minimum prefix and 12 ms minimum future are offline training eligibility
+rules. A live trigger cannot inspect a future that has not happened.
 
 `BFire.progress_edge` explains why the trigger fired. Pass
-`BFire.progress_center` to the Planner. They are intentionally different, and the
-difference becomes important for large targets.
-
-If a movement cannot produce a valid B, leave that movement to the person or your
-application's normal fallback. Moving B later in secret would create a different
-system from the one trained and measured here.
+`BFire.progress_center` to the Planner. They differ most when the target is large.
+If no valid B appears, leave the movement to the person or the application's normal
+fallback. Moving B later in secret creates a different system.
 
 ## What the Planner learns
 
-The Planner does not guess hundreds of future mouse reports one by one. That would
-give every millisecond a chance to drift and would encourage the model to blur many
-valid human finishes into one dull average.
+The Planner does not guess hundreds of future reports one by one. Instead it predicts
+a compact smooth movement with ProDMP. Position and velocity at B are built into the
+representation, so the curve begins from the motion the person was already making.
+Forty-two values describe both axes and one describes duration.
 
-Instead, it predicts a compact smooth movement using ProDMP. The position and
-velocity at B are built into that representation, so the generated curve begins
-from the motion the hand was already making. Forty-two curve values describe both
-axes, and one more value describes duration.
+The same beginning can have several legitimate endings. The Planner keeps sixteen
+heads and trains them with relaxed winner-takes-all. The head closest to the recorded
+finish gets most of the loss while the others get a small share so they remain
+useful. At runtime, one head is sampled uniformly. There is no ensemble, best-of-K
+search, or reranking.
 
-Human beings do not always finish the same prefix in the same way. The Planner
-therefore keeps sixteen possible answers, called heads. During training, the head
-closest to the real finish receives most of the lesson while the others receive a
-small amount so they stay alive. This is relaxed winner-takes-all, or RWTA-16. At
-runtime one head is chosen uniformly. There is no ensemble, best-of-K search, or
-output reranking.
+### Planner architecture
 
-### The released Planner at a glance
-
-The checkpoint is named E260 because it is the terminal result after 260 training
-epochs.
-
-| Part | Released setting |
+| Part | Release setting |
 | --- | --- |
-| Input prefix | Last 160 raw 1 ms bins plus a validity channel |
-| Extra context | 62 causal movement and target features |
-| Network | Width-96 causal TCN with 3 temporal blocks and dropout 0.15 |
-| Output | 16 heads, 43 values per head |
+| Input prefix | Last 160 raw 1 ms bins plus validity |
+| Extra context | 62 causal movement and target summaries |
+| Network | Width-96 causal TCN, 3 temporal blocks, dropout 0.15 |
+| Output | 16 heads × 43 values |
 | ProDMP | 20 forcing bases plus learned goal, alpha 25, phase alpha 3, ridge `1e-3` |
-| Maximum planned future | 1,000 ms |
-| Parameters | 369,904 |
+| Maximum future | 1,000 ms |
+| Learned parameters | 369,904 |
+| Selected checkpoint | Terminal epoch 260 |
 
-`planner_head=` is available for inspection and tests. Uniform random head
-selection is the released inference rule.
+`planner_head=` exists for inspection and tests. Uniform random head selection is the
+release rule.
 
-### Preparing Planner examples
+### Planner examples
 
-Planner training uses many possible B seams without letting a long event count as
-many separate people. For each physical movement, the builder requests 21 edge
-progress cuts:
+Training requests 21 nearby edge-progress handoffs:
 
-- B78 through B90 when the edge distance is below 150 counts;
-- B78 through B92 for longer movements; and
-- exact B80 for validation and other non-training splits.
+- 0.78 through 0.90 for shorter edge distances;
+- 0.78 through 0.92 for longer movements; and
+- fixed 0.80 for validation and non-training splits.
 
-Cuts that land on the same 1 ms tick are deduplicated. At every epoch, the sampler
-takes one available cut from each physical source using a deterministic shuffled
-cycle, then shuffles the sources. Each source therefore has total training weight
-one even if it has many cuts or tiny-target variants.
+Cuts landing on the same millisecond are deduplicated. At each epoch, one cut is
+chosen per physical source through a deterministic shuffled cycle. Every movement
+therefore has total weight one even if it supplies many candidate handoffs or
+controlled small-target rows.
 
-The frozen training set contained 21,302 physical source trials per epoch. Across
-260 epochs that was 5,538,520 source-level exposures.
+The selected Planner training set contained 21,302 physical sources per epoch. Over
+260 epochs, that is 5,538,520 source-level presentations.
 
-Run the dataset builder first:
+### Planner optimizer and loss
 
-```bash
-python tools/prepare_dataset.py path/to/events.npz prepared/ \
-  --config configs/final_v2.json --branch both
-```
-
-The input may also be a directory of validated Capture research exports. See
-[Building the datasets](DATASET.md) for both input formats and the filtering rules.
-
-### The exact Planner recipe
-
-| Part | Released setting |
+| Part | Release setting |
 | --- | --- |
 | Optimizer | AdamW |
 | Learning rate / weight decay | `1e-3` / `1e-4` |
 | Batch size / gradient clip | 128 / 5.0 |
-| Training length | 260 epochs; terminal epoch is exported |
+| Training length | 260 epochs; terminal epoch exported |
 
-The loss looks at six useful parts of a finish: endpoint, path, speed, duration,
-initial direction, and excessive turning. Their weights are
-`1.0 / 0.6 / 0.5 / 0.75 / 0.8 / 0.3`.
+The loss covers endpoint, path, speed, duration, initial direction, and excessive
+turning with weights `1.0 / 0.6 / 0.5 / 0.75 / 0.8 / 0.3`.
 
-The last term is a guard against turns outside the range seen in human training
-movement. The code adds up `1 - cosine` per 100 ms. This is simply a consistent
-turning score, not an angle in degrees. Its duration-conditioned human p95 limits
-are fitted before training. The released checkpoints store
-`0.381892 / 0.838709 / 0.708528` for
-durations `<150 / 150-250 / >=250 ms`.
+The turning guard uses duration-conditioned p95 limits fitted from human training
+movement. The stored limits for `<150 / 150–250 / ≥250 ms` are
+`0.381892 / 0.838709 / 0.708528`.
 
-RWTA begins fairly relaxed so all heads can learn, then becomes more decisive. For
-the winning head, the mass is `1 - epsilon`; every other head receives
-`epsilon / 15`.
+RWTA begins with epsilon `0.50`, anneals over 45 intervals, and stays at `0.05` from
+epoch 46 through 260:
 
 ```text
-epsilon(epoch) = 0.50 + (0.05 - 0.50) * min(1, (epoch - 1) / 45)
+epsilon(epoch) = 0.50 + (0.05 - 0.50) × min(1, (epoch - 1) / 45)
 ```
 
-Epoch 1 uses `0.50`. Epoch 46 reaches `0.05`, after 45 intervals, and that value is
-held through epoch 260. The early part lets the heads spread out; the long floor
-lets their different roles settle.
-
-Train seed 7 and seed 23 as two independent complete runs:
+Train the two Planner replications independently:
 
 ```bash
 python training/train_planner.py \
   --train prepared/planner_train.npz --val prepared/planner_val.npz \
   --out runs/planner_seed7.pt --epochs 260 --wta-anneal-epochs 45 \
-  --heads 16 --cut-sampling one_per_source_per_epoch \
-  --model-selection-interval 0 --prefix-representation raw \
-  --seed 7 --device cuda
+  --heads 16 --seed 7 --device cuda
 
 python training/train_planner.py \
   --train prepared/planner_train.npz --val prepared/planner_val.npz \
   --out runs/planner_seed23.pt --epochs 260 --wta-anneal-epochs 45 \
-  --heads 16 --cut-sampling one_per_source_per_epoch \
-  --model-selection-interval 0 --prefix-representation raw \
-  --seed 23 --device cuda
+  --heads 16 --seed 23 --device cuda
 ```
 
-`--model-selection-interval 0` means that only the terminal epoch is eligible for
-export. The trainer refuses to overwrite an existing file. Use `--device cpu` if
-CUDA is unavailable. The small files under `examples/` are inference and evaluation
-fixtures; use the source-balanced files produced by `prepare_dataset.py` for a real
-retrain.
+The one-cut-per-source schedule and terminal-epoch export are the trainer's single
+recipe rather than optional switches. The trainer refuses to overwrite an existing
+checkpoint.
 
-## What the Renderer learns
+## What the global Renderer learns
 
-The Planner's curve is deliberately smooth. A mouse is not. Real 1 kHz hardware
-reports contain zeros, bursts of integers, skipped polls at speed, quantization, and
-small correlations from one millisecond to the next.
+The Planner's curve is deliberately smooth. A mouse is not. A real 1 kHz stream
+contains zeros, integer bursts, quantization, sign changes, skipped polls at speed,
+and short-range correlations.
 
-The Renderer learns to put that packet texture back without moving the intended
-endpoint. A hysteretic delta-sigma accumulator keeps track of fractional movement.
-A small GRU decides whether to emit during the current millisecond and which nearby
-integer offset to use. Before B, the real prefix warms the same state so the texture
-continues across the seam instead of switching on suddenly.
+The Renderer learns a general conversion from smooth intent to this texture. It is
+not trained only on B→C crops. Its source is the entire dense physical session:
 
-At each tick, its 21 inputs describe the local smooth motion, accumulator state,
-previous emission, current quiet run, and a summary of the prefix's packet regime.
-Nothing from the unseen future is used.
+```text
+before A | A→B | B→C | after C | between events | idle and unrelated movement
+```
 
-Renderer training is self-supervised. Smooth versions of a real raw movement become
-the input plan, while the original packets remain the answer. No separate texture
-labels are required.
+The builder cuts that stream blindly into non-overlapping `[256 | 800]` windows. It
+does not read A, B, C, targets, successes, or event outcomes. This is what makes the
+model global: the texture law is learned independently of one task phase.
 
-### The released Renderer at a glance
+### Self-supervised teachers
 
-The base checkpoint is called F0-E12. F0 identifies the frozen base recipe and E12
-means 12 training epochs.
+For each presentation, the trainer randomly selects a triangular moving-average
+teacher with window 3 or window 5. The smoothed stream is the intent; the original
+integer packets are the answer. No manual texture labels are required.
 
-| Part | Released setting |
+The 256-report context has two jobs. All 256 reports define the five regime summaries
+and the exact online handoff. The float training reference warms its recurrence on
+the most recent 128 reports. The packed runtime still observes all 256 incrementally;
+its rank-16 handoff maps that online observation to the canonical recurrent boundary.
+The number 128 therefore does not relax the public 256-report input contract.
+
+Observed context receives zero loss. Loss begins only on the 800 future reports. The
+model therefore learns the exact use required at deployment: observe real history,
+then render a future plan.
+
+### Architecture and features
+
+The float reference has one width-80 GRU, an emit head, and a 121-class joint offset
+head covering `[-5, 5] × [-5, 5]`. It has **34,362 learned scalars**.
+
+Its 20 phase-free inputs are:
+
+| Group | Features |
 | --- | --- |
-| Network | 21-input GRU, hidden width 96 |
-| Outputs | Emit decision plus 121 joint offsets in `[-5, 5] x [-5, 5]` |
-| Prefix warm-up / regime summary | 128 / up to 256 ticks |
-| Parameters | 80,378 |
-| Emit / offset-magnitude temperature | 1.0 / 1.0 |
-| Offset-direction temperature | 0.3 |
-| Axis hysteresis | 1 count |
-| Accumulator safety release | 48 counts |
-| Maximum emitted count per axis | 127 |
-| Recent cadence window | 60 ms |
+| Smooth kinematics | scaled speed, acceleration, curvature, tangent x/y |
+| Accumulator in movement frame | tangent and normal debt |
+| Previous reports | previous emit tangent/normal, last nonzero tangent/normal |
+| Cadence state | active/quiet run, normalized run length, recent zero rate, `log1p(speed)` |
+| 256-report regime | active rate, active-magnitude mean and p95, sign-flip rate, high-frequency power |
 
-The stream ends when the Planner duration ends. This terminal policy is called TP1.
-It does not force an extra packet onto the final tick. The 48-count accumulator
-guard remains active throughout the event.
+There is no event phase input. The model does not need to know whether a tick is
+before A or after C.
 
-AF1.5 is a small anti-flip rule for rare, large sideways packet changes. It applies
-a penalty of `1.5 * max(abs(offset dot normal) - 1, 0)` to sampling logits. A
-one-count sideways band remains free, and the smooth plan itself is not changed.
+### The accumulator
 
-### Preparing Renderer examples
+A hysteretic delta-sigma accumulator integrates smooth intent. When an integer report
+is emitted, that amount is reclaimed from the accumulator. Fractional movement is
+therefore remembered instead of lost independently at every tick.
 
-The Renderer gets one successful B80 continuation from each physical movement. It
-does not receive the Planner's dense cuts, tiny-target augmentation, or
-trajectory-shape filters. Those would quietly change the packet distribution it is
-trying to learn.
+The release does **not** promise exact endpoint equality on every sampled stream.
+Offsets and finite endings can leave residual debt. The contract is that this debt is
+tracked, small, and bounded, with a safety release at magnitude 32 and an
+exact-zero/no-debt gate that keeps true zero intent silent.
 
-For each raw movement, triangular moving-average teachers with windows 5 and 9 make
-two smooth views. Training samples them equally. Prefix warm-up ticks are supervised
-with weight 1.0.
+### Sampling calibration
 
-The released population contained 9,858 successful movements, exactly one per
-physical source.
+The deployed artifact freezes these values:
 
-### The exact Renderer recipe
+| Control | Value |
+| --- | ---: |
+| Emit-logit bias | 1.5 |
+| Emit temperature | 1.3 |
+| Offset-magnitude temperature | 0.75 |
+| Offset-direction temperature | 0.15 |
+| Axis hysteresis | 0.5 |
+| Accumulator safety release | 32 |
+| Offset radius | 5 counts per axis |
+| Maximum output | signed int16 API; each emitted axis clamped to `+/-127` |
+| Lateral-offset penalty | AF1.5, always enabled |
 
-| Part | Released setting |
+AF1.5 is a soft safeguard for rare implausible sideways spikes. It penalizes offset
+mass with the exact law
+`offset_logit -= 1.5 * max(abs(offset dot normal) - 1 count, 0)`. It does not change
+the smooth plan. The released C runtime bakes it in; an evaluation that omits it is
+evaluating a sampler that does not ship.
+
+Quiet intent is gated only when float intent is at most `1e-7` in magnitude (exact
+zero in the Q16 API) and both accumulator-debt axes are below `0.5` count. The
+`32`-count safety release is checked first, so accumulated debt cannot be hidden by
+the quiet gate.
+
+## Renderer training: presentations, not epochs
+
+The selected P0 training corpus contains 81,737 windows from 54 sessions and 45
+users. Validation contains 10,807 windows from 8 sessions and 8 users held out from
+Renderer training. It is not automatically a joint Planner-and-Renderer holdout,
+because the branches preserve different frozen split salts.
+
+A **presentation** means one source window shown once under one randomly selected
+w3/w5 teacher. That is the transferable budget. Epoch labels are not transferable
+when corpus size changes.
+
+The transferable reference budget was:
+
+```text
+9,858 movements × 12 = 118,296 presentations
+```
+
+Carrying the number `12` onto a much larger corpus would multiply the actual work
+many times over. The selected global model instead stops at exactly:
+
+```text
+118,345 presentations
+= 1 complete pass over 81,737 windows
+  + 36,608 windows from the next shuffled pass
+≈ 1.447875 passes
+= 463 optimizer steps at batch size 256
+```
+
+Epoch boundaries remain optimizer boundaries. The first P0 pass therefore ends with
+a 73-window batch; the next pass contributes 143 full 256-window batches. No batch
+mixes the end of one shuffled pass with the beginning of the next.
+
+| Part | Release setting |
 | --- | --- |
 | Optimizer | Adam |
 | Learning rate / weight decay | `2e-3` / `1e-5` |
 | Batch size / gradient clip | 256 / 5.0 |
-| Training length | 12 epochs |
+| Weighting | Natural window frequency |
+| Teachers | One deterministic w3/w5 choice per source and shuffled pass |
+| Recurrent warm-up | Most recent 128 of the 256 observed reports |
+| Teacher-label base hysteresis | 1.0 |
+| Sampled deployment base hysteresis | 0.5 |
+| Loss | Future-only emit BCE + valid joint-offset cross-entropy |
+| Budget | 118,345 presentations |
+
+Train the float reference with:
 
 ```bash
 python training/train_renderer.py \
-  --train prepared/renderer_train.npz --out runs/renderer_seed7.pt \
-  --epochs 12 --offset-radius 5 \
+  --train prepared/renderer_train \
+  --val prepared/renderer_val \
+  --out runs/renderer_p118345.pt \
+  --presentations 118345 --batch-size 256 \
   --seed 7 --device cuda
-
-python training/train_renderer.py \
-  --train prepared/renderer_train.npz --out runs/renderer_seed23.pt \
-  --epochs 12 --offset-radius 5 \
-  --seed 23 --device cuda
 ```
 
-These commands train the 80,378-parameter base Renderer. They do not silently
-retrain the optional style system described next.
+Use `--device cpu` when CUDA is unavailable. The program memory-maps the prepared
+arrays, checks whole-user train/validation isolation, records data hashes, and refuses
+to overwrite the output.
 
-## Letting recent human movements guide texture
-
-The base Renderer works without personal history. When an application has a clean
-run of earlier human movements, the optional causal style state can gently nudge its
-packet texture toward that recent local rhythm.
-
-The idea is intentionally narrow. A frozen scorer turns each completed **human**
-event into three texture numbers:
-
-- `C` describes cadence and zero runs;
-- `M` describes packet magnitude;
-- `H` describes high-frequency texture.
-
-Here `C` is only the name of a texture score. It is not endpoint C in A -> B -> C.
-
-Before a new event, the system averages the previous ten supported human events in
-the same uninterrupted run, shrinks that average by `0.5`, and clips each value to
-`[-2.5, 2.5]`. The current event is never included. Generated events are never fed
-back as if they were human. If ten valid earlier observations are not available, or
-the context cannot be scored exactly, the state is `[0, 0, 0]`.
-
-That zero is a real control path, not an estimate. It bypasses the adapter exactly
-and gives the complete generic Renderer.
-
-### What counts as the same run
-
-Use a new `run_id` for every new session or block, and whenever this semantic
-signature changes:
-
-```text
-(task_type, challenge_id, target_role, cut_id)
-```
-
-If an older signature returns after another one intervenes, start a new run rather
-than resuming its history. `run_id` is bookkeeping only; it is not passed to the
-model as a feature.
-
-The adapter has rank 4, 780 parameters, and no biases. It modifies only the
-Renderer's emit and offset output heads. Its result is not fed back into the GRU
-recurrence. In compact form:
-
-```text
-h' = h + U(tanh(Wh h) * tanh(Ws s))
-```
-
-### Safe live order
-
-Read the style state before an event starts. Observe an event only after it has
-finished, and only if it remained genuinely human:
+The resulting float checkpoint is directly usable through the normal Pipeline API:
 
 ```python
-from abcurves import CausalStyleState
-from abcurves.style_scorer import (
-    FrozenStyleScorer,
-    completed_human_context,
-)
+from abcurves import Pipeline
 
-style = CausalStyleState()
-scorer = FrozenStyleScorer()
-
-# Before event t. Only completed human events before t can contribute.
-causal_state = style.before_event(run_id)
-counts = pipeline.generate(
-    prefix,
-    target_rel_at_B=target_rel_at_B,
-    target_radius=target_radius,
-    progress_center=progress_center,
-    causal_c_state=causal_state,
-    seed=event_seed,
-)
-
-# If event t stayed human, add it only after its B -> C stream is complete.
-context = completed_human_context(
-    prefix,
-    human_raw_bc,
-    target_rel_at_B,
-    target_radius,
-    progress_center,
-    task_type=task_type,
-    target_role=target_role,
-    target_distance_at_a=target_distance_at_A,
-    edge_trigger_progress=0.80,
-    edge_realized_progress=b_fire.progress_edge,
-)
-scorer.observe_completed_human(
-    style,
-    run_id,
-    human_raw_bc,
-    context,
-)
+with Pipeline(
+    float_renderer_checkpoint="runs/renderer_p118345.pt",
+    float_renderer_device="cuda",  # use "cpu" when needed
+) as pipeline:
+    counts = pipeline.generate(
+        planner_prefix,
+        renderer_context_raw_dxdy=renderer_context,
+        target_rel_at_B=(140.0, -22.0),
+        target_radius=18.0,
+        progress_center=0.72,
+        seed=2026,
+    )
 ```
 
-[`CausalStyleState`](../abcurves/personalization.py) owns the history, support
-count, shrinkage, clipping, and resets. The shared
-[`style_scorer.json`](../models/style_scorer.json) and
-[`FrozenStyleScorer`](../abcurves/style_scorer.py) contain the exact transform, which
-never reads a person's identity. This frozen Stage-0 scorer starts from the 19-value
-`texture19` panel, removes predictable variation from causal context with a frozen
-ridge model, scales the residuals, and projects them into the safe C/M/H scores.
+This path uses the same exact 256-report input contract and AF1.5 sampling law. It
+replays the context through the float GRU and samples the whole continuation when the
+event begins, so it is intended for research and ordinary Python use—not as a claim
+of native handoff latency or embedded validation.
 
-The context helper joins the observed A→B prefix and completed human B→C,
-smooths the whole A→C path with the canonical triangular window 5, then slices
-at B. Smoothing B→C alone changes the seam and is not equivalent. Its seven
-`planned::` fields come from this completed human path, not from a hidden Planner
-rollout. Optional `prefix_mask` and `completed_mask` arguments support padded rows.
-Supplying the known distance at A and edge progress is best; exact fallbacks are
-documented in the helper's docstring.
+The two hysteresis values are intentionally different stages. `1.0` defines the
+offset labels used while fitting the neural law. The later carried-state sampling
+calibration selected `0.5`; it changes the sampler, not the checkpoint tensors.
 
-`task_type` and `target_role` use the frozen vocabularies `TASK_LABELS` and
-`TARGET_ROLE_LABELS` in [`style_scorer.py`](../abcurves/style_scorer.py). There is
-no guessed `unknown` label. If required metadata is missing, do not observe the
-event and omit `causal_c_state`; the pipeline will use exact zero. Never substitute
-a roughly similar task, a user identity, or any measurement from a generated
-future.
+Within shuffled pass `epoch`, `numpy.random.default_rng([seed, epoch])` draws all
+w3/w5 choices before it draws the permutation. Rows arrive from preparation in
+`(session_id, user_id, window_start_tick)` order. These details, the epoch-tail batch,
+and the initialization-compatible discarded GRUCell draw reproduce the selected
+optimizer trajectory while keeping only one active recurrent weight set.
 
-This public path was compared row for row with all 9,858 frozen Renderer events.
-The rebuilt context differed by no more than `1.41e-15`, and the resulting C/M/H
-scores by no more than `8.8e-14`, which is floating-point roundoff.
+### Why ordinary validation loss does not select this model
 
-The released adapters were trained for 12 epochs with their matching base Renderer
-frozen, no checkpoint selection, rank 4, and no biases. Rebuilding them properly
-needs the full contributed corpus with its real chronological run boundaries. The
-training must keep collection keys separate and build every style state from the ten
-earlier human movements only. The small public examples do not contain that history,
-so the repository ships the frozen scorer and both matched adapters instead of
-offering a shortcut that would train a different system.
+Teacher-forced loss answers a narrow question: given the real earlier packets, how
+well does the network predict the next recorded packet? Deployment asks a harder
+question: once sampling starts and the model consumes its own emitted history, does
+texture remain right over a carried full session?
 
-Any future refit must also preserve the safe feature allowlist, nuisance ridge,
-prior-only N10 construction, and exact-zero control. Feeding arbitrary session
-statistics into the three adapter inputs would create a different system.
+Past the useful budget, teacher-forced held-out loss could continue improving while
+sampled texture became measurably worse. For that reason:
 
-### What the training commands produce
+- validation loss is recorded as a diagnostic;
+- it does not choose or early-stop the release checkpoint; and
+- promotion uses sampled texture with state carried across held-out full sessions.
 
-The Planner and Renderer scripts write raw training checkpoints. They do not replace
-the verified models used by `Pipeline.from_pretrained()` and are not directly
-loadable through that high-level call.
+This rule is stored in the training report and dataset configuration so a conventional
+“lowest validation loss wins” script cannot quietly select a different sampler.
 
-A deployable model directory is a complete matched set: Planner, Renderer, compatible
-adapter, style scorer, and a new manifest containing their sizes and hashes. The
-runtime requires the whole set because an adapter belongs to the internal features
-of the Renderer it was trained with. Do not combine a freshly trained Renderer with
-an old adapter or replace one file inside the released bundle.
+Run the public carried-session selector on each candidate instead:
 
-With correctly prepared data, the public scripts can retrain the two base networks.
-They cannot rebuild the adapter without the full person-by-person chronological
-history. That is the boundary between retraining the public base models and promoting
-a new complete runtime cell.
+```bash
+python -m evaluation renderer-selection full_sessions/sessions.json \
+  --backend float --model runs/renderer_p118345.pt \
+  --specs w3 w5 --seed 7001 \
+  --output runs/renderer_p118345_selection.json
+```
 
-## How fast it runs
+For the shipped fixed-online artifact, omit `--model` and use `--backend native`.
+The evaluator hash-checks the full-session sources, takes physical ticks `[0,256)`
+once, carries one uninterrupted rollout over every remaining tick, computes
+Texture19 on non-overlapping 512-tick segments, and computes packet ratios, false
+quiet-gate activation, and net displacement over the full future. It reports the
+carried-session `T/R/Z/D/S` user-macro score without exposing source IDs or paths.
+`T` is mean standardized Texture19 W1; `R` is the mean absolute log-ratio error for
+active fraction, L1/tick, L2/tick, and x-axis sign-flip rate; `Z` is causal
+gate-eligible false activation; and `D` is session-equal relative net error. The
+evaluator invents no epsilon: undefined ratios or no eligible quiet ticks invalidate
+the score.
 
-The checked-in measurement is
-[`benchmark_this_machine.json`](../results/inference/benchmark_this_machine.json).
-It contains 200 warmed trials on Windows/AMD64 with Python 3.13.14 and the seed-7
-models, timed with `time.perf_counter_ns`.
+The command makes the selection rule executable on a local panel. It cannot recreate
+the checked-in eight-session numbers without those private sessions, nor can it prove that a
+new panel's users were absent from model development. Compare candidates only on the
+same hash-bound panel, specs, seed, and backend contract. One invocation scores one
+artifact and one draw seed; it does not automatically reproduce the frozen two
+model seeds by two smoothing views by two draw seeds hierarchy. Run and retain each
+cell separately before applying that frozen aggregation.
 
-| Interval | p50 | p95 | p99 | max |
-| --- | ---: | ---: | ---: | ---: |
-| B call to stream ready | 587.7 us | 744.0 us | 819.8 us | 840.1 us |
-| First Renderer tick | 21.5 us | 26.5 us | 27.8 us | 43.9 us |
-| Later Renderer tick | 9.5 us | 12.2 us | 15.0 us | 79.9 us |
+### Why the full corpus was retained
 
-Loading, cache creation, JIT compilation, and worker warm-up took 1,003.0 ms once at
-startup. On that machine, the later-tick p99 used about 1.5% of a 1 ms budget.
+A pruned R03 alternative scored `S=1.2723731`; full P0 scored `1.2730297`, or
+`0.052%` higher/worse on this lower-is-better development score. P0 won 2 of 8
+model-seed/smoothing/draw cells and 31 of 64 per-user cell comparisons. Because the
+difference was treated as a
+practical tie and pruning added another rule, the full 81,737-window corpus was
+selected.
 
-These are in-process CPU numbers. USB polling, firmware, operating-system
-scheduling, your application's output queue, and any synchronization window are not
-included. Measure those layers in the real integration.
+This supports one narrow decision: pruning that corpus was unnecessary. It does not
+establish a general law that more data must monotonically improve every Renderer.
 
-Run the same benchmark without replacing the checked-in result:
+## From float training to the released artifact
+
+`training/train_renderer.py` writes a float research checkpoint. The deployed file is
+a separately authenticated post-training-quantized promotion:
+
+```text
+models/renderer_global_h80.bin
+  44,484 bytes total
+  39,512-byte quantized base
+   4,972-byte rank-16 prefix handoff
+```
+
+The release also ships
+[`renderer_global_h80_float.pt`](../models/renderer_global_h80_float.pt), a sanitized
+20-feature checkpoint containing the 34,362 learned scalars behind the selected
+artifact. It removes the zero phase column, duplicate compatibility GRUCell,
+workstation paths, and per-user research history. Its SHA-256, active-tensor digest,
+and selected source-container digest are recorded in the model manifest. Load it
+through the authenticated research resolver:
+
+```python
+from abcurves.model_store import resolve_renderer_float
+from abcurves.renderer import load_count_model
+
+float_model, float_report = load_count_model(resolve_renderer_float())
+```
+
+The rank-16 handoff maps the observed 256-report context into the initial recurrent
+state. It is an observer-state compressor, not a user profile or identity adapter.
+
+The artifact SHA-256 is:
+
+```text
+8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b
+```
+
+### Promotion fidelity
+
+The promotion test uses a frozen eight-session/eight-user carried-session development panel;
+it contains 11,414,503 future ticks and 22,291 scored segments. It is explicitly a
+non-protected development panel, not a final untouched-user test.
+
+The lower-is-better promotion score is
+
+```text
+S = Texture19_W1 / 0.05
+  + packet_ratio_error / log(1.05)
+  + false_zero_activation / 0.001
+  + relative_session_net_displacement_error / 0.01
+```
+
+`packet_ratio_error` is the mean absolute log-ratio error for active fraction, L1
+and L2 packet rates, and the x-axis sign-flip rate. The cited component values are
+user-macro within one frozen cell: model-training seed 7, W5 smoothing and Renderer
+draw seed 7001. On that cell, the final fixed-online artifact had `S=1.4328467`; the
+source float model had `S=1.4311797`. Promotion therefore changed the score by
+`+0.11648%`. The corpus-selection study aggregated a wider route/seed/draw
+hierarchy; this compact promotion receipt does not claim to reproduce that hierarchy.
+
+A different check isolates the online handoff rather than quantization. Against the
+same fixed model initialized by the reference warm replay, only 8 of 22,829,006 scalar
+output components differed, and every difference was one count. These two tests
+answer different questions and must not be merged into one “exact quantization”
+claim.
+
+The compact public
+[`renderer_promotion.json`](../results/inference/renderer_promotion.json)
+binds the formula, panel size, scope, artifact and source hashes, component values,
+and sealed research-receipt digest. The raw panel sessions are not redistributed; the
+receipt is auditable evidence, while the public carried-session scorer can be run on
+a correctly structured local corpus.
+
+The Python loader checks both file size and hash before the C runtime checks its
+internal format, CRC, and source identity. Training a float checkpoint does not
+silently replace this file. A newly promoted artifact needs its own quantization
+validation, cross-language differential tests, manifest entry, and release audit.
+
+## Native C99 contract
+
+The portable runtime lives in [`runtime/c`](../runtime/c). Its public lifecycle is:
+
+```c
+int status = abc_online_model_init(&model, blob, blob_bytes);
+if (status != ABC_FIXED_OK) return status;
+status = abc_online_reset(&renderer, &model);
+if (status != ABC_FIXED_OK) return status;
+
+for (size_t i = 0; i < 256; ++i) {
+    status = abc_online_observe_raw(&renderer, context[i].dx, context[i].dy);
+    if (status != ABC_FIXED_OK) return status;
+}
+
+status = abc_online_begin(&renderer, event_seed);
+if (status != ABC_FIXED_OK) return status;
+
+for (size_t t = 0; t < duration; ++t) {
+    status = abc_online_step(
+        &renderer, smooth_x_q16[t], smooth_y_q16[t], &report
+    );
+    if (status != ABC_FIXED_OK) return status;
+    send_report(report.dx, report.dy);
+}
+```
+
+All status codes must be checked. `abc_online_begin()` fails unless exactly 256
+reports were observed. Smooth intent uses signed Q16 deltas. The library allocates no
+heap; callers own the model view and independent Renderer state.
+
+| Native quantity | Release value |
+| --- | ---: |
+| Model image | 44,484 bytes |
+| Model view | 208 bytes on validated Windows x64 ABI |
+| Per-stream state | 5,088 bytes on validated Windows x64 ABI |
+| Generated-tick hot work | 33,760 int8 multiply-accumulates |
+
+The image size and MAC count are platform-independent. Structure sizes depend on
+compiler alignment and pointer width; firmware ports should call
+`abc_online_model_size()` and `abc_online_renderer_size()` on the target ABI.
+
+The hot GRU path is fixed-point/int8. Context observation, regime statistics, and the
+rank-16 handoff still use float/double and math-library operations. The code is
+functionally portable to small C targets and is a concrete ESP32 starting point, but
+it has not been timed or certified on ESP32 hardware.
+
+The artifact and C/Python behavior were checked across the release toolchains,
+including optimized builds and undefined-behavior instrumentation. Repeat those
+checks for a new compiler, architecture, or promoted artifact.
+
+## Performance measurements
+
+On the Windows x64 machine used for the native release microbenchmark:
+
+| Operation | p99 |
+| --- | ---: |
+| Observe one physical context report | 15.6 µs |
+| Begin after the 256th report | 9.7 µs |
+| Generate one report | 25.6 µs |
+
+These warmed measurements describe the native Renderer core on that machine and
+include timer overhead. They are not ESP32 results and do not include the Planner,
+USB, HID scheduling, application queues, or operating-system jitter. The published
+receipt records the host, compiler, timer, and 32,768/128/102,400 operation samples:
+[`native_renderer_windows_x64.json`](../results/inference/native_renderer_windows_x64.json).
+
+Rebuild, test, and reproduce it with:
+
+```bash
+cmake -S runtime/c -B runtime/c/build
+cmake --build runtime/c/build --config Release
+ctest --test-dir runtime/c/build -C Release --output-on-failure
+runtime/c/build/Release/abc_renderer_benchmark.exe \
+  models/renderer_global_h80.bin native_renderer_local.json 128
+```
+
+With a single-config Unix generator, the benchmark is normally at
+`runtime/c/build/abc_renderer_benchmark` instead of the `Release` subdirectory and
+has no `.exe` suffix.
+
+Measure the composed Python path locally without overwriting a checked-in receipt:
 
 ```bash
 python examples/benchmark_runtime.py --trials 200 --out benchmark_local.json
 ```
 
-## Practical rules worth keeping
+## What the model seed controls
 
-- Keep all geometry in raw count space and all model ticks at 1 ms.
-- Split collection keys and sessions before fitting normalizers, models, or
-  judges.
-- Keep A and B causal. Do not confuse edge-B80 with centre progress.
-- Give every physical source total optimizer mass one, even when it has many cuts.
-- Sample one Planner head. Do not select the most convenient output afterwards.
-- Give the Renderer one successful B80 row per physical movement.
-- Treat seed 7 and seed 23 as separate complete training cells, not an ensemble.
-- Keep optional style history prior-only, human-only, local to one run, and exactly
-  zero when it is unsupported.
-- Evaluate the composed Planner -> Renderer output, because that is what people run.
-- Measure startup and application integration separately from the warmed model
-  timings.
+The release contains two independently trained Planners and one shared selected
+Renderer:
 
-Training scripts write new checkpoint files and refuse to overwrite existing ones.
-Promotion requires a matched Planner, Renderer, and adapter, release-contract checks,
-tensor hashes, and a new manifest.
+```python
+with Pipeline(model_seed=7) as default:
+    pass
 
-The exact files and seed pairing are explained in
+with Pipeline(model_seed=23) as planner_replication:
+    pass
+```
+
+`model_seed` selects Planner weights. The event `seed` selects a Planner head and
+Renderer random stream for one movement. Neither setting forms an ensemble or runs a
+best-of-many search.
+
+The exact files and integrity rules are in
 [`models/README.md`](../models/README.md).
+
+## Practical rules worth preserving
+
+- Keep geometry in raw count space and time on closed 1 ms bins.
+- Keep A and B causal; do not substitute edge progress for centre progress.
+- Split people before fitting normalizers, models, or judges.
+- Give each physical Planner source total weight one across its candidate cuts.
+- Sample one Planner head without reranking.
+- Train the Renderer on uninterrupted sessions, not reconstructed event crops.
+- Preserve blind non-overlapping `[256 | 800]` Renderer windows and drop only the
+  incomplete tail.
+- Count Renderer work in presentations, not copied epoch labels.
+- Treat teacher-forced loss as diagnostic and select on sampled carried texture.
+- Supply exactly 256 genuine chronological reports; never depend on implicit slicing
+  or padding.
+- Keep AF1.5 enabled anywhere claiming to reproduce the deployed sampler.
+- Evaluate the composed Planner→Renderer output, because that is what users run.
+- Measure USB and application integration separately from native-core timing.
+
+Detection results and their separate evaluation safeguards are in the
+top-level [DETECTION.md](../DETECTION.md).

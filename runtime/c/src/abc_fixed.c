@@ -1,0 +1,8 @@
+#include "abc_fixed_internal.h"
+#include "abc_fixed_parts/abc_fixed_000.inc"
+#include "abc_fixed_parts/abc_fixed_001.inc"
+#include "abc_fixed_parts/abc_fixed_002.inc"
+#include "abc_fixed_parts/abc_fixed_003.inc"
+#include "abc_fixed_parts/abc_fixed_004.inc"
+#include "abc_fixed_parts/abc_fixed_005.inc"
+#include "abc_fixed_parts/abc_fixed_006.inc"
