@@ -30,9 +30,10 @@ def main() -> int:
         human = data["future_raw_dxdy"][row][data["future_mask"][row] > 0.5]
 
     with Pipeline.from_pretrained(prewarm=True) as pipeline:
+        profile = pipeline.prepare_renderer_profile(context)
         stream = pipeline.prepare(
             prefix,
-            renderer_context_raw_dxdy=context,
+            renderer_profile=profile,
             target_rel_at_B=target,
             target_radius=radius,
             progress_center=progress,

@@ -43,8 +43,10 @@ it a smooth version of the real human future. A five-report triangular average,
 called **W5**, removes the original packet texture while preserving the intended
 path. The Renderer then has to rebuild the zeros, bursts, cadence, and quantization.
 
-Before each continuation it also reads the 256 genuine reports ending at B. That is
-the only real history it receives; no future raw reports are passed to it.
+For this frozen experiment, before each continuation it also reads the 256 genuine
+reports ending at B. That is the only real history it receives; no future raw
+reports are passed to it. This describes the measurement protocol, not the newer
+recommended schedule of reusing a representative profile prepared before B.
 
 ### A human ruler for the result
 
@@ -205,9 +207,15 @@ Renderer draws. The Renderer still receives the genuine 256-report context endin
 at B and uses the same AF1.5 safeguard.
 
 Neither result establishes that an arbitrary rolling history or an observer carried
-from session start would produce the same state at every possible B. The values are
-descriptive point estimates on this ten-session panel; no confidence interval is
-claimed.
+from session start would produce the same state at every possible B. They also do not
+formally evaluate the reusable representative-profile schedule in the 1.5.1 runtime;
+the exact per-event windows are retained here so the frozen protocol is not rewritten
+after seeing a later one-draw engineering sensitivity probe. That probe had
+overlapping uncertainty intervals and is not a promotion or equivalence test; its
+separate scope is recorded in the
+[`Renderer profile sensitivity receipt`](results/inference/renderer_profile_sensitivity.json).
+The values here are descriptive point estimates on this ten-session panel; no
+confidence interval is claimed.
 
 The exact artifact identities, full-precision values, aggregation counts, and sealed
 receipt digests are in

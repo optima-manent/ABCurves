@@ -13,6 +13,7 @@ from .pipeline import (
     PendingB,
     Pipeline,
     PreparedStream,
+    RendererProfile,
 )
 from .planner import Intent, Planner
 from .portable_renderer import (
@@ -29,7 +30,7 @@ from .renderer import (
 from .prodmp import ProDMP, ProDMPConfig
 from .seam import BFire, BReject, BTrigger, OnsetDetector, OnsetEvent
 
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 
 __all__ = [
     "BFire",
@@ -52,6 +53,7 @@ __all__ = [
     "PreparedRendererContext",
     "PreparedFloatRendererContext",
     "PreparedStream",
+    "RendererProfile",
     "ProDMP",
     "ProDMPConfig",
     "SeamEligibility",

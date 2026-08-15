@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abcurves"
-version = "1.5.0"
+version = "1.5.1"
 description = "Human-conditioned movement planning with a compact global hardware-texture renderer."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -58,6 +58,7 @@ models = [
 "results/inference" = [
   "results/inference/benchmark_this_machine.json",
   "results/inference/native_renderer_windows_x64.json",
+  "results/inference/renderer_profile_sensitivity.json",
   "results/inference/renderer_promotion.json",
   "results/inference/manifest.json",
 ]

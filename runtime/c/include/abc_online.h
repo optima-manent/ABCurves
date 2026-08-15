@@ -103,6 +103,12 @@ typedef struct abc_online_renderer {
     float adapter_output[80];
 } abc_online_renderer_t;
 
+/* A renderer that has observed exactly 256 reports and has not begun an event
+ * is a reusable profile template. It may be copied by value (or with memcpy)
+ * into an independent event state before abc_online_begin(). The model and
+ * combined blob must outlive the template and every copy. Never overwrite the
+ * template with a state on which begin/step has already been called. */
+
 ABC_RENDERER_API int abc_online_model_init(
     abc_online_model_t *model,
     const void *combined_blob,

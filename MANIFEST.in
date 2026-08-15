@@ -9,7 +9,7 @@ recursive-include runtime/c *.c *.h *.inc CMakeLists.txt README.md
 prune runtime/c/build
 recursive-include docs *.md *.html
 recursive-include examples *.py *.npz
-recursive-include assets *.png
+recursive-include assets *.png *.gif
 recursive-include evaluation *.md
 recursive-include results *.json *.md
 recursive-include tools *.py

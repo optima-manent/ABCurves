@@ -360,15 +360,24 @@ def test_prepare_train_checkpoint_is_weights_only_safe(
         float_renderer_checkpoint=checkpoint,
         prewarm=False,
     ) as pipeline:
+        profile = pipeline.prepare_renderer_profile(context)
         first = pipeline.generate(
             prefix,
-            renderer_context_raw_dxdy=context,
+            renderer_profile=profile,
             target_rel_at_B=(36.0, 4.0),
             target_radius=8.0,
             progress_center=0.6,
             seed=19,
         )
         second = pipeline.generate(
+            prefix,
+            renderer_profile=profile,
+            target_rel_at_B=(36.0, 4.0),
+            target_radius=8.0,
+            progress_center=0.6,
+            seed=19,
+        )
+        exact = pipeline.generate(
             prefix,
             renderer_context_raw_dxdy=context,
             target_rel_at_B=(36.0, 4.0),
@@ -380,6 +389,7 @@ def test_prepare_train_checkpoint_is_weights_only_safe(
         assert pipeline.renderer_receipt["native_online_handoff"] is False
     assert first.dtype == np.int16 and first.shape[1] == 2 and len(first) > 0
     assert np.array_equal(first, second)
+    assert np.array_equal(first, exact)
 
 
 def test_train_cli_treats_zero_window_validation_as_train_only(

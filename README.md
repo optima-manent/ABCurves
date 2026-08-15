@@ -94,7 +94,7 @@ flowchart LR
     B --> PL["Planner\ncausal TCN · 16 ProDMP heads"]
     T["Target"] --> PL
     PL --> I["One smooth B → C finish"]
-    P --> C["256 real reports\nending at B"]
+    S["Representative 256 ms\nphysical report sample"] --> C["Reusable Renderer profile\nprepared before B"]
     C --> R["Global Renderer\nGRU + delta-sigma accumulator"]
     I --> R
     R --> O["B → C mouse reports\none integer report per ms"]
@@ -132,6 +132,17 @@ that example, so the heads can specialize instead of collapsing into one average
 runtime, ABCurves samples one head; it does not generate sixteen answers and secretly
 keep the best one.
 
+These animations show that range directly. Each begins with the same observed
+movement and target, then compares the real human finish with four finishes sampled
+from the Planner. The first is a fast flick and the second is a fine adjustment.
+
+<p align="center">
+  <img src="assets/spread_flick_2.gif" width="830" alt="A real human flick beside four finishes sampled from the ABCurves Planner.">
+</p>
+<p align="center">
+  <img src="assets/spread_adjust_8.gif" width="830" alt="A real human fine adjustment beside four finishes sampled from the ABCurves Planner.">
+</p>
+
 ### The global Renderer learns texture everywhere, from anyone
 
 The Planner produces a clean curve, but physical mice communicate in small integer
@@ -144,8 +155,10 @@ with speed, direction, the hand, and the device.
 
 The global Renderer learns this translation from uninterrupted 1 kHz recordings
 across many people, mice, speeds, and movement types. It is one shared model rather
-than a separate model for each person. At runtime it reads 256 genuine reports ending
-at B, adapts once to the active session, and can then texture the smooth finish.
+than a separate model for each person. At runtime, one representative 256-report
+sample is prepared before B and reused as an immutable texture profile. The runtime
+profile does not have to end at B; the Planner's real A→B prefix supplies the
+event-specific boundary motion.
 
 Inside it, a GRU decides when to emit and which nearby two-axis integer report fits
 that moment. A delta-sigma accumulator remembers fractional motion until it can be
@@ -245,22 +258,24 @@ Then run:
 python examples/quickstart.py
 ```
 
-The Planner prefix and Renderer context are related, but they have different
-contracts. The Planner accepts the A→B movement. The Renderer requires
-**exactly 256 chronological integer reports ending at the same B**.
+The Planner prefix and Renderer profile have different jobs. The Planner accepts the
+event's A→B movement. The Renderer profile is one representative sample of
+**exactly 256 chronological integer reports**, prepared before the latency-sensitive
+B handoff and reusable across events.
 
 ```python
 import numpy as np
 from abcurves import Pipeline
 
 planner_prefix = np.asarray(prefix_raw_dxdy, dtype=np.float32)
-renderer_context = np.asarray(last_256_raw_reports, dtype=np.int16)
-assert renderer_context.shape == (256, 2)
+profile_window = np.asarray(representative_256_raw_reports, dtype=np.int16)
+assert profile_window.shape == (256, 2)
 
 with Pipeline.from_pretrained() as pipeline:
+    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
     counts = pipeline.generate(
         planner_prefix,
-        renderer_context_raw_dxdy=renderer_context,
+        renderer_profile=renderer_profile,
         target_rel_at_B=(140.0, -22.0),
         target_radius=18.0,
         progress_center=0.72,
@@ -270,15 +285,26 @@ with Pipeline.from_pretrained() as pipeline:
 assert counts.dtype == np.int16
 ```
 
-The runtime does not guess, pad, or silently take the last 256 rows of a longer
-buffer. Choose the exact chronological context explicitly. If the Planner prefix is
-itself exactly 256 reports, it may serve as the Renderer context and the extra
-argument can be omitted.
+Profile preparation validates the shape and physical integer counts; it does not
+guess, pad, or silently slice a longer buffer. Keep the returned object and reuse it.
+Prepare a replacement only when the device or physical setup changes materially.
+Changing the event seed is the intended source of sample variance. Refreshing the
+profile is not.
+
+The earlier `renderer_context_raw_dxdy=` argument remains supported as an exact
+per-event evaluation and compatibility path. It replays 256 reports at B, so the
+reusable profile is the recommended real-time path.
+
+On the checked-in Windows host benchmark, the warmed composed profile path reached
+stream-ready in 0.240 ms median / 0.434 ms p99 and produced its first report in
+0.276 ms median / 0.547 ms p99. These are host measurements, not USB or hard
+real-time guarantees; the full phases and limitations are in the
+[`benchmark receipt`](results/inference/benchmark_this_machine.json).
 
 [`examples/quickstart.py`](examples/quickstart.py) has only a compact event fixture,
-so it declares an example-only quiet history before its shorter prefix. A real
-integration should retain genuine session history instead. For one-report-at-a-time
-output, see [`examples/streaming.py`](examples/streaming.py).
+so its example profile explicitly assumes quiet history before the shorter prefix. A
+real integration should prepare a genuine representative sample from its device.
+For one-report-at-a-time output, see [`examples/streaming.py`](examples/streaming.py).
 
 ABCurves returns integer reports; it does not own a USB device. Polling, queues,
 permissions, firmware, and the final HID write remain the caller's responsibility.
@@ -337,9 +363,10 @@ same pipeline:
 from abcurves import Pipeline
 
 with Pipeline(float_renderer_checkpoint="runs/renderer_retrained.pt") as pipeline:
+    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
     counts = pipeline.generate(
         planner_prefix,
-        renderer_context_raw_dxdy=renderer_context,
+        renderer_profile=renderer_profile,
         target_rel_at_B=(140.0, -22.0),
         target_radius=18.0,
         progress_center=0.72,
@@ -347,10 +374,13 @@ with Pipeline(float_renderer_checkpoint="runs/renderer_retrained.pt") as pipelin
     )
 ```
 
-The retrained checkpoint uses the same public Pipeline API. Candidate Renderers are
-scored with `python -m evaluation renderer-selection ...`, because sampled texture—not
-teacher-forced loss—is the behavior that matters. Dataset formats are explained in
-[DATASET.md](docs/DATASET.md); the complete training and runtime recipe is in
+The retrained checkpoint uses the same public Pipeline API, but it remains a research
+path: each event still replays the profile through the float graph and pre-renders
+the continuation. The native profile latency does not apply to it. Candidate
+Renderers are scored with `python -m evaluation renderer-selection ...`, because
+sampled texture is the behavior that matters; teacher-forced loss is diagnostic.
+Dataset formats are explained in [DATASET.md](docs/DATASET.md); the complete training
+and runtime recipe is in
 [TRAINING_AND_INFERENCE.md](docs/TRAINING_AND_INFERENCE.md).
 
 ---

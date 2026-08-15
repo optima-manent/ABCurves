@@ -33,8 +33,10 @@ with Pipeline(model_seed=23) as replication:
 `Pipeline.generate()` is different: it makes the one Planner-head draw and Renderer
 sample repeatable for that movement.
 
-The Renderer requires exactly 256 chronological integer reports for every prepared
-context. That input contract is independent of which Planner seed is loaded.
+The Renderer prepares a reusable profile from exactly 256 chronological integer
+reports. Prepare it before a latency-sensitive B handoff, then clone that immutable
+state for each event. The profile contract is independent of which Planner seed is
+loaded, and the representative sample does not need to end at B.
 
 ## Planner contract
 
@@ -88,10 +90,11 @@ The frozen sampler chooses one w3/w5 view for every source in each shuffled pass
 Pass boundaries are optimizer boundaries: the first full pass ends with a 73-window batch, followed
 by 143 full batches from the next pass, for 463 optimizer steps total.
 
-All 256 context reports define the regime and exact online handoff. The float
-recurrent warm-up uses the most recent 128 reports. The packed rank-16 handoff bridges
-the full online observation to that canonical recurrent boundary; callers must still
-supply exactly 256 reports.
+Within every training window, all 256 context reports define the regime and learned
+handoff state. The float recurrent warm-up uses the most recent 128 reports. The
+packed rank-16 handoff bridges the full observation to that canonical recurrent
+boundary; callers must still supply exactly 256 reports when preparing a deployment
+profile. Reusing the prepared profile does not change this training contract.
 
 ## What the binary contains
 
@@ -103,8 +106,11 @@ supply exactly 256 reports.
 | Rank-16 prefix handoff | 4,972 |
 | **Total** | **44,484** |
 
-The handoff compresses the current 256-report context into recurrent state. It is not
-a user identity or prior-event personalization model.
+The handoff compresses one representative 256-report sample into recurrent state.
+`RendererProfile` is the name of that reusable prepared state; it is not a user
+identity or prior-event personalization model. The Planner still supplies the
+event-specific smooth-intent boundary at B; the profile supplies Renderer packet
+state, including prior emission, last smooth motion, run state, and recent activity.
 
 The deployment calibration is frozen with the artifact:
 
@@ -120,10 +126,11 @@ The deployment calibration is frozen with the artifact:
 
 The hot recurrence is fixed-point/int8 and costs 33,760 int8
 multiply-accumulates per generated tick. On the validated Windows x64 ABI, the
-no-heap C99 runtime uses a 208-byte model view and 5,088 bytes of caller-owned state
-for each independent stream. Ports must query the size helpers on their target ABI.
-Observation and the rank-16 handoff still use float/double math; the artifact is
-functionally portable but is not presented as an ESP32 timing result.
+no-heap C99 runtime uses a 208-byte model view and 5,088 bytes for each caller-owned
+Renderer state. The reusable path retains one profile state and copies it into one
+state per active event. Ports must query the size helpers on their target ABI.
+Profile preparation and the rank-16 handoff still use float/double math; the artifact
+is functionally portable but is not presented as an ESP32 timing result.
 
 ## Exact artifact identity
 
@@ -194,11 +201,13 @@ release anchor is checked first.
 [`training/train_renderer.py`](../training/train_renderer.py) writes a new float
 research checkpoint. Use it directly with
 `Pipeline(float_renderer_checkpoint="runs/renderer_p118345.pt")`; this safely loads
-the float graph, replays the exact 256-report context, and pre-renders the sampled
-continuation through the ordinary Pipeline interface. It does not recreate or
-overwrite `renderer_global_h80.bin`. A new binary promotion would additionally need
-post-training quantization, context-handoff fitting, C/Python differential tests, a
-new digest, and an updated manifest.
+the float graph through the ordinary `RendererProfile` interface. A float profile
+object may be reused, but that backend replays its raw 256-report window and
+pre-renders the sampled continuation at every event start. It does not recreate or
+overwrite `renderer_global_h80.bin`, and its timing is not the native profile-clone
+claim. A new binary promotion would additionally need post-training quantization,
+context-handoff fitting, C/Python differential tests, a new digest, and an updated
+manifest.
 
 Similarly, replacing a Planner `.pt` without updating its tensor contract and
 manifest does not make a valid model directory.
@@ -215,9 +224,10 @@ cmake --build runtime/c/build --config Release
 ctest --test-dir runtime/c/build -C Release --output-on-failure
 ```
 
-The validated public lifecycle is reset → observe exactly 256 reports → begin one
-event → step once per smooth-intent tick. Rolling or arbitrary-length observation is
-not silently treated as equivalent.
+The validated native lifecycle is prepare a template from exactly 256 representative
+reports → copy the template for one event → begin once → step once per
+smooth-intent tick. The template is immutable and reusable. It is prepared before B;
+rolling or arbitrary-length observation is not silently treated as equivalent.
 
 Run the Python release checks with:
 

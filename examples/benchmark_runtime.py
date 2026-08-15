@@ -20,10 +20,10 @@ from abcurves import Pipeline
 def percentiles(values: list[float]) -> dict[str, float]:
     data = np.asarray(values, dtype=np.float64)
     return {
-        "p50": float(np.percentile(data, 50)),
-        "p95": float(np.percentile(data, 95)),
-        "p99": float(np.percentile(data, 99)),
-        "max": float(np.max(data)),
+        "p50": round(float(np.percentile(data, 50)), 3),
+        "p95": round(float(np.percentile(data, 95)), 3),
+        "p99": round(float(np.percentile(data, 99)), 3),
+        "max": round(float(np.max(data)), 3),
     }
 
 
@@ -37,8 +37,8 @@ def main() -> int:
 
     with np.load(ROOT / "examples" / "aim_test.npz", allow_pickle=False) as data:
         prefix = data["prefix_raw_dxdy"][0][data["prefix_mask"][0] > 0.5]
-        renderer_context = np.zeros((256, 2), dtype=np.int16)
-        renderer_context[-len(prefix) :] = np.rint(prefix).astype(np.int16)
+        renderer_profile_window = np.zeros((256, 2), dtype=np.int16)
+        renderer_profile_window[-len(prefix) :] = np.rint(prefix).astype(np.int16)
         target = (
             float(data["target_rel_x_at_B"][0]),
             float(data["target_rel_y_at_B"][0]),
@@ -49,15 +49,31 @@ def main() -> int:
     started = time.perf_counter_ns()
     pipeline = Pipeline.from_pretrained(prewarm=True)
     startup_ms = (time.perf_counter_ns() - started) / 1e6
+    profile_prepare_us: list[float] = []
+    profile = None
+    for _ in range(min(args.trials, 50)):
+        begin = time.perf_counter_ns()
+        profile = pipeline.prepare_renderer_profile(renderer_profile_window)
+        profile_prepare_us.append((time.perf_counter_ns() - begin) / 1e3)
+    assert profile is not None
     ready_us: list[float] = []
+    b_to_first_us: list[float] = []
     first_tick_us: list[float] = []
     later_tick_us: list[float] = []
+    phase_names = (
+        "b_to_context_submit_us",
+        "finish_planner_us",
+        "wait_for_renderer_context_us",
+        "renderer_begin_us",
+        "finish_total_us",
+    )
+    phases: dict[str, list[float]] = {name: [] for name in phase_names}
     try:
         for trial in range(args.trials):
             begin = time.perf_counter_ns()
             pending = pipeline.begin_at_b(
                 prefix,
-                renderer_context_raw_dxdy=renderer_context,
+                renderer_profile=profile,
             )
             stream = pending.finish(
                 target_rel_at_B=target,
@@ -70,7 +86,10 @@ def main() -> int:
             stream.step()
             first = time.perf_counter_ns()
             ready_us.append((ready - begin) / 1e3)
+            b_to_first_us.append((first - begin) / 1e3)
             first_tick_us.append((first - ready) / 1e3)
+            for name in phase_names:
+                phases[name].append(float(getattr(stream.timing, name)))
             for _ in range(min(16, stream.duration_ms - 1)):
                 tick = time.perf_counter_ns()
                 stream.step()
@@ -79,17 +98,37 @@ def main() -> int:
         pipeline.close()
 
     result = {
-        "schema": "abcurves.runtime_benchmark.v2",
+        "schema": "abcurves.runtime_benchmark.v4",
         "model_seed": 7,
         "renderer_artifact_sha256": pipeline.renderer_receipt["artifact_sha256"],
-        "renderer_context": "256 reports; example-only quiet left padding",
+        "renderer_profile": {
+            "reports": 256,
+            "preparation": "completed before B and reused for every trial",
+            "event_handoff": "copy the 5,088-byte prepared native state, then begin",
+            "fixture": "example-only quiet left padding",
+            "prepare_us": percentiles(profile_prepare_us),
+        },
         "trials": args.trials,
         "clock": "time.perf_counter_ns",
         "device": "CPU",
-        "startup_ms": startup_ms,
+        "startup_ms": round(startup_ms, 3),
+        "critical_path": (
+            "freeze B, plan the continuation, clone the prepared profile, and begin; "
+            "no 256-report replay"
+        ),
         "b_to_stream_ready_us": percentiles(ready_us),
+        "b_to_first_report_us": percentiles(b_to_first_us),
+        "pipeline_phases_us": {
+            name: percentiles(values) for name, values in phases.items()
+        },
         "first_renderer_tick_us": percentiles(first_tick_us),
         "later_renderer_tick_us": percentiles(later_tick_us),
+        "limitations": [
+            "Profile preparation is outside the B-critical path.",
+            "Host CPU only; excludes USB/HID transport and application scheduling.",
+            "Run the benchmark in the intended application before making a hard "
+            "deadline claim.",
+        ],
         "platform": {
             "python": platform.python_version(),
             "system": platform.system(),
@@ -101,7 +140,8 @@ def main() -> int:
     print(encoded, end="")
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(encoded, encoding="utf-8")
+        with args.out.open("w", encoding="utf-8", newline="\n") as stream:
+            stream.write(encoded)
     return 0
 
 

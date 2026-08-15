@@ -1,17 +1,18 @@
 """The final Planner -> global Renderer streaming pipeline.
 
-The Planner reads the human A->B movement and chooses one smooth finish.  In
-parallel, the global Renderer observes exactly 256 chronological hardware
-reports.  The default fixed-point C core performs its bounded online handoff
-and emits one integer report per millisecond.  A checkpoint produced by the
-public trainer can instead be supplied explicitly; that research backend
-replays the same context through the float graph and pre-renders the event.
+The Planner reads the human A->B movement and chooses one smooth finish.  The
+native Renderer can prepare a representative 256-report profile before B,
+reuse an immutable snapshot at every event, and emit one integer report per
+millisecond.  The exact per-event context path remains available for audits and
+backward compatibility.  A checkpoint produced by the public trainer can also
+be supplied explicitly; that research backend replays the profile through the
+float graph and pre-renders the event.
 """
 
 from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 import time
 from typing import Any
@@ -254,8 +255,25 @@ class PreparedStream:
         return self.renderer.render_remaining().copy()
 
 
+@dataclass(frozen=True, eq=False)
+class RendererProfile:
+    """One immutable, reusable 256-report Renderer profile.
+
+    Create profiles through :meth:`Pipeline.prepare_renderer_profile`.  A
+    profile belongs to the Pipeline that prepared it and may be shared by
+    independent events from that Pipeline.
+    """
+
+    _owner: "Pipeline" = field(repr=False, compare=False)
+    _prepared: PreparedRendererContext | PreparedFloatRendererContext = field(
+        repr=False,
+        compare=False,
+    )
+    context_ticks: int = field(default=CONTEXT_TICKS, init=False)
+
+
 class PendingB:
-    """Planner work overlapped with the 256-report Renderer observation."""
+    """One frozen B boundary waiting for Planner and Renderer handoff work."""
 
     def __init__(
         self,
@@ -325,9 +343,10 @@ class Pipeline:
     selected global Renderer is shared by both Planner cells.  Pass
     ``float_renderer_checkpoint`` to use a newly trained PyTorch checkpoint
     through the same API without claiming it is the authenticated native image.
-    Either Renderer context is exactly 256 chronological hardware reports; when
-    the Planner prefix is shorter, pass it separately with
-    ``renderer_context_raw_dxdy``.
+    A native Renderer profile is exactly 256 chronological physical reports.
+    Prepare it before B with :meth:`prepare_renderer_profile`, then pass the
+    returned immutable profile to any number of events.  B does not replay its
+    256 reports.  ``renderer_context_raw_dxdy`` remains an exact per-event path.
     """
 
     def __init__(
@@ -381,15 +400,35 @@ class Pipeline:
     def from_pretrained(cls, **kwargs: Any) -> "Pipeline":
         return cls(model_seed=7, **kwargs)
 
+    def prepare_renderer_profile(self, raw_dxdy: np.ndarray) -> RendererProfile:
+        """Prepare one immutable profile before a latency-sensitive B handoff."""
+
+        _require(not self._closed, "Pipeline is closed")
+        context = np.array(raw_dxdy, copy=True)
+        context.setflags(write=False)
+        prepared = self.renderer.prepare_context(context)
+        _require(not self._closed, "Pipeline is closed")
+        return RendererProfile(_owner=self, _prepared=prepared)
+
     def begin_at_b(
         self,
         prefix_raw_dxdy: np.ndarray,
         *,
+        renderer_profile: RendererProfile | None = None,
         renderer_context_raw_dxdy: np.ndarray | None = None,
     ) -> PendingB:
-        """Freeze A->B and start the exact 256-report Renderer observation."""
+        """Freeze A->B and snapshot the prepared Renderer handoff state.
+
+        Pass either a reusable ``renderer_profile`` or an exact per-event
+        ``renderer_context_raw_dxdy``.  The historical 256-row Planner-prefix
+        fallback remains available when neither is supplied.
+        """
 
         _require(not self._closed, "Pipeline is closed")
+        _require(
+            renderer_profile is None or renderer_context_raw_dxdy is None,
+            "renderer_profile and renderer_context_raw_dxdy are mutually exclusive",
+        )
         started = time.perf_counter_ns()
         prefix = np.array(prefix_raw_dxdy, dtype=np.float32, order="C", copy=True)
         _require(
@@ -399,18 +438,38 @@ class Pipeline:
             and bool(np.all(np.isfinite(prefix))),
             "B prefix must be a non-empty finite array with shape (P, 2)",
         )
-        if renderer_context_raw_dxdy is None:
+        prefix.setflags(write=False)
+        context: np.ndarray | None = None
+        if renderer_context_raw_dxdy is not None:
+            context = np.array(renderer_context_raw_dxdy, copy=True)
+            context.setflags(write=False)
+        if renderer_profile is not None:
+            _require(
+                isinstance(renderer_profile, RendererProfile)
+                and renderer_profile._owner is self
+                and isinstance(
+                    renderer_profile._prepared,
+                    (PreparedRendererContext, PreparedFloatRendererContext),
+                )
+                and renderer_profile._prepared._model is self.renderer,
+                "renderer_profile is invalid or belongs to another Pipeline",
+            )
+            prepared = Future()
+            prepared.set_result(renderer_profile._prepared)
+        elif context is not None:
+            prepared = self._context_worker.submit(
+                self.renderer.prepare_context, context
+            )
+        else:
             _require(
                 len(prefix) == CONTEXT_TICKS,
-                "global Renderer needs exactly 256 chronological reports; pass "
-                "renderer_context_raw_dxdy when the Planner prefix has another length",
+                "global Renderer needs a prepared 256-report profile; call "
+                "prepare_renderer_profile(), or pass renderer_context_raw_dxdy "
+                "for an exact per-event replay",
             )
-            context = np.array(prefix, copy=True)
-        else:
-            context = np.array(renderer_context_raw_dxdy, copy=True)
-        prefix.setflags(write=False)
-        context.setflags(write=False)
-        prepared = self._context_worker.submit(self.renderer.prepare_context, context)
+            prepared = self._context_worker.submit(
+                self.renderer.prepare_context, np.array(prefix, copy=True)
+            )
         submitted = time.perf_counter_ns()
         return PendingB(self, prefix, prepared, started, submitted)
 
@@ -418,11 +477,13 @@ class Pipeline:
         self,
         prefix_raw_dxdy: np.ndarray,
         *,
+        renderer_profile: RendererProfile | None = None,
         renderer_context_raw_dxdy: np.ndarray | None = None,
         **finish_kwargs: Any,
     ) -> PreparedStream:
         return self.begin_at_b(
             prefix_raw_dxdy,
+            renderer_profile=renderer_profile,
             renderer_context_raw_dxdy=renderer_context_raw_dxdy,
         ).finish(**finish_kwargs)
 
@@ -434,6 +495,7 @@ class Pipeline:
         target_radius: float,
         progress_center: float,
         seed: int = 7,
+        renderer_profile: RendererProfile | None = None,
         renderer_context_raw_dxdy: np.ndarray | None = None,
         planner_head: int | None = None,
         b_index_ms: float | None = None,
@@ -442,6 +504,7 @@ class Pipeline:
         _require(0 <= event_seed < 2**64, "seed must fit in uint64")
         stream = self.prepare(
             prefix_raw_dxdy,
+            renderer_profile=renderer_profile,
             renderer_context_raw_dxdy=renderer_context_raw_dxdy,
             target_rel_at_B=target_rel_at_B,
             target_radius=target_radius,
@@ -474,4 +537,5 @@ __all__ = [
     "PlannedIntent",
     "PlannerTiming",
     "PreparedStream",
+    "RendererProfile",
 ]

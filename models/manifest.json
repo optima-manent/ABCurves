@@ -1,9 +1,9 @@
 {
   "schema": "abcurves.release_models.v2",
-  "release": "1.5.0",
+  "release": "1.5.1",
   "default_seed": 7,
   "seeds": [7, 23],
-  "pipeline": "Planner + global whole-session Renderer + rank-16 online handoff + W5 + AF1.5",
+  "pipeline": "Planner + global whole-session Renderer + reusable 256-report profile + rank-16 handoff + W5 + AF1.5",
   "renderer": {
     "scope": "global whole-session count texture",
     "corpus": "P0 full cohort",
@@ -49,9 +49,11 @@
     "windows_x64_model_view_bytes": 208,
     "target_size_contract": "query abc_online_renderer_size() and abc_online_model_size() on the target ABI",
     "generated_tick_int8_macs": 33760,
-    "handoff_contract": "reset, exactly 256 observations, one begin; arbitrary-length and rolling observation are not validated",
+    "handoff_contract": "prepare exactly 256 representative observations before B, copy the prepared profile for each event, then begin once; exact per-event replay remains supported",
+    "profile_schedule_evidence": "one-draw Renderer-only engineering sensitivity check; not promotion, equivalence, or composed-pipeline evidence",
     "selection": "sampled carried full-session texture; teacher-forced loss is diagnostic only",
     "promotion_receipt": "results/inference/renderer_promotion.json",
+    "profile_sensitivity_receipt": "results/inference/renderer_profile_sensitivity.json",
     "native_benchmark_receipt": "results/inference/native_renderer_windows_x64.json",
     "promotion_validation": {
       "panel": "eight carried sessions",

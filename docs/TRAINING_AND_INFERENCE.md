@@ -11,7 +11,8 @@ flowchart LR
     A["Human A→B prefix"] --> P["Planner\ncausal TCN · 16 heads"]
     T["Target at B"] --> P
     P --> I["One sampled ProDMP intent"]
-    S["Exact 256 physical reports ending at B"] --> R["Global Renderer\n20 features · width 80 · radius 5"]
+    S["Representative 256-report sample"] --> RP["Reusable RendererProfile\nprepared before B"]
+    RP --> R["Global Renderer\n20 features · width 80 · radius 5"]
     I --> R
     R --> O["Integer B→C stream\none report per ms"]
 ```
@@ -58,8 +59,8 @@ python -m pytest
 
 ## The shortest complete Python example
 
-The Planner and Renderer look at different lengths of the same live history. Keep
-them separate in the API:
+The Planner prefix is event-specific. The Renderer profile is not: prepare one
+representative texture sample before a latency-sensitive B handoff and reuse it:
 
 ```python
 import numpy as np
@@ -68,14 +69,15 @@ from abcurves import Pipeline
 # Causal A→B movement used by the Planner.
 planner_prefix = np.asarray(prefix_raw_dxdy, dtype=np.float32)
 
-# Exactly 256 chronological physical reports ending at that same B.
-renderer_context = np.asarray(last_256_raw_reports, dtype=np.int16)
-assert renderer_context.shape == (256, 2)
+# Exactly 256 chronological physical reports from a representative recording.
+profile_window = np.asarray(representative_256_raw_reports, dtype=np.int16)
+assert profile_window.shape == (256, 2)
 
 with Pipeline.from_pretrained() as pipeline:
+    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
     counts = pipeline.generate(
         planner_prefix,
-        renderer_context_raw_dxdy=renderer_context,
+        renderer_profile=renderer_profile,
         target_rel_at_B=(140.0, -22.0),
         target_radius=18.0,
         progress_center=0.74,
@@ -85,19 +87,24 @@ with Pipeline.from_pretrained() as pipeline:
 print(counts.shape, counts.dtype)  # (duration_ms, 2), int16
 ```
 
-If `planner_prefix` itself has shape `(256, 2)`, the runtime may use it as the
-Renderer context and `renderer_context_raw_dxdy` can be omitted. For every other
-Planner-prefix length, the exact context argument is required.
+Profile preparation accepts exactly `(256, 2)` finite integer reports. There is no
+implicit truncation or padding: select the representative chronological window in
+the caller, where its provenance is known. The window need not end at B. An
+indicative one-draw Renderer-only engineering probe found little practical dependence
+on millisecond-perfect alignment, with overlapping uncertainty intervals; it is not
+a promotion or equivalence result. Its scope and measurements are recorded in the
+[`Renderer profile sensitivity receipt`](../results/inference/renderer_profile_sensitivity.json).
+Preparing the profile ahead also keeps its replay off the handoff-critical path.
 
-There is intentionally no implicit truncation. Passing 300 reports does not mean
-“please choose the last 256,” and passing 160 does not mean “please invent the
-missing history.” Select the exact chronological window in the caller, where its
-meaning is known.
+Keep the returned `RendererProfile` and pass it to any number of independent events.
+Prepare a replacement between events only when the physical device or setup changes
+materially. Changing the event seed, not rotating the profile on a timer, is the
+normal source of output variation.
 
-The compact fixture in `examples/quickstart.py` has no earlier session history, so
-that example alone declares a quiet left prefix before its event. This is a demo
-cold-start convention, not the measured live contract. A real application should
-retain genuine reports from the session.
+The compact fixture in `examples/quickstart.py` has no separate representative
+recording, so its example profile declares quiet history before the shorter prefix.
+That is a demo convention. A real application should prepare a genuine sample from
+the device or setup it intends to use.
 
 ### What each input means
 
@@ -106,8 +113,11 @@ cursor acceleration.
 
 - `planner_prefix` is the real A→B recording. It is a finite `(P, 2)` array with one
   closed 1 ms bin per row; the final row ends at B.
-- `renderer_context` is exactly 256 finite, integer-valued physical reports ending
-  at the same B. Values must fit signed int16.
+- `profile_window` is exactly 256 finite, integer-valued physical reports from a
+  representative 1 kHz recording. Values must fit signed int16. The Planner supplies
+  the event-specific smooth-intent boundary; the profile supplies Renderer packet
+  state such as previous emission, last smooth motion, run state, and recent activity.
+  It is not a user identity.
 - `target_rel_at_B=(x, y)` is the target centre relative to the cursor at B, in raw
   count space.
 - `target_radius` is a positive radius in the same space.
@@ -129,15 +139,16 @@ another request cannot disturb it through process-global random state.
 
 ## Streaming one report at a time
 
-Create one `Pipeline` when the process starts and keep it alive. At B, observation of
-the exact Renderer context can overlap the Planner work:
+Create one `Pipeline` when the process starts and keep it alive. Prepare the Renderer
+profile before B; the B-time path then only freezes the Planner prefix and clones the
+already prepared profile state:
 
 ```python
 with Pipeline.from_pretrained(prewarm=True) as pipeline:
-    pending = pipeline.begin_at_b(
-        planner_prefix,
-        renderer_context_raw_dxdy=renderer_context,
-    )
+    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
+
+    # Later, when the causal trigger fires:
+    pending = pipeline.begin_at_b(planner_prefix, renderer_profile=renderer_profile)
 
     stream = pending.finish(
         target_rel_at_B=target_rel_at_B,
@@ -152,13 +163,15 @@ with Pipeline.from_pretrained(prewarm=True) as pipeline:
         send_one_1khz_report(int(dx), int(dy))
 ```
 
-`begin_at_b()` copies both input arrays. Its worker observes all 256 reports while
-the caller finishes binding target geometry. `finish()` samples one Planner head,
-starts the Renderer, and returns an event that owns its state.
+`prepare_renderer_profile()` validates and owns the 256-report input, then prepares
+one immutable template. `begin_at_b()` copies the Planner prefix. `finish()` samples
+one Planner head, clones the profile into independent event state, starts the
+Renderer, and returns a stream that owns that event state.
 
-Each `PendingB` can be finished once. Each prepared Renderer context can begin one
-event, once. Do not share a `PreparedStream` between events. Use
-`render_remaining()` when a complete array is more convenient than per-tick output.
+Each `PendingB` can be finished once. A `RendererProfile` may be reused by independent
+events from the same `Pipeline`; a `PreparedStream` may not. Applications must not
+race `Pipeline.close()` with active calls. Use `render_remaining()` when a complete
+array is more convenient than per-tick output.
 
 `prewarm=True` is the default, as is one Torch CPU thread. Prewarming pays for model
 loading, ProDMP caches, compiled Planner kernels, the native model view, and worker
@@ -170,10 +183,12 @@ ABCurves emits signed integer reports. It does not open a USB device or schedule
 polls. Firmware, permissions, operating-system scheduling, queues, synchronization,
 and final output are caller-owned. Benchmark those layers in the real application.
 
-The selected public handoff is also deliberately narrow: reset, observe exactly 256
-reports, begin one event. A continuously rolling observer and arbitrary-length
-handoff have not been validated as equivalent. Do not silently extend the API and
-assume the published measurements transfer.
+The recommended native handoff is deliberately small: prepare exactly 256
+representative reports before B, copy that prepared profile for an event, then begin
+once. There is no continuously running observer and no timing-dependent rolling
+state. `renderer_context_raw_dxdy=` remains available for exact per-event evaluation
+and compatibility; because it replays its 256 reports at B, it is not the recommended
+latency-sensitive path.
 
 ## Finding A and B without looking ahead
 
@@ -333,15 +348,17 @@ For each presentation, the trainer randomly selects a triangular moving-average
 teacher with window 3 or window 5. The smoothed stream is the intent; the original
 integer packets are the answer. No manual texture labels are required.
 
-The 256-report context has two jobs. All 256 reports define the five regime summaries
-and the exact online handoff. The float training reference warms its recurrence on
-the most recent 128 reports. The packed runtime still observes all 256 incrementally;
-its rank-16 handoff maps that online observation to the canonical recurrent boundary.
-The number 128 therefore does not relax the public 256-report input contract.
+Within each training window, all 256 observed reports define the five regime
+summaries and the learned recurrent boundary. The float training reference warms its
+recurrence on the most recent 128 reports. The packed runtime still processes all 256
+when a profile is prepared; its rank-16 handoff maps that observation to the
+canonical recurrent boundary. The number 128 therefore does not relax the 256-report
+profile contract. Deployment may reuse one prepared profile across events; that does
+not alter how the model was trained.
 
 Observed context receives zero loss. Loss begins only on the 800 future reports. The
-model therefore learns the exact use required at deployment: observe real history,
-then render a future plan.
+model therefore learns to condition on physical report texture and then render a
+future plan. Deployment prepares that conditioning state ahead of the event.
 
 ### Architecture and features
 
@@ -468,9 +485,10 @@ with Pipeline(
     float_renderer_checkpoint="runs/renderer_p118345.pt",
     float_renderer_device="cuda",  # use "cpu" when needed
 ) as pipeline:
+    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
     counts = pipeline.generate(
         planner_prefix,
-        renderer_context_raw_dxdy=renderer_context,
+        renderer_profile=renderer_profile,
         target_rel_at_B=(140.0, -22.0),
         target_radius=18.0,
         progress_center=0.72,
@@ -478,10 +496,11 @@ with Pipeline(
     )
 ```
 
-This path uses the same exact 256-report input contract and AF1.5 sampling law. It
-replays the context through the float GRU and samples the whole continuation when the
-event begins, so it is intended for research and ordinary Python use—not as a claim
-of native handoff latency or embedded validation.
+This path uses the same 256-report profile shape and AF1.5 sampling law. The profile
+object is reusable at the API boundary, but the float backend still replays its raw
+window through the float GRU and samples the whole continuation when each event
+begins. It is intended for research and ordinary Python use—not as a claim of native
+profile-clone latency or embedded validation.
 
 The two hysteresis values are intentionally different stages. `1.0` defines the
 offset labels used while fitting the neural law. The later carried-state sampling
@@ -578,8 +597,9 @@ from abcurves.renderer import load_count_model
 float_model, float_report = load_count_model(resolve_renderer_float())
 ```
 
-The rank-16 handoff maps the observed 256-report context into the initial recurrent
-state. It is an observer-state compressor, not a user profile or identity adapter.
+The rank-16 handoff maps one observed 256-report sample into the initial recurrent
+state stored by the reusable runtime profile. Despite the convenient API name,
+`RendererProfile` carries no user identity and is not a personalization adapter.
 
 The artifact SHA-256 is:
 
@@ -630,19 +650,22 @@ validation, cross-language differential tests, manifest entry, and release audit
 
 ## Native C99 contract
 
-The portable runtime lives in [`runtime/c`](../runtime/c). Its public lifecycle is:
+The portable runtime lives in [`runtime/c`](../runtime/c). Prepare a profile outside
+the B-critical path, keep that template unchanged, and copy it for every event:
 
 ```c
 int status = abc_online_model_init(&model, blob, blob_bytes);
 if (status != ABC_FIXED_OK) return status;
-status = abc_online_reset(&renderer, &model);
+status = abc_online_reset(&profile, &model);
 if (status != ABC_FIXED_OK) return status;
 
 for (size_t i = 0; i < 256; ++i) {
-    status = abc_online_observe_raw(&renderer, context[i].dx, context[i].dy);
+    status = abc_online_observe_raw(&profile, sample[i].dx, sample[i].dy);
     if (status != ABC_FIXED_OK) return status;
 }
 
+/* At B: copy the prepared template; never begin on the template itself. */
+renderer = profile;
 status = abc_online_begin(&renderer, event_seed);
 if (status != ABC_FIXED_OK) return status;
 
@@ -655,20 +678,26 @@ for (size_t t = 0; t < duration; ++t) {
 }
 ```
 
-All status codes must be checked. `abc_online_begin()` fails unless exactly 256
-reports were observed. Smooth intent uses signed Q16 deltas. The library allocates no
-heap; callers own the model view and independent Renderer state.
+All status codes must be checked. `abc_online_begin()` fails unless the copied state
+contains exactly 256 observations. Smooth intent uses signed Q16 deltas. The sample
+must contain chronological physical reports, but it does not need to end at B.
+
+The library allocates no heap. Callers retain the model view and the prepared profile
+for as long as any copy refers to them. Copy only the fully prepared template, create
+one independent state per event, and never overwrite an active event with a refreshed
+profile. A new profile can be prepared off-path and selected between events.
 
 | Native quantity | Release value |
 | --- | ---: |
 | Model image | 44,484 bytes |
 | Model view | 208 bytes on validated Windows x64 ABI |
-| Per-stream state | 5,088 bytes on validated Windows x64 ABI |
+| Prepared profile or active-event state | 5,088 bytes each on validated Windows x64 ABI |
 | Generated-tick hot work | 33,760 int8 multiply-accumulates |
 
 The image size and MAC count are platform-independent. Structure sizes depend on
 compiler alignment and pointer width; firmware ports should call
-`abc_online_model_size()` and `abc_online_renderer_size()` on the target ABI.
+`abc_online_model_size()` and `abc_online_renderer_size()` on the target ABI. Keeping
+one profile and one active event requires two Renderer-state objects.
 
 The hot GRU path is fixed-point/int8. Context observation, regime statistics, and the
 rank-16 handoff still use float/double and math-library operations. The code is
@@ -685,15 +714,26 @@ On the Windows x64 machine used for the native release microbenchmark:
 
 | Operation | p99 |
 | --- | ---: |
-| Observe one physical context report | 15.6 µs |
-| Begin after the 256th report | 9.7 µs |
-| Generate one report | 25.6 µs |
+| Prepare all 256 profile reports off-path | 3,629.5 µs |
+| Observe one physical profile report | 14.3 µs |
+| Copy the profile and begin | 8.1 µs |
+| Generate one report | 23.4 µs |
 
+Profile preparation comprises 256 observations and is completed before B. The
+latency-sensitive event path copies the prepared state and begins from that copy.
 These warmed measurements describe the native Renderer core on that machine and
 include timer overhead. They are not ESP32 results and do not include the Planner,
 USB, HID scheduling, application queues, or operating-system jitter. The published
-receipt records the host, compiler, timer, and 32,768/128/102,400 operation samples:
+receipt records the host, compiler, timer, and sample counts:
 [`native_renderer_windows_x64.json`](../results/inference/native_renderer_windows_x64.json).
+
+The composed warmed Python benchmark on the same host measured B→stream-ready at
+239.85 µs median / 433.517 µs p99 and B→first report at 275.8 µs median /
+546.751 µs p99. Those values include the Planner and native profile clone but exclude
+the off-path profile preparation, USB/HID transport, and application scheduling. The
+checked-in [`composed benchmark receipt`](../results/inference/benchmark_this_machine.json)
+records the full phase breakdown and limitations; it is a host measurement, not a
+hard real-time guarantee.
 
 Rebuild, test, and reproduce it with:
 
@@ -747,8 +787,10 @@ The exact files and integrity rules are in
   incomplete tail.
 - Count Renderer work in presentations, not copied epoch labels.
 - Treat teacher-forced loss as diagnostic and select on sampled carried texture.
-- Supply exactly 256 genuine chronological reports; never depend on implicit slicing
-  or padding.
+- Prepare a reusable profile from exactly 256 genuine chronological reports before
+  B; never depend on implicit slicing or padding.
+- Clone the prepared native profile for each event. Do not rotate it on a timer or
+  treat it as a user identity.
 - Keep AF1.5 enabled anywhere claiming to reproduce the deployed sampler.
 - Evaluate the composed Planner→Renderer output, because that is what users run.
 - Measure USB and application integration separately from native-core timing.

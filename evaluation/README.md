@@ -48,6 +48,14 @@ That flag is explicit because the compact example begins at A and lacks 96 earli
 reports. It left-pads the missing history with quiet reports for a smoke run only.
 For a real result, omit the flag and supply `renderer_context_raw_dxdy [N,256,2]`.
 
+That exact per-row context is part of this evaluation protocol. It is intentionally
+different from the recommended deployment schedule, where an application prepares
+one representative `RendererProfile` before B and reuses it across events. Do not
+silently substitute the deployment profile when claiming to reproduce the frozen
+tables, and do not treat these exact evaluation windows as a real-time requirement.
+The separate one-draw engineering probe is explicitly bounded in
+[`renderer_profile_sensitivity.json`](../results/inference/renderer_profile_sensitivity.json).
+
 You can then measure human variation and run the labeled judge:
 
 ```bash

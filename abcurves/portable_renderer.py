@@ -2,9 +2,10 @@
 
 The learned model is a 44,484-byte, zero-copy binary image.  The native core
 owns no heap memory: Python allocates one opaque model view and one
-target-sized renderer state (5,088 bytes on the validated Windows x64 ABI),
-then the C API observes exactly 256 genuine reports, begins an event, and emits
-one bounded integer report per smooth-intent tick.
+target-sized renderer state (5,088 bytes on the validated Windows x64 ABI).
+Exactly 256 genuine reports prepare a reusable profile before B; each event
+copies that state, begins once, and emits one bounded integer report per
+smooth-intent tick.
 """
 
 from __future__ import annotations
@@ -150,7 +151,7 @@ def _void_pointer(storage: Any) -> ctypes.c_void_p:
 
 
 def validate_physical_context(value: np.ndarray) -> np.ndarray:
-    """Return one owned, canonical 256-report hardware context."""
+    """Return one owned, canonical 256-report physical sample."""
 
     array = np.asarray(value)
     if array.shape != (CONTEXT_TICKS, 2):
@@ -285,12 +286,16 @@ class PortableRendererModel:
 
 
 class PreparedRendererContext:
-    """Exactly 256 observed reports, ready for one zero-replay handoff."""
+    """Reusable snapshot of exactly 256 observed physical reports.
+
+    The stored native state is immutable.  Every event begins from a private
+    copy, so one prepared profile can be reused safely without replaying its
+    256 reports on the B-critical path.
+    """
 
     def __init__(self, model: PortableRendererModel, storage: Any) -> None:
         self._model = model
         self._storage = storage
-        self._used = False
 
     def begin(
         self,
@@ -299,19 +304,22 @@ class PreparedRendererContext:
         *,
         event_seed: int,
     ) -> "PortableRendererEvent":
-        if self._used:
-            raise RendererRuntimeError("prepared Renderer context may only be used once")
         if type(event_seed) is not int or not 0 <= event_seed < 2**64:
             raise RendererRuntimeError("event_seed must be a Python integer in uint64 range")
         smooth = validate_smooth_future(smooth_dxdy, future_mask)
+        event_storage = (ctypes.c_ubyte * self._model.api.renderer_bytes)()
+        ctypes.memmove(
+            _void_pointer(event_storage),
+            _void_pointer(self._storage),
+            self._model.api.renderer_bytes,
+        )
         _check(
             self._model.api.library.abc_online_begin(
-                _void_pointer(self._storage), event_seed
+                _void_pointer(event_storage), event_seed
             ),
             "begin",
         )
-        self._used = True
-        return PortableRendererEvent(self._model, self._storage, smooth)
+        return PortableRendererEvent(self._model, event_storage, smooth)
 
 
 class PortableRendererEvent:

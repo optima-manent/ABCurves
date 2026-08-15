@@ -1,25 +1,69 @@
 {
+  "b_to_first_report_us": {
+    "max": 691.6,
+    "p50": 275.8,
+    "p95": 404.095,
+    "p99": 546.751
+  },
   "b_to_stream_ready_us": {
-    "max": 5073.4,
-    "p50": 3989.8500000000004,
-    "p95": 4746.554999999999,
-    "p99": 4956.6669999999995
+    "max": 641.0,
+    "p50": 239.85,
+    "p95": 357.805,
+    "p99": 433.517
   },
   "clock": "time.perf_counter_ns",
+  "critical_path": "freeze B, plan the continuation, clone the prepared profile, and begin; no 256-report replay",
   "device": "CPU",
   "first_renderer_tick_us": {
-    "max": 83.6,
-    "p50": 43.6,
-    "p95": 58.09499999999997,
-    "p99": 74.76699999999994
+    "max": 113.8,
+    "p50": 33.6,
+    "p95": 57.365,
+    "p99": 95.931
   },
   "later_renderer_tick_us": {
-    "max": 371.4,
-    "p50": 28.7,
-    "p95": 43.90999999999995,
-    "p99": 69.40299999999993
+    "max": 869.5,
+    "p50": 28.6,
+    "p95": 49.9,
+    "p99": 77.507
   },
+  "limitations": [
+    "Profile preparation is outside the B-critical path.",
+    "Host CPU only; excludes USB/HID transport and application scheduling.",
+    "Run the benchmark in the intended application before making a hard deadline claim."
+  ],
   "model_seed": 7,
+  "pipeline_phases_us": {
+    "b_to_context_submit_us": {
+      "max": 52.8,
+      "p50": 9.4,
+      "p95": 25.3,
+      "p99": 32.963
+    },
+    "finish_planner_us": {
+      "max": 531.2,
+      "p50": 192.9,
+      "p95": 290.895,
+      "p99": 353.877
+    },
+    "finish_total_us": {
+      "max": 632.2,
+      "p50": 236.75,
+      "p95": 353.025,
+      "p99": 425.23
+    },
+    "renderer_begin_us": {
+      "max": 82.0,
+      "p50": 28.25,
+      "p95": 46.845,
+      "p99": 62.49
+    },
+    "wait_for_renderer_context_us": {
+      "max": 4.7,
+      "p50": 1.4,
+      "p95": 2.4,
+      "p99": 3.309
+    }
+  },
   "platform": {
     "machine": "AMD64",
     "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
@@ -27,8 +71,19 @@
     "system": "Windows"
   },
   "renderer_artifact_sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b",
-  "renderer_context": "256 reports; example-only quiet left padding, not the measured live contract",
-  "schema": "abcurves.runtime_benchmark.v2",
-  "startup_ms": 963.443,
+  "renderer_profile": {
+    "event_handoff": "copy the 5,088-byte prepared native state, then begin",
+    "fixture": "example-only quiet left padding",
+    "preparation": "completed before B and reused for every trial",
+    "prepare_us": {
+      "max": 4363.6,
+      "p50": 3455.7,
+      "p95": 4137.26,
+      "p99": 4278.242
+    },
+    "reports": 256
+  },
+  "schema": "abcurves.runtime_benchmark.v4",
+  "startup_ms": 922.164,
   "trials": 200
 }

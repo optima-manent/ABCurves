@@ -1444,12 +1444,16 @@ class FloatRendererModel:
 
 
 class PreparedFloatRendererContext:
-    """One exact float-GRU context, ready for a single continuation."""
+    """Reusable float-GRU context for research continuations.
+
+    Unlike the native profile path, each begin still replays this context in
+    the float graph and pre-renders the complete continuation.
+    """
 
     def __init__(self, model: FloatRendererModel, context: np.ndarray) -> None:
         self._model = model
-        self._context = context
-        self._used = False
+        self._context = np.array(context, dtype=np.int16, order="C", copy=True)
+        self._context.setflags(write=False)
 
     def begin(
         self,
@@ -1458,8 +1462,6 @@ class PreparedFloatRendererContext:
         *,
         event_seed: int,
     ) -> "FloatRendererEvent":
-        if self._used:
-            raise RendererRuntimeError("prepared Renderer context may only be used once")
         if type(event_seed) is not int or not 0 <= event_seed < 2**64:
             raise RendererRuntimeError(
                 "event_seed must be a Python integer in uint64 range"
@@ -1470,7 +1472,6 @@ class PreparedFloatRendererContext:
             smooth,
             event_seed=event_seed,
         )
-        self._used = True
         return FloatRendererEvent(output)
 
 

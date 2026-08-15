@@ -353,18 +353,20 @@ The raw reports remain the self-supervised answer. Smooth window-3 and window-5
 teacher views are created by the trainer, with one deterministic random choice per
 source in each shuffled pass. For pass `epoch`,
 `numpy.random.default_rng([seed, epoch])` draws every w3/w5 choice first and only then
-draws the row permutation. All 256 context reports define the regime and
-deployment handoff; the float recurrent warm-up uses the most recent 128. Teacher
-offset labels use base hysteresis `1.0`; deployment later calibrates the sampler to
-`0.5` without relabeling the corpus. No smooth array needs to be frozen into the
-prepared dataset.
+draws the row permutation. Within each training window, all 256 context reports
+define the regime and learned handoff state; the float recurrent warm-up uses the
+most recent 128. At deployment those same 256-report semantics are prepared once as
+a reusable representative profile before B. Reuse changes the input schedule, not
+the training window. Teacher offset labels use base hysteresis `1.0`; deployment
+later calibrates the sampler to `0.5` without relabeling the corpus. No smooth array
+needs to be frozen into the prepared dataset.
 
 At the output root:
 
 - `source_index.json` binds every source session, verified hash, split, tick count,
   window count, and dropped tail;
-- `build_report.json` records the exact window, split, training-budget, smoothing,
-  and AF1.5 deployment contract plus hashes of the generated arrays; and
+- `build_report.json` records the exact training window, split, training-budget,
+  smoothing, and AF1.5 deployment contract plus hashes of the generated arrays; and
 - `manifest.json` binds both preparation branches and the configuration hash.
 
 ### Scale of the selected Renderer corpus

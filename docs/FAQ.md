@@ -63,39 +63,58 @@ head, and 34,362 learned scalars. The selected deployment image is 44,484 bytes:
 39,512 bytes for the quantized base plus 4,972 bytes for the rank-16 prefix handoff.
 
 On the validated Windows x64 ABI, the C runtime uses a 208-byte zero-copy model view
-and 5,088 bytes of caller-owned state per stream. Those structure sizes depend on the
-target ABI, so ports query them from the library. Its hot generated-tick path
-performs 33,760 int8 multiply-accumulates and allocates no heap.
+and 5,088 bytes for each caller-owned Renderer state. The normal reusable-profile
+path retains one prepared state and copies it into one state per active event. Those
+structure sizes depend on the target ABI, so ports query them from the library. Its
+hot generated-tick path performs 33,760 int8 multiply-accumulates and allocates no
+heap.
 
-## Is the rank-16 handoff a personalization model?
+## Is `RendererProfile` a personalization model?
 
-No. It compresses the current 256-report observation into the initial recurrent
-state. It receives no user identity and does not summarize a named person's earlier
-events. It is part of making the exact prefix handoff agree with the selected model.
+No. The rank-16 handoff compresses one representative 256-report sample into an
+initial recurrent state. It receives no user identity and does not summarize a named
+person's earlier events. “Profile” names a reusable prepared texture state, not an
+identity model or a promise to imitate one individual.
 
 ## Why does the Renderer need exactly 256 reports?
 
-That is the context length used by both training windows and the validated deployment
-artifact. All 256 reports define the packet-regime summary and online handoff. The
-float recurrent warm-up itself uses the most recent 128; this does not make 128 a
-valid public context length.
+That is the observation length used by the training windows and the validated
+artifact. All 256 reports define the packet-regime summary and prepared handoff
+state. The float recurrent warm-up itself uses the most recent 128; this does not
+make 128 a valid public profile length.
 
 The runtime does not silently slice a longer buffer or pad a shorter one. The caller
-must pass shape `(256, 2)`, containing finite integer physical counts ending at the
-same B as the Planner prefix. If the Planner prefix itself is exactly 256 reports, it
-can serve both roles.
+prepares a `RendererProfile` from shape `(256, 2)`, containing finite chronological
+integer physical counts. The sample should be representative of the intended device
+or setup, but it does not need to end at B. The same immutable profile can be reused
+across events.
 
-## Can I keep one observer running forever?
+An indicative one-draw Renderer-only engineering probe found little practical
+dependence on millisecond-perfect alignment, with overlapping uncertainty intervals,
+and motivated this deployment schedule. It was not a promotion or equivalence test
+and did not use the full frozen cold/warm protocol, so it does not rewrite those
+published measurements. Its scope and measurements are in the
+[`Renderer profile sensitivity receipt`](../results/inference/renderer_profile_sensitivity.json);
+the frozen results and their exact per-event contexts remain documented in
+[`DETECTION.md`](../DETECTION.md).
 
-Not under the published contract yet. The validated path is reset, observe exactly
-256 reports, then begin one event. A continuously rolling observer, an
-arbitrary-length history, or reuse of one prepared context for several events has not
-been established as equivalent.
+## Should I keep an observer running or refresh the profile on a timer?
+
+No. Prepare one 256-report profile before B and clone it for each event. There is no
+continuously advancing observer and no need to rotate the profile every few seconds
+for variety; the event seed supplies sampling variation. If the physical device or
+setup changes materially, prepare a replacement off the B-critical path and use it
+for later events.
+
+This does not claim that arbitrary-length or continuously rolling observation is
+equivalent. Those are different state semantics and are not part of the public API.
 
 ## Is there a hard jump where ABCurves takes over?
 
-The system is built to avoid one: the Planner inherits the measured boundary motion,
-and the Renderer observes the exact physical context before generation. Seam
+The system is built to avoid one. The Planner inherits the event-specific
+smooth-intent boundary at B. The Renderer profile supplies packet-state conditioning,
+including previous emission, last smooth motion, run state, and recent activity, as
+it textures that plan. Exact profile alignment with B is not required. Seam
 continuity is measured rather than assumed. Individual samples can still vary, so
 “no jump is possible” would be a stronger claim than the system makes.
 
@@ -223,17 +242,18 @@ requires quantization validation, C/Python differential tests, new hashes, and a
 manifest—not just renaming the float checkpoint.
 
 You do not need a new binary to use the retrained model. Pass the checkpoint to
-`Pipeline(float_renderer_checkpoint="runs/renderer_p118345.pt")`. The same Planner
-and 256-report context API then runs the PyTorch float sampler directly. It pre-renders
-the continuation at event start, so it is a research/Python backend rather than an
-embedded timing claim.
+`Pipeline(float_renderer_checkpoint="runs/renderer_p118345.pt")`. The same
+`RendererProfile` API then runs the PyTorch float sampler directly. The profile object
+is reusable, but this backend replays its raw 256-report window and pre-renders the
+continuation at every event start. It is a research/Python backend rather than a
+native profile-clone or embedded timing claim.
 
 ## Can it run on an ESP32?
 
 The native core is C99, no-heap, fixed-point/int8 in the hot recurrent path, and small
-enough to be a serious ESP32-class starting point. The observer and rank-16 handoff
-still use float/double and math-library operations, however. No ESP32 timing,
-firmware integration, or platform certification is claimed in this release.
+enough to be a serious ESP32-class starting point. Profile preparation and the
+rank-16 handoff still use float/double and math-library operations, however. No ESP32
+timing, firmware integration, or platform certification is claimed in this release.
 
 ## Will it work at another polling rate or in screen pixels?
 
@@ -244,11 +264,10 @@ and operating-system transforms, so they cannot be mixed with raw count geometry
 
 ## What still gives the system trouble?
 
-Very small targets remain a clear Planner weakness. The Renderer is also published
-with a deliberately narrow handoff contract: exactly 256 reports and one event per
-prepared context. Device-specific performance outside the tested platforms, USB
-integration, and arbitrary rolling observation remain work for an implementer to
-validate.
+Very small targets remain a clear Planner weakness. The Renderer still requires a
+profile made from exactly 256 chronological reports. Device-specific performance
+outside the tested platforms, USB integration, and arbitrary rolling observation
+remain work for an implementer to validate.
 
 ## Can I use only the Planner or only the Renderer?
 

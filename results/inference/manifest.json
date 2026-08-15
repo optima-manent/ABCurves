@@ -1,16 +1,21 @@
 {
   "schema": "abcurves.release.inference_manifest.v2",
-  "release": "1.5.0",
+  "release": "1.5.1",
   "artifacts": {
     "benchmark_this_machine.json": {
-      "scope": "composed Python quickstart benchmark with explicit quiet context padding",
-      "bytes": 927,
-      "sha256": "7898da86d751806139c42a378ca992753d296fbe984380d67a63d4d2c27c4e4a"
+      "scope": "composed Python path with one representative profile prepared before B and reused across trials",
+      "bytes": 2183,
+      "sha256": "ee712eab8fbffdf735f4ce9038e0db54da749300c6eae47eee7883f0e8f4f10c"
     },
     "native_renderer_windows_x64.json": {
-      "scope": "native Renderer-core benchmark; excludes USB, HID, Planner, and application scheduling",
-      "bytes": 1165,
-      "sha256": "906de4c3f77e96d56aba3b6dcde907e45dce9a5e6be4636e639521c2fed934fe"
+      "scope": "native profile preparation, profile-copy/begin, and generated-tick benchmark; excludes USB, HID, Planner, and application scheduling",
+      "bytes": 1400,
+      "sha256": "6d6f71f1a54f3a155edaa95929496f101eb2db37c2f764855ebe486910993260"
+    },
+    "renderer_profile_sensitivity.json": {
+      "scope": "indicative one-draw Renderer-only exact, delayed, and reusable-profile sensitivity check; not promotion or equivalence evidence",
+      "bytes": 5267,
+      "sha256": "d1be1842148376aab0a5f43f31e469f137bb589805d72c9c7c416e7265d4d238"
     },
     "renderer_promotion.json": {
       "scope": "frozen non-protected carried-session promotion receipt",

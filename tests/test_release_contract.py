@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import torch
 
+import abcurves
 from abcurves.model_store import (
     ModelIntegrityError,
     RELEASE_FILE_ANCHORS,
@@ -23,10 +24,50 @@ from abcurves.planner import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_release_version_is_consistent() -> None:
+    project = (ROOT / "pyproject.toml").read_text("utf-8")
+    models = json.loads((ROOT / "models" / "manifest.json").read_text("utf-8"))
+    inference = json.loads(
+        (ROOT / "results" / "inference" / "manifest.json").read_text("utf-8")
+    )
+    citation = (ROOT / "CITATION.cff").read_text("utf-8")
+    expected = "1.5.1"
+    assert f'version = "{expected}"\n' in project
+    assert models["release"] == expected
+    assert inference["release"] == expected
+    assert abcurves.__version__ == expected
+    assert f"version: {expected}\n" in citation
+
+
+def test_renderer_profile_receipts_keep_their_claim_boundaries() -> None:
+    benchmark = json.loads(
+        (ROOT / "results" / "inference" / "benchmark_this_machine.json").read_text(
+            "utf-8"
+        )
+    )
+    native = json.loads(
+        (
+            ROOT / "results" / "inference" / "native_renderer_windows_x64.json"
+        ).read_text("utf-8")
+    )
+    sensitivity = json.loads(
+        (
+            ROOT / "results" / "inference" / "renderer_profile_sensitivity.json"
+        ).read_text("utf-8")
+    )
+    assert benchmark["schema"] == "abcurves.runtime_benchmark.v4"
+    assert "no 256-report replay" in benchmark["critical_path"]
+    assert native["schema"] == "abcurves.native_renderer_benchmark.v2"
+    assert "clone_profile_and_begin" in native["measurements"]
+    assert sensitivity["status"] == "INDICATIVE_ENGINEERING_PROBE_NOT_PROMOTION"
+    assert sensitivity["protocol"]["draws"] == 1
+    assert "not an equivalence proof" in sensitivity["interpretation"]["boundary"]
+
+
 def test_every_release_model_matches_manifest() -> None:
     manifest = json.loads((ROOT / "models" / "manifest.json").read_text("utf-8"))
     assert manifest["schema"] == "abcurves.release_models.v2"
-    assert manifest["release"] == "1.5.0"
+    assert manifest["release"] == "1.5.1"
     assert manifest["default_seed"] == 7
     assert manifest["seeds"] == [7, 23]
     assert set(manifest["files"]) == {

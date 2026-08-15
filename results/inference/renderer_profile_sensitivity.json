@@ -1,0 +1,106 @@
+{
+  "schema": "abcurves.renderer_profile_sensitivity.v1",
+  "status": "INDICATIVE_ENGINEERING_PROBE_NOT_PROMOTION",
+  "created_date": "2026-08-15",
+  "candidate": {
+    "renderer_artifact_sha256": "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b",
+    "native_library_sha256": "730bafac2b6a8431628401fc6e2239a12b787cd730791d453b4dec0cb47d3a41"
+  },
+  "input_identities": {
+    "development_dataset_sha256": "d2e690dd6143902ae3b5d5217404153f7a9b6b9b90420a72936da6f498fca5e6",
+    "descriptor_sha256": "4cb0fdbc70993cb9555ca4f618818c55a8fe43392720fa20ea29ace85d2a9d5f",
+    "exact_output_cache_sha256": "1753786fa0f9d84007a014cc31931ed7e70b1e3c4aa1dd3656a9a54e071a6453"
+  },
+  "protocol": {
+    "component": "Renderer_only",
+    "intent": "oracle_human_smoothed_w5",
+    "rows": 320,
+    "sessions": 10,
+    "draws": 1,
+    "common_random_numbers": true,
+    "baseline_cache_exactly_reproduced": true,
+    "exact_reference": "genuine source-native [B-256,B) report window",
+    "delayed_window": "genuine source-native [B-256-d,B-d) report window",
+    "static_same_session": "one frozen genuine 256-report window per session",
+    "static_global": "one frozen genuine 256-report window reused for every row and session",
+    "texture_c2st": "paired groups; 5 folds x 3 repeats; 80 group bootstraps"
+  },
+  "metrics": {
+    "exact_per_event": {
+      "rows_exactly_identical_to_exact_fraction": 1.0,
+      "changed_tick_fraction_mean": 0.0,
+      "final_cumulative_position_delta_max_counts": 0.0,
+      "full49_standardized_w1_mean": 0.05014737873887902,
+      "texture19_standardized_w1_mean": 0.07769072038675448,
+      "texture19_c2st_auc": 0.6388997395833333,
+      "texture19_c2st_auc_ci": [0.599576416015625, 0.67085205078125]
+    },
+    "delay_4ms": {
+      "rows_exactly_identical_to_exact_fraction": 0.88125,
+      "changed_tick_fraction_mean": 0.0020344980402808624,
+      "final_cumulative_position_delta_max_counts": 1.0,
+      "full49_standardized_w1_mean": 0.0509571428456654,
+      "texture19_standardized_w1_mean": 0.0790546687679164,
+      "texture19_c2st_auc": 0.641357421875,
+      "texture19_c2st_auc_ci": [0.600867919921875, 0.675469970703125]
+    },
+    "delay_32ms": {
+      "rows_exactly_identical_to_exact_fraction": 0.69375,
+      "changed_tick_fraction_mean": 0.005040053638269811,
+      "final_cumulative_position_delta_max_counts": 1.0,
+      "full49_standardized_w1_mean": 0.05070924311702502,
+      "texture19_standardized_w1_mean": 0.07875538257436206,
+      "texture19_c2st_auc": 0.64296875,
+      "texture19_c2st_auc_ci": [0.603699951171875, 0.6747302246093749]
+    },
+    "delay_256ms": {
+      "rows_exactly_identical_to_exact_fraction": 0.315625,
+      "changed_tick_fraction_mean": 0.02460696089708225,
+      "final_cumulative_position_delta_max_counts": 1.0,
+      "full49_standardized_w1_mean": 0.04883592457617987,
+      "texture19_standardized_w1_mean": 0.07715532771407635,
+      "texture19_c2st_auc": 0.6534342447916667,
+      "texture19_c2st_auc_ci": [0.618509521484375, 0.685743408203125]
+    },
+    "delay_1024ms": {
+      "rows_exactly_identical_to_exact_fraction": 0.453125,
+      "changed_tick_fraction_mean": 0.015259155969379882,
+      "final_cumulative_position_delta_max_counts": 1.0,
+      "full49_standardized_w1_mean": 0.04960160750373313,
+      "texture19_standardized_w1_mean": 0.07769887161221183,
+      "texture19_c2st_auc": 0.6437337239583333,
+      "texture19_c2st_auc_ci": [0.6049658203125, 0.672271728515625]
+    },
+    "static_same_session": {
+      "rows_exactly_identical_to_exact_fraction": 0.44375,
+      "changed_tick_fraction_mean": 0.015914497879437692,
+      "final_cumulative_position_delta_max_counts": 1.0,
+      "full49_standardized_w1_mean": 0.04953079586844528,
+      "texture19_standardized_w1_mean": 0.07696441193779313,
+      "texture19_c2st_auc": 0.6291341145833332,
+      "texture19_c2st_auc_ci": [0.588743896484375, 0.6584692382812499]
+    },
+    "static_global_one_window": {
+      "rows_exactly_identical_to_exact_fraction": 0.375,
+      "changed_tick_fraction_mean": 0.018176855554505426,
+      "final_cumulative_position_delta_max_counts": 1.0,
+      "full49_standardized_w1_mean": 0.05051372581831635,
+      "texture19_standardized_w1_mean": 0.07544669205202548,
+      "texture19_c2st_auc": 0.619091796875,
+      "texture19_c2st_auc_ci": [0.58784912109375, 0.6462780761718749]
+    },
+    "all_zero_context": {
+      "rows_exactly_identical_to_exact_fraction": 0.225,
+      "changed_tick_fraction_mean": 0.032164928556568,
+      "final_cumulative_position_delta_max_counts": 1.0,
+      "full49_standardized_w1_mean": 0.047927026251788504,
+      "texture19_standardized_w1_mean": 0.07481485610038228,
+      "texture19_c2st_auc": 0.6578938802083334,
+      "texture19_c2st_auc_ci": [0.6292504882812501, 0.6850317382812501]
+    }
+  },
+  "interpretation": {
+    "finding": "No material aggregate humanization degradation was observed when one genuine representative window was reused in this probe; its Texture19 confidence interval overlaps the exact-context interval.",
+    "boundary": "This is a one-draw engineering sensitivity check, not an equivalence proof, a composed Planner-to-Renderer evaluation, or a replacement for the frozen release protocols."
+  }
+}

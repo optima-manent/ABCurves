@@ -41,6 +41,7 @@ def _render_example(pipeline: Pipeline, source: dict, index: int) -> dict:
         raise ValueError(f"example {index}: prefix is not physical integer counts")
     context = np.zeros((256, 2), dtype=np.int16)
     context[-len(prefix) :] = prefix.astype(np.int16)
+    profile = pipeline.prepare_renderer_profile(context)
     b = np.asarray(source["b"], dtype=np.float64)
     target = np.asarray(source["target"], dtype=np.float64)
     start = prefix_path[0]
@@ -53,7 +54,7 @@ def _render_example(pipeline: Pipeline, source: dict, index: int) -> dict:
         seed = 20_000 + index * 16 + draw
         counts = pipeline.generate(
             prefix,
-            renderer_context_raw_dxdy=context,
+            renderer_profile=profile,
             target_rel_at_B=(float(target[0] - b[0]), float(target[1] - b[1])),
             target_radius=float(source["radius"]),
             progress_center=progress,

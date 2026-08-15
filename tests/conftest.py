@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from abcurves import Pipeline
+from abcurves import Pipeline, RendererProfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,3 +39,10 @@ def pipeline7() -> Pipeline:
     runtime = Pipeline.from_pretrained(prewarm=True)
     yield runtime
     runtime.close()
+
+
+@pytest.fixture(scope="session")
+def renderer_profile7(
+    pipeline7: Pipeline, example_row: dict[str, object]
+) -> RendererProfile:
+    return pipeline7.prepare_renderer_profile(example_row["renderer_context"])
