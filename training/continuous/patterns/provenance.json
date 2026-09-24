@@ -1,0 +1,127 @@
+[
+  {
+    "file": "research/human_patterns_20260921/hp_geometry.py",
+    "symbol": "bases",
+    "line": 5,
+    "source_sha256": "5c2b60b5b1d701fa3adc0e184c98a93f0676ea61b0894dfeddafd9443d1fe947",
+    "body_sha256": "262a456bc8496e843820e167f99dc7128f2cebb8bc01c19b78d2a1f564ce65d4"
+  },
+  {
+    "file": "research/human_patterns_20260921/hp_geometry.py",
+    "symbol": "path",
+    "line": 11,
+    "source_sha256": "5c2b60b5b1d701fa3adc0e184c98a93f0676ea61b0894dfeddafd9443d1fe947",
+    "body_sha256": "b3073bbd029db6849a2282486d9a53b1f9e6646035f955182c66627218399089"
+  },
+  {
+    "file": "research/human_patterns_20260921/hp_geometry.py",
+    "symbol": "fit_path",
+    "line": 16,
+    "source_sha256": "5c2b60b5b1d701fa3adc0e184c98a93f0676ea61b0894dfeddafd9443d1fe947",
+    "body_sha256": "3a9f2f9df6a81db2f40d17c3a65d7251f084ab8a9956623ead01b6ae86d56219"
+  },
+  {
+    "file": "research/human_patterns_20260921/hp_geometry.py",
+    "symbol": "local_basis",
+    "line": 35,
+    "source_sha256": "5c2b60b5b1d701fa3adc0e184c98a93f0676ea61b0894dfeddafd9443d1fe947",
+    "body_sha256": "b3a900dafa13b696a657f1ded3b48c8e5d54e646af132b71fb0a0a68ca0bdfa9"
+  },
+  {
+    "file": "research/settling_decisions_20260921/core.py",
+    "symbol": "FEATURES",
+    "line": 17,
+    "source_sha256": "d8f8a1545b0fb7b5b887ed2fe3671ac38616998f461fa230fe6f9b1f0e79b2e8",
+    "body_sha256": "ba0cb5c7e9cb5c14c4e291bb32e29a1281916cfbb08636e90ef1b617e443147e"
+  },
+  {
+    "file": "research/settling_decisions_20260921/core.py",
+    "symbol": "SCALES",
+    "line": 22,
+    "source_sha256": "d8f8a1545b0fb7b5b887ed2fe3671ac38616998f461fa230fe6f9b1f0e79b2e8",
+    "body_sha256": "d8ae29cd9cdea5e1e7fe217b6fce21b4ce51529c8560101b0ce72c4e76eb28d2"
+  },
+  {
+    "file": "research/settling_decisions_20260921/core.py",
+    "symbol": "physical_features",
+    "line": 24,
+    "source_sha256": "d8f8a1545b0fb7b5b887ed2fe3671ac38616998f461fa230fe6f9b1f0e79b2e8",
+    "body_sha256": "79e5c38b38e8dc502d3eb9fbd6d079417a3c3f60fc692c16ed7607381da004d9"
+  },
+  {
+    "file": "research/settling_decisions_20260921/core.py",
+    "symbol": "transform",
+    "line": 55,
+    "source_sha256": "d8f8a1545b0fb7b5b887ed2fe3671ac38616998f461fa230fe6f9b1f0e79b2e8",
+    "body_sha256": "c38b1e3377b19f8cc439184f7410d22d9c0530553e6f2bd4ef2082fe8e7e0c10"
+  },
+  {
+    "file": "research/human_patterns_20260921/hp_model.py",
+    "symbol": "context",
+    "line": 9,
+    "source_sha256": "8f743fa2a72cce794505b613764ee531064d99962ffe253f6c01d611391d3641",
+    "body_sha256": "1a6389fd1b3117cbffa2c28b27737ec11f87d4e3e47791084ca4286eb2dcebb5"
+  },
+  {
+    "file": "research/settling_decisions_20260921/prepare.py",
+    "symbol": "runs",
+    "line": 11,
+    "source_sha256": "fd85ba0d2a73f06bf26736ea0a6458f097297b681f857b29c181abfe0132d803",
+    "body_sha256": "e00a3edf42054cae7295eb929c431d9236d3926cd90304da4b8be9ce0e580228"
+  },
+  {
+    "file": "research/settling_decisions_20260921/prepare.py",
+    "symbol": "transition_rows",
+    "line": 15,
+    "source_sha256": "fd85ba0d2a73f06bf26736ea0a6458f097297b681f857b29c181abfe0132d803",
+    "body_sha256": "5e847bd03d1b2026c11f5a6b6a1ba7a630961cc5358d46a502fc7efb7e849b4c"
+  },
+  {
+    "file": "research/settling_decisions_20260921/prepare.py",
+    "symbol": "sources",
+    "line": 80,
+    "source_sha256": "fd85ba0d2a73f06bf26736ea0a6458f097297b681f857b29c181abfe0132d803",
+    "body_sha256": "131cb1909fdf848cf3378b191adcdcdc8683aebc1468e6ecc71e3337e47fdd76"
+  },
+  {
+    "file": "research/settling_decisions_20260921/prepare.py",
+    "symbol": "sha_text",
+    "line": 122,
+    "source_sha256": "fd85ba0d2a73f06bf26736ea0a6458f097297b681f857b29c181abfe0132d803",
+    "body_sha256": "dab41dbe53908f77b1c0cbd9bbe53f882fd1fa31f57a4c7707082bd820fac61f"
+  },
+  {
+    "file": "research/settling_decisions_20260921/prepare.py",
+    "symbol": "main",
+    "line": 126,
+    "source_sha256": "fd85ba0d2a73f06bf26736ea0a6458f097297b681f857b29c181abfe0132d803",
+    "body_sha256": "a0d75d581053f4cfca9fccea4d6796d3205bb0e36188ae31f79b748444cabbaa"
+  },
+  {
+    "file": "research/human_patterns_20260921/prepare_hp.py",
+    "symbol": "hashorder",
+    "line": 13,
+    "source_sha256": "da9b9baefa32bece978f184d0c88ea0501c96b38430a5105f80026ee508621da",
+    "body_sha256": "678f72dbf3573e4fd3e88c67182c2bb8b4af92923f34cb0c6d8911c3ef49fd37"
+  },
+  {
+    "file": "research/human_patterns_20260921/prepare_hp.py",
+    "symbol": "pack",
+    "line": 15,
+    "source_sha256": "da9b9baefa32bece978f184d0c88ea0501c96b38430a5105f80026ee508621da",
+    "body_sha256": "4c0af8c7cf94250c065ef1e2d3cd115fb16e2e797c124cd36f7f39333d40d046"
+  },
+  {
+    "file": "research/human_patterns_20260921/prepare_hp.py",
+    "symbol": "main",
+    "line": 27,
+    "source_sha256": "da9b9baefa32bece978f184d0c88ea0501c96b38430a5105f80026ee508621da",
+    "body_sha256": "04348c00f344b26860ff721dbfe83bc5264c075bbdcdd5b9f267577fc63b2993"
+  },
+  {
+    "file": "research/human_patterns_20260921/filter_motor_hp.py",
+    "symbol": "main",
+    "source_sha256": "f472c12cb52a91731ec1bc749f35751fdfad147f6e6b30d7c62465def84f8d13",
+    "adaptation": "Exact teacher role/window filter and per-source mass restoration; omit unused coarse/fine/delta payload and rollout cache."
+  }
+]

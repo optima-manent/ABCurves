@@ -66,7 +66,9 @@ Keep the fully observed `profile` unchanged. C structure assignment copies it in
 an independent `event`; `begin` is one-shot on that event copy. The smooth input to
 `step` is signed Q16 counts. The profile may be reused for later events by copying it
 into separate caller-owned states, as long as the model and its backing blob remain
-alive. The caller is responsible for synchronization and object lifetimes. Prepare a
+alive. The final observation completes the boundary and adapter computation;
+`begin` initializes the event's seed, counter, and generation state.
+The caller is responsible for synchronization and object lifetimes. Prepare a
 replacement off-path and select it only between events if the physical setup changes
 materially. There is no timer-driven refresh or continuously rolling observer in
 this contract.
@@ -83,7 +85,7 @@ bytes and the zero-copy model view is 208 bytes; call `abc_online_renderer_size(
 `abc_online_model_size()` on every other compiler/target instead of assuming
 those two struct sizes. One retained profile plus one active event therefore uses two
 Renderer-state objects. The hot generation path is fixed-point/int8, while profile
-preparation uses double-precision summary math and the rank-16 begin adapter uses
+preparation uses double-precision summary math and the rank-16 profile adapter uses
 float32 and `tanhf`.
 
 That makes this a practical experimental starting point for ESP-IDF and other

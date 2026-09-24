@@ -1,44 +1,25 @@
-"""Prepare one reusable profile, then emit one raw report per millisecond."""
-
+"""Compose the Continuous Planner with a persistent hardware-count Renderer."""
 from pathlib import Path
 import sys
-
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from abcurves import ContinuousPipeline, CountTransform
 
-from abcurves import Pipeline
+# An authentic sample is bundled with its source lineage. In an application,
+# provide exactly 256 genuine 1 ms reports representative of its device/setup.
+with np.load(ROOT/'examples/data/human_start.npz') as data:
+    profile = data['profile_hardware']
+    transform = CountTransform(float(data['radians_per_count']), y_down=True)
 
-with np.load(ROOT / "examples" / "aim_test.npz", allow_pickle=False) as data:
-    row = 0
-    prefix = data["prefix_raw_dxdy"][row][data["prefix_mask"][row] > 0.5]
-    renderer_profile_window = np.zeros((256, 2), dtype=np.int16)
-    renderer_profile_window[-len(prefix) :] = np.rint(prefix).astype(np.int16)
-    target = (
-        float(data["target_rel_x_at_B"][row]),
-        float(data["target_rel_y_at_B"][row]),
-    )
-    radius = float(data["target_radius"][row])
-    progress = float(data["progress"][row])
-
-with Pipeline.from_pretrained() as pipeline:
-    # Do this before the latency-sensitive B handoff. Reuse the returned
-    # immutable profile for later events from the same device/setup.
-    profile = pipeline.prepare_renderer_profile(renderer_profile_window)
-    pending = pipeline.begin_at_b(prefix, renderer_profile=profile)
-
-    # Bind the exact geometry once the closed B bin is finalized.
-    stream = pending.finish(
-        target_rel_at_B=target,
-        target_radius=radius,
-        progress_center=progress,
-        planner_seed=2026,
-        renderer_event_seed_u64=2026,
-    )
-
-    while not stream.complete:
-        dx, dy = stream.step()
-        # Send (int(dx), int(dy)) to the caller's 1 kHz hardware/output layer.
-
-print(stream.duration_ms, "ticks rendered")
+stream = ContinuousPipeline(profile, transform=transform, seed=2026,
+                            renderer_seed=101, initial_xy=(0., 0.))
+stream.update_target((100., 30.), timestamp_us=0)
+for tick in range(1, 1001):
+    if tick == 501:
+        stream.update_target((160., -40.), timestamp_us=500_000)
+    output = stream.advance(tick*1000)
+    dx, dy = output['reports'][0]
+    # Hand (int(dx), int(dy)) to your paced output layer here.
+print('1,000 reports; rendered position:', stream.rendered_xy)

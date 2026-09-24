@@ -1,9 +1,12 @@
 {
   "schema": "abcurves.release_models.v2",
-  "release": "1.5.1",
+  "release": "2.0.0",
   "default_seed": 7,
-  "seeds": [7, 23],
-  "pipeline": "Planner + global whole-session Renderer + reusable 256-report profile + rank-16 handoff + W5 + AF1.5",
+  "seeds": [
+    7,
+    23
+  ],
+  "pipeline": "Continuous Planner or Static Planner + global whole-session Renderer; explicit units, 1ms output and persistent stream or finite-event state",
   "renderer": {
     "scope": "global whole-session count texture",
     "corpus": "P0 full cohort",
@@ -19,7 +22,7 @@
     "optimizer_steps": 463,
     "passes_over_training_windows": 1.4478755031,
     "optimizer": "Adam",
-    "weight_decay": 0.00001,
+    "weight_decay": 1e-05,
     "sampler": "frozen_epoch_view_sampler_v1",
     "deterministic_algorithms": true,
     "context_ticks": 256,
@@ -36,7 +39,7 @@
     ],
     "deployment_smoothing": "triangular_moving_average_path:window=5",
     "lateral_offset_penalty": 1.5,
-    "zero_intent_threshold_float": 1e-7,
+    "zero_intent_threshold_float": 1e-07,
     "zero_intent_threshold_q16": 0,
     "zero_accumulator_threshold": 0.5,
     "safety_release_threshold": 32.0,
@@ -86,8 +89,8 @@
   "native_libraries": {
     "abcurves/_native/abcurves_renderer.dll": {
       "platform": "Windows x64",
-      "bytes": 37376,
-      "sha256": "730bafac2b6a8431628401fc6e2239a12b787cd730791d453b4dec0cb47d3a41",
+      "bytes": 37888,
+      "sha256": "8efa2dfc43508a947f6afc4d41e120df1989385d3c7d0b437185cccf39284e6e",
       "public_exports": 8,
       "reproducible_link": "MSVC /Brepro"
     }
@@ -117,5 +120,14 @@
       "source_container_sha256": "e9951a9bc25b69bf652cebbca8749badd02b8c0675a5f1ad4cde7f1a8624132a",
       "format": "sanitized phase-free 20-feature active float graph"
     }
+  },
+  "default_planner_family": "continuous",
+  "continuous_manifest": "continuous/manifest.json",
+  "static_model_selection": {
+    "default_seed": 7,
+    "seeds": [
+      7,
+      23
+    ]
   }
 }

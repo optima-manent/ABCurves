@@ -5,7 +5,12 @@
 #include <string.h>
 
 #define OHV_HEADER_BYTES 24U
+#ifdef ABC_CUSTOM_MODEL_BINDING
+#include "abc_model_binding.h"
+#define OHV_CRC32 ABC_BOUND_ADAPTER_CRC32
+#else
 #define OHV_CRC32 UINT32_C(0x6aa9101c)
+#endif
 
 static const uint8_t OHV_MAGIC[8] = {'O','H','V','1','R','1','6',0};
 
@@ -390,6 +395,8 @@ int abc_online_reset(abc_online_renderer_t *r, const abc_online_model_t *model) 
     return abc_fixed_reset(&r->fixed, &model->fixed);
 }
 
+static int finalize_profile(abc_online_renderer_t *r);
+
 int abc_online_observe_raw(abc_online_renderer_t *r, int16_t dx, int16_t dy) {
     double smooth[2]; int emitted; int status; int16_t summary[5]; unsigned i;
     uint16_t tick;
@@ -426,6 +433,7 @@ int abc_online_observe_raw(abc_online_renderer_t *r, int16_t dx, int16_t dy) {
     }
     for (i = 0U; i < 5U; ++i) r->last_observer_feature_q8[15U + i] = summary[i];
     status = abc_fixed_online_gru_step_q8(&r->fixed, r->last_observer_feature_q8);
+    if (!status && tick == 255U) status = finalize_profile(r);
     if (!status) ++r->observed;
     return status;
 }
@@ -453,13 +461,13 @@ static void final_regime(abc_online_renderer_t *r) {
     r->final_regime_q8[4] = q8_from_double(log1p(hf));
 }
 
-int abc_online_begin(abc_online_renderer_t *r, uint64_t seed) {
-    int status; int16_t corrected[80]; unsigned i;
+/* The boundary and adapted hidden state depend only on the completed profile.
+ * Keep OBSERVE mode until an event copy receives its seed in begin(). */
+static int finalize_profile(abc_online_renderer_t *r) {
+    int status; unsigned i;
     double tail[4][2];
     size_t tail_count;
     abc_fixed_online_boundary_t boundary;
-    if (r == NULL || r->model == NULL) return ABC_FIXED_ERR_ARGUMENT;
-    if (r->observed != 256U) return ABC_FIXED_ERR_MODE;
     final_regime(r);
     tail_count = abc_w5_flush(&r->target_smoother, tail);
     if (tail_count != 4U) return ABC_FIXED_ERR_MODE;
@@ -493,8 +501,16 @@ int abc_online_begin(abc_online_renderer_t *r, uint64_t seed) {
     for (i = 0U; i < 5U; ++i) r->adapter_input[140U + i] = r->final_regime_q8[i] / 256.0f;
     status = adapter_predict(&r->model->adapter, r->adapter_input, r->adapter_output);
     if (status) return status;
-    for (i = 0U; i < 80U; ++i) corrected[i] = q15_from_float(r->adapter_output[i]);
-    return abc_fixed_online_begin_from_hidden(&r->fixed, corrected, seed);
+    for (i = 0U; i < ABC_FIXED_HIDDEN; ++i) {
+        r->fixed.hidden[i] = q15_from_float(r->adapter_output[i]);
+    }
+    return ABC_FIXED_OK;
+}
+
+int abc_online_begin(abc_online_renderer_t *r, uint64_t seed) {
+    if (r == NULL || r->model == NULL) return ABC_FIXED_ERR_ARGUMENT;
+    if (r->observed != 256U) return ABC_FIXED_ERR_MODE;
+    return abc_fixed_online_begin(&r->fixed, seed);
 }
 
 int abc_online_step(abc_online_renderer_t *r, int32_t x, int32_t y, abc_fixed_report_t *out) {

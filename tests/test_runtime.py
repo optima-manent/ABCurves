@@ -7,7 +7,7 @@ import pytest
 
 from abcurves import (
     InferenceContractError,
-    Pipeline,
+    StaticPipeline as Pipeline,
     RendererProfile,
     RendererRuntimeError,
 )

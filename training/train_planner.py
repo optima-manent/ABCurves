@@ -218,7 +218,7 @@ def planner_seam_contract(train_arrays: dict, val_arrays: dict) -> dict:
 
 
 def event_weights(arrays: dict) -> np.ndarray:
-    n = len(arrays["future_mask"])
+    n = len(arrays["y_raw"] if "y_raw" in arrays else arrays["future_mask"])
     weights = np.asarray(
         arrays.get("event_weight", np.ones(n, dtype=np.float32)),
         dtype=np.float64,
@@ -568,6 +568,60 @@ def surrogate_distance(pos, tau, target_pos, target_tau, cfg, aux):
 # ---------------------------------------------------------------------------
 # Training loop
 # ---------------------------------------------------------------------------
+def optimize(train_arrays, tr, va, cfg, aux, device):
+    """Shared source-balanced RWTA optimizer for prepared and frozen inputs."""
+    torch.manual_seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    model = MultiHeadModel(tr["summary"].shape[1], tr["target"].shape[1], cfg.heads, cfg).to(device)
+    opt = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
+    anneal_epochs = max(1, int(cfg.wta_anneal_epochs))
+
+    val_metric = float("nan")
+    for epoch in range(1, cfg.epochs + 1):
+        model.train()
+        perm = torch.as_tensor(
+            source_balanced_epoch_indices(
+                train_arrays,
+                epoch=epoch,
+                seed=cfg.seed,
+            ),
+            dtype=torch.long,
+            device=device,
+        )
+        eps = cfg.wta_eps_start + (cfg.wta_eps_end - cfg.wta_eps_start) * min(
+            1.0, (epoch - 1) / float(anneal_epochs)
+        )
+        losses = []
+        for start in range(0, len(perm), cfg.batch_size):
+            idx = perm[start : start + cfg.batch_size]
+            y = model(tr["prefix"][idx], tr["mask"][idx], tr["summary"][idx])
+            pos, tau = decode_grid(y, tr["ydot"][idx], aux)
+            d = surrogate_distance(pos, tau, tr["path"][idx][:, None], tr["tau"][idx][:, None], cfg, aux)
+            k = d.shape[1]
+            winner = torch.argmin(d.detach(), dim=1)
+            q = torch.full_like(d, eps / max(k - 1, 1))
+            q.scatter_(1, winner[:, None], 1.0 - eps)
+            per_example = (q * d).sum(dim=1)
+            loss = per_example.mean()
+            opt.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+            opt.step()
+            losses.append(float(loss.detach().cpu()))
+        model.eval()
+        with torch.no_grad():
+            y = model(va["prefix"], va["mask"], va["summary"])
+            pos, tau = decode_grid(y, va["ydot"], aux)
+            d = surrogate_distance(pos, tau, va["path"][:, None], va["tau"][:, None], cfg, aux)
+            best = d.min(dim=1).values
+            val_metric = float(
+                (best * va["weight"]).sum() / va["weight"].sum().clamp_min(1e-9)
+            )
+        if epoch % 5 == 0 or epoch == 1:
+            print(f"epoch {epoch:3d}  train {np.mean(losses):.4f}  val best-of-16 {val_metric:.4f}  eps {eps:.3f}")
+    return model, val_metric
+
+
 def train(
     train_arrays,
     val_arrays,
@@ -732,57 +786,8 @@ def train(
         "weight": tt_(va_weights),
     }
 
-    torch.manual_seed(cfg.seed)
-    np.random.seed(cfg.seed)
-    model = MultiHeadModel(tr["summary"].shape[1], y_tr_raw.shape[1], cfg.heads, cfg).to(device)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
-    anneal_epochs = max(1, int(cfg.wta_anneal_epochs))
+    model, val_metric = optimize(train_arrays, tr, va, cfg, aux, device)
     optimizer_examples_per_epoch = int(source_summary["source_trials"])
-
-    val_metric = float("nan")
-    for epoch in range(1, cfg.epochs + 1):
-        model.train()
-        perm = torch.as_tensor(
-            source_balanced_epoch_indices(
-                train_arrays,
-                epoch=epoch,
-                seed=cfg.seed,
-            ),
-            dtype=torch.long,
-            device=device,
-        )
-        eps = cfg.wta_eps_start + (cfg.wta_eps_end - cfg.wta_eps_start) * min(
-            1.0, (epoch - 1) / float(anneal_epochs)
-        )
-        losses = []
-        for start in range(0, len(perm), cfg.batch_size):
-            idx = perm[start : start + cfg.batch_size]
-            y = model(tr["prefix"][idx], tr["mask"][idx], tr["summary"][idx])
-            pos, tau = decode_grid(y, tr["ydot"][idx], aux)
-            d = surrogate_distance(pos, tau, tr["path"][idx][:, None], tr["tau"][idx][:, None], cfg, aux)
-            k = d.shape[1]
-            winner = torch.argmin(d.detach(), dim=1)
-            q = torch.full_like(d, eps / max(k - 1, 1))
-            q.scatter_(1, winner[:, None], 1.0 - eps)
-            per_example = (q * d).sum(dim=1)
-            batch_weights = torch.ones_like(tr["weight"][idx])
-            loss = (per_example * batch_weights).sum() / batch_weights.sum().clamp_min(1e-9)
-            opt.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
-            opt.step()
-            losses.append(float(loss.detach().cpu()))
-        model.eval()
-        with torch.no_grad():
-            y = model(va["prefix"], va["mask"], va["summary"])
-            pos, tau = decode_grid(y, va["ydot"], aux)
-            d = surrogate_distance(pos, tau, va["path"][:, None], va["tau"][:, None], cfg, aux)
-            best = d.min(dim=1).values
-            val_metric = float(
-                (best * va["weight"]).sum() / va["weight"].sum().clamp_min(1e-9)
-            )
-        if epoch % 5 == 0 or epoch == 1:
-            print(f"epoch {epoch:3d}  train {np.mean(losses):.4f}  val best-of-16 {val_metric:.4f}  eps {eps:.3f}")
     return model, cfg, dict(
         feature_names=feature_names, summ_mean=summ_mean, summ_std=summ_std,
         pmean=pmean, pstd=pstd, y_mean=y_mean, y_std=y_std, horizon=horizon,

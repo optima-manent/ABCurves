@@ -140,6 +140,14 @@ static int sign_i32(int32_t value) {
     return (value > 0) - (value < 0);
 }
 
+static unsigned offset_ring(uint32_t row) {
+    int x = (int)(row / ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
+    int y = (int)(row % ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
+    unsigned ax = (unsigned)(x < 0 ? -x : x);
+    unsigned ay = (unsigned)(y < 0 ? -y : y);
+    return ax > ay ? ax : ay;
+}
+
 int abc_fixed_step_q16(
     abc_fixed_renderer_t *renderer,
     int32_t smooth_dx_q16,
@@ -205,46 +213,26 @@ int abc_fixed_step_q16(
             read_multiplier(model, 7U + row)
         ) + read_bias(model, 481U + row);
     }
-    for (ring = 0U; ring <= ABC_FIXED_RADIUS; ++ring) {
-        int32_t maximum = ABC_I32_MIN_VALUE;
-        uint64_t ring_sum = 0U;
-        int32_t lse;
+    {
+        int32_t maxima[ABC_FIXED_RADIUS + 1];
+        uint64_t sums[ABC_FIXED_RADIUS + 1] = {0};
+        int32_t lse_by_ring[ABC_FIXED_RADIUS + 1];
+        for (ring = 0U; ring <= ABC_FIXED_RADIUS; ++ring) {
+            maxima[ring] = ABC_I32_MIN_VALUE;
+        }
+        /* Interleave the rings while retaining each ring's arithmetic order. */
         for (row = 0U; row < ABC_FIXED_GRID; ++row) {
-            int x = (int)(row / ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
-            int y = (int)(row % ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
-            uint32_t row_ring = (uint32_t)(
-                (x < 0 ? -x : x) > (y < 0 ? -y : y)
-                    ? (x < 0 ? -x : x)
-                    : (y < 0 ? -y : y)
-            );
-            if (row_ring == ring && hot->logits[row] > maximum) {
-                maximum = hot->logits[row];
-            }
+            ring = offset_ring(row);
+            if (hot->logits[row] > maxima[ring]) maxima[ring] = hot->logits[row];
         }
         for (row = 0U; row < ABC_FIXED_GRID; ++row) {
-            int x = (int)(row / ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
-            int y = (int)(row % ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
-            uint32_t row_ring = (uint32_t)(
-                (x < 0 ? -x : x) > (y < 0 ? -y : y)
-                    ? (x < 0 ? -x : x)
-                    : (y < 0 ? -y : y)
-            );
-            if (row_ring == ring) {
-                ring_sum += exp_neg_q20(
-                    model,
-                    hot->logits[row] - maximum
-                );
-            }
+            ring = offset_ring(row);
+            sums[ring] += exp_neg_q20(model, hot->logits[row] - maxima[ring]);
         }
-        lse = maximum + ln_positive_q14(model, ring_sum);
+        for (ring = 0U; ring <= ABC_FIXED_RADIUS; ++ring) {
+            lse_by_ring[ring] = maxima[ring] + ln_positive_q14(model, sums[ring]);
+        }
         for (row = 0U; row < ABC_FIXED_GRID; ++row) {
-            int x = (int)(row / ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
-            int y = (int)(row % ABC_FIXED_SIDE) - ABC_FIXED_RADIUS;
-            uint32_t row_ring = (uint32_t)(
-                (x < 0 ? -x : x) > (y < 0 ? -y : y)
-                    ? (x < 0 ? -x : x)
-                    : (y < 0 ? -y : y)
-            );
-            if (row_ring == ring) {
-                hot->logits[row] =
-                    mul_q16(lse, model->config[CFG_INV_MAG_Q16]) +
+            int32_t lse = lse_by_ring[offset_ring(row)];
+            hot->logits[row] =
+                mul_q16(lse, model->config[CFG_INV_MAG_Q16]) +

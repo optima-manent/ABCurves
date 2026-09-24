@@ -1,0 +1,152 @@
+{
+  "late": {
+    "coarse_linear": {
+      "shape": [
+        2,
+        333326,
+        70,
+        9
+      ],
+      "dtype": "float32",
+      "sha256": "940d4235e2ec729546e9c91a5af14a8e35c085c5ff4dbde2296a1018dcf4f9f8",
+      "file_bytes": 1679963168
+    },
+    "fine_linear": {
+      "shape": [
+        2,
+        333326,
+        54
+      ],
+      "dtype": "float32",
+      "sha256": "096dcd7608f9b44fdee465f3bd7b784bfc1b7130b67c9fa351285d97382e9c8e",
+      "file_bytes": 143996960
+    },
+    "incoming": {
+      "shape": [
+        333326,
+        2
+      ],
+      "dtype": "float32",
+      "sha256": "298c4611ce0c630534053ece55fc86a6dee4e7d270363dc4365f65581cb3ac11",
+      "file_bytes": 2666736
+    },
+    "delta": {
+      "shape": [
+        333326,
+        256,
+        2
+      ],
+      "dtype": "float32",
+      "sha256": "f3123449e386bea07bfee46982911b4e12fe84b65df5c61340ebb36239a8fce9",
+      "file_bytes": 682651776
+    },
+    "length": {
+      "shape": [
+        333326
+      ],
+      "dtype": "int16",
+      "sha256": "fe3d845409bd97f31fcfe3f0b53f0475362e3cc8ec1879b3c8f4919e9f78d4c2",
+      "file_bytes": 666780
+    }
+  },
+  "early": {
+    "coarse_linear": {
+      "shape": [
+        2,
+        170416,
+        70,
+        9
+      ],
+      "dtype": "float32",
+      "sha256": "3f459bd1033df84f4fd20cdf2686f1b4f20222d88154ceb82f5b86f790ceeb33",
+      "file_bytes": 858896768
+    },
+    "fine_linear": {
+      "shape": [
+        2,
+        170416,
+        54
+      ],
+      "dtype": "float32",
+      "sha256": "a0b6ca573fe28b35d0442b5e5cfea455708012eee087a635f4f35e89ece86034",
+      "file_bytes": 73619840
+    },
+    "incoming": {
+      "shape": [
+        170416,
+        2
+      ],
+      "dtype": "float32",
+      "sha256": "668eff8017c2f42537d6cd208ef70ff0c26088297465988379f0ed6926349d2f",
+      "file_bytes": 1363456
+    },
+    "delta": {
+      "shape": [
+        170416,
+        256,
+        2
+      ],
+      "dtype": "float32",
+      "sha256": "96a65a6b8baf62d37da95106279b334204ed3d4782a568517b3c18a3ae5d85cf",
+      "file_bytes": 349012096
+    },
+    "length": {
+      "shape": [
+        170416
+      ],
+      "dtype": "int16",
+      "sha256": "9b8c0d4791842580f8d7bf43f9a58c51d63ae69b7b398b1f770707776ca53b4e",
+      "file_bytes": 340960
+    }
+  },
+  "tracking": {
+    "coarse_linear": {
+      "shape": [
+        2,
+        48695,
+        70,
+        9
+      ],
+      "dtype": "float32",
+      "sha256": "8c4853070a90d3dd4aa55bd4cdc364e12d5fdf44c516ccda8fe0853287460bea",
+      "file_bytes": 245422928
+    },
+    "fine_linear": {
+      "shape": [
+        2,
+        48695,
+        54
+      ],
+      "dtype": "float32",
+      "sha256": "172c0f2951391976fec14e28d41443d45d3d452f1bb1d140d1dd31a5f9489b6e",
+      "file_bytes": 21036368
+    },
+    "incoming": {
+      "shape": [
+        48695,
+        2
+      ],
+      "dtype": "float32",
+      "sha256": "5bb6d8bc70916c840aa8e433091b91ea36117ef20657424907dbc9bc6448d8fe",
+      "file_bytes": 389688
+    },
+    "delta": {
+      "shape": [
+        48695,
+        256,
+        2
+      ],
+      "dtype": "float32",
+      "sha256": "86b7914fdfda9fe9fd2ddaf2b9a3dd9970900a1c7cb4f3ba037dc06d8ddc53e0",
+      "file_bytes": 99727488
+    },
+    "length": {
+      "shape": [
+        48695
+      ],
+      "dtype": "int16",
+      "sha256": "c5519b30316eec842cc2f6b5f6d304b5fe96ae7a8f8b9f73c067ddfb040a7e12",
+      "file_bytes": 97518
+    }
+  }
+}

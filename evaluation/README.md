@@ -233,13 +233,10 @@ python -m evaluation verify-results
 python -m evaluation verify-results results/inference/manifest.json
 ```
 
-The final tables additionally need the frozen 320-row panel and the contributed
-hardware recordings. Those private rows are not redistributed. The two compact
-receipts in [`results/detection/`](../results/detection/) keep the boundaries clear:
-`renderer_oracle_b80.json` records the isolated Renderer ruler, while
-`pipeline_b80.json` records the complete Planner→Renderer cold and warm tests. Both
-bind the exact artifacts, protocol, aggregate outcomes, and sealed source digests.
-
-A clone can therefore authenticate the published result and run the same algorithms
-on another correctly structured corpus. It cannot recreate the exact numeric tables
-without the private source movements, and the documentation says so directly.
+The final tables use the frozen 320-row panel and contributed hardware recordings.
+Both are publicly reproducible through the raw Release attachments and compact
+recipe in [DETECTION_REPRODUCTION.md](../docs/DETECTION_REPRODUCTION.md). That guide
+preserves the exact B80 selection, historical generation runtime and separate
+Renderer-headline aggregation; generic fresh bundle selection is not equivalent.
+The two compact receipts in [results/detection/](../results/detection/) retain the
+original numerical outcomes and sealed source digests.

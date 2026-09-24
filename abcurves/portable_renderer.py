@@ -13,6 +13,9 @@ from __future__ import annotations
 import ctypes
 from dataclasses import dataclass
 import hashlib
+import json
+import struct
+import math
 import os
 from pathlib import Path
 import platform
@@ -25,8 +28,8 @@ CONTEXT_TICKS = 256
 ARTIFACT_BYTES = 44_484
 ARTIFACT_SHA256 = "8fea217f76c3f501dab9576cbac5cd26970d30d01eedb95da3ca3946a0f52f8b"
 LATERAL_OFFSET_PENALTY = 1.5
-WINDOWS_NATIVE_BYTES = 37_376
-WINDOWS_NATIVE_SHA256 = "730bafac2b6a8431628401fc6e2239a12b787cd730791d453b4dec0cb47d3a41"
+WINDOWS_NATIVE_BYTES = 37_888
+WINDOWS_NATIVE_SHA256 = "8efa2dfc43508a947f6afc4d41e120df1989385d3c7d0b437185cccf39284e6e"
 
 
 class RendererRuntimeError(RuntimeError):
@@ -146,10 +149,6 @@ class _NativeAPI:
         return int(self.library.abc_online_renderer_size())
 
 
-def _void_pointer(storage: Any) -> ctypes.c_void_p:
-    return ctypes.cast(storage, ctypes.c_void_p)
-
-
 def validate_physical_context(value: np.ndarray) -> np.ndarray:
     """Return one owned, canonical 256-report physical sample."""
 
@@ -188,12 +187,16 @@ def validate_smooth_future(value: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
 def _q16_pair(value: np.ndarray) -> tuple[int, int]:
     pair = np.asarray(value, dtype=np.float32).reshape(-1)
-    if pair.shape != (2,) or not bool(np.all(np.isfinite(pair))):
+    if pair.shape != (2,):
         raise RendererRuntimeError("smooth intent tick must contain two finite values")
-    scaled = np.rint(pair.astype(np.float64) * 65536.0)
-    if bool(np.any(scaled < -(2**31))) or bool(np.any(scaled > 2**31 - 1)):
+    x, y = float(pair[0]), float(pair[1])
+    if not math.isfinite(x) or not math.isfinite(y):
+        raise RendererRuntimeError("smooth intent tick must contain two finite values")
+    # Stage as float32, then scale exactly in double and round ties to even.
+    qx, qy = round(x * 65536.0), round(y * 65536.0)
+    if not (-(2**31) <= qx < 2**31 and -(2**31) <= qy < 2**31):
         raise RendererRuntimeError("smooth intent tick exceeds signed Q16 range")
-    return int(scaled[0]), int(scaled[1])
+    return qx, qy
 
 
 @dataclass(frozen=True)
@@ -207,6 +210,7 @@ class RendererReceipt:
     state_bytes: int
     model_view_bytes: int
     lateral_offset_penalty: float
+    mode: str = "selected"
 
 
 class PortableRendererModel:
@@ -218,6 +222,7 @@ class PortableRendererModel:
         *,
         library: str | Path | None = None,
         verify: bool = True,
+        export_receipt: str | Path | None = None,
     ) -> None:
         self.artifact = Path(artifact).expanduser().resolve()
         if not self.artifact.is_file():
@@ -227,7 +232,19 @@ class PortableRendererModel:
                 f"Renderer artifact has {self.artifact.stat().st_size} bytes; "
                 f"expected {ARTIFACT_BYTES}"
             )
-        if verify and _sha256(self.artifact) != ARTIFACT_SHA256:
+        blob = self.artifact.read_bytes()
+        artifact_sha = hashlib.sha256(blob).hexdigest()
+        custom = export_receipt is not None
+        if custom:
+            if library is None:
+                raise RendererRuntimeError("Custom artifacts require an explicit separately built native library")
+            record = json.loads(Path(export_receipt).read_text())
+            if (record.get("schema") != "abcurves.renderer_export.v1"
+                or record.get("mode") not in ("candidate", "frozen")
+                or record.get("combined_sha256") != artifact_sha
+                or record.get("combined_bytes") != len(blob)):
+                raise RendererRuntimeError("Custom artifact differs from its export receipt")
+        elif verify and artifact_sha != ARTIFACT_SHA256:
             raise RendererRuntimeError("Renderer artifact SHA-256 differs")
         library_path = default_library_path() if library is None else Path(library)
         bundled_windows = (
@@ -245,40 +262,45 @@ class PortableRendererModel:
             if _sha256(library_path) != WINDOWS_NATIVE_SHA256:
                 raise RendererRuntimeError("bundled native Renderer SHA-256 differs")
         self.api = _NativeAPI(library_path)
-        blob = self.artifact.read_bytes()
         self._blob = (ctypes.c_ubyte * len(blob)).from_buffer_copy(blob)
         self._model = (ctypes.c_ubyte * self.api.model_bytes)()
         _check(
             self.api.library.abc_online_model_init(
-                _void_pointer(self._model), _void_pointer(self._blob), len(blob)
+                self._model, self._blob, len(blob)
             ),
             "model initialization",
         )
         self.receipt = RendererReceipt(
             artifact=self.artifact.name,
             artifact_bytes=ARTIFACT_BYTES,
-            artifact_sha256=ARTIFACT_SHA256,
+            artifact_sha256=artifact_sha,
             native_library=self.api.path.name,
             native_library_sha256=_sha256(self.api.path),
             context_ticks=CONTEXT_TICKS,
             state_bytes=self.api.renderer_bytes,
             model_view_bytes=self.api.model_bytes,
-            lateral_offset_penalty=LATERAL_OFFSET_PENALTY,
+            lateral_offset_penalty=struct.unpack_from("<i", blob, 172)[0] / 65536.0,
+            mode="custom" if custom else ("selected" if artifact_sha == ARTIFACT_SHA256 else "unverified"),
         )
+
+    @classmethod
+    def from_custom(cls, artifact, export_receipt, *, library):
+        """Load one new export with its explicitly bound native build."""
+        return cls(artifact, export_receipt=export_receipt, library=library)
 
     def prepare_context(self, raw_dxdy: np.ndarray) -> "PreparedRendererContext":
         context = validate_physical_context(raw_dxdy)
         state = (ctypes.c_ubyte * self.api.renderer_bytes)()
         _check(
             self.api.library.abc_online_reset(
-                _void_pointer(state), _void_pointer(self._model)
+                state, self._model
             ),
             "reset",
         )
         for dx, dy in context:
             _check(
                 self.api.library.abc_online_observe_raw(
-                    _void_pointer(state), int(dx), int(dy)
+                    state, int(dx), int(dy)
                 ),
                 "observation",
             )
@@ -304,22 +326,56 @@ class PreparedRendererContext:
         *,
         event_seed: int,
     ) -> "PortableRendererEvent":
+        smooth = validate_smooth_future(smooth_dxdy, future_mask)
+        stream = self.begin_stream(event_seed=event_seed)
+        return PortableRendererEvent(self._model, stream._storage, smooth)
+
+    def begin_stream(self, *, event_seed: int) -> "PortableRendererStream":
+        """Start one persistent stream; retain it across every planning boundary."""
         if type(event_seed) is not int or not 0 <= event_seed < 2**64:
             raise RendererRuntimeError("event_seed must be a Python integer in uint64 range")
-        smooth = validate_smooth_future(smooth_dxdy, future_mask)
         event_storage = (ctypes.c_ubyte * self._model.api.renderer_bytes)()
         ctypes.memmove(
-            _void_pointer(event_storage),
-            _void_pointer(self._storage),
+            event_storage,
+            self._storage,
             self._model.api.renderer_bytes,
         )
         _check(
             self._model.api.library.abc_online_begin(
-                _void_pointer(event_storage), event_seed
+                event_storage, event_seed
             ),
             "begin",
         )
-        return PortableRendererEvent(self._model, event_storage, smooth)
+        return PortableRendererStream(self._model, event_storage)
+
+
+class PortableRendererStream:
+    """Render chronological hardware-count displacements without restarting.
+
+    One call consumes one 1 ms displacement. The native recurrence, random
+    stream, fractional accumulator and W5 state survive holds and replans.
+    A failed native step latches the stream; create a new stream explicitly.
+    """
+
+    def __init__(self, model: PortableRendererModel, storage: Any) -> None:
+        self._model = model
+        self._storage = storage
+        self.ticks = 0
+        self.failed = False
+
+    def step(self, displacement) -> np.ndarray:
+        if self.failed:
+            raise RendererRuntimeError("Renderer stream failed; begin a new stream")
+        x, y = _q16_pair(displacement)
+        report = _Report()
+        try:
+            _check(self._model.api.library.abc_online_step(
+                self._storage, x, y, ctypes.byref(report)), "step")
+        except Exception:
+            self.failed = True
+            raise
+        self.ticks += 1
+        return np.asarray([report.dx, report.dy], dtype=np.int16)
 
 
 class PortableRendererEvent:
@@ -346,7 +402,7 @@ class PortableRendererEvent:
         report = _Report()
         _check(
             self._model.api.library.abc_online_step(
-                _void_pointer(self._storage), x, y, ctypes.byref(report)
+                self._storage, x, y, ctypes.byref(report)
             ),
             "step",
         )
@@ -367,6 +423,7 @@ __all__ = [
     "LATERAL_OFFSET_PENALTY",
     "PortableRendererEvent",
     "PortableRendererModel",
+    "PortableRendererStream",
     "PreparedRendererContext",
     "RendererReceipt",
     "RendererRuntimeError",

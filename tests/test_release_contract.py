@@ -31,10 +31,10 @@ def test_release_version_is_consistent() -> None:
         (ROOT / "results" / "inference" / "manifest.json").read_text("utf-8")
     )
     citation = (ROOT / "CITATION.cff").read_text("utf-8")
-    expected = "1.5.1"
+    expected = "2.0.0"
     assert f'version = "{expected}"\n' in project
     assert models["release"] == expected
-    assert inference["release"] == expected
+    assert inference["release"] == "1.5.1"  # archived measurement provenance
     assert abcurves.__version__ == expected
     assert f"version: {expected}\n" in citation
 
@@ -67,7 +67,7 @@ def test_renderer_profile_receipts_keep_their_claim_boundaries() -> None:
 def test_every_release_model_matches_manifest() -> None:
     manifest = json.loads((ROOT / "models" / "manifest.json").read_text("utf-8"))
     assert manifest["schema"] == "abcurves.release_models.v2"
-    assert manifest["release"] == "1.5.1"
+    assert manifest["release"] == "2.0.0"
     assert manifest["default_seed"] == 7
     assert manifest["seeds"] == [7, 23]
     assert set(manifest["files"]) == {

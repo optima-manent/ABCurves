@@ -1,0 +1,33 @@
+{
+  "schema": "abcurves.real_static_example.v1",
+  "fixture": "static_event.npz",
+  "fixture_sha256": "045b30289dfb0c05bfda7120585929a6b3b228a798ae8ccd76760d1306960fb0",
+  "source_trial_id": "s-f4c54a02ce883f52b2dbdedd06dbb0a7:166",
+  "session_id": "s-f4c54a02ce883f52b2dbdedd06dbb0a7",
+  "source_corpus": "primary",
+  "split": "train",
+  "role": "illustrative recorded input, not held-out evaluation",
+  "coordinate_contract": "integer canonical native hardware counts, x right / y up; no angular rescaling",
+  "time_contract": "one row per consecutive half-open 1 ms native USB bin; position after each delta",
+  "a_bin": 205407,
+  "c_bin_exclusive": 205701,
+  "b_split": 168,
+  "b_bin_exclusive": 205575,
+  "renderer_profile_bins": [
+    205319,
+    205575
+  ],
+  "threshold": 0.9,
+  "progress_edge": 0.905644546534199,
+  "progress_center": 0.6641415447244058,
+  "edge_margin_counts": 25.19904416321306,
+  "target_radius": 90.0,
+  "qualification_rejections": [],
+  "initial_distance": 337.50308930848524,
+  "case_group": "retained/train/edge_150_400",
+  "source_csv_sha256": "f9eaccc5e53467af476bcc11ee0af5cf6416684c5f6889ab116e99c5510782fb",
+  "source_cache_sha256": "3d29d74ccce843082e7ebb8aae8c339af386c4a488d37e387a863591a6224c63",
+  "selected_source_roster_sha256": "05eb6d2a46a45d75369e424aee1a15720adfaf0d1566631c74047ab7477f1794",
+  "fresh_public_export_span_equal": true,
+  "timing_scope": "reference raw A-to-C trace and profile; benchmark generates B-to-C anew"
+}

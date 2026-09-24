@@ -1,0 +1,11 @@
+{
+  "schema": "abcurves.algorithm_origins.v1",
+  "original_source_sha256": {
+    "research/movement_coherence_20260921/objectives.py": "13da78d93626b7db35a4e01d9f7f4e2c35fa89eaca39c9ddbd25e6b397d9239c",
+    "research/unified_planner_campaign_20260915/objective_v1/trainer.py": "400a1e2914cfbc0b4d58beab7177897559beed54433e59183173001f27acdbe9",
+    "research/unified_planner_campaign_20260915/data.py": "0081dae20bb5aa1e3b37e929589b9699450d50c0cd716b100ae12690d884b784",
+    "research/human_movement_20260914/temporal_policy/temporal_data.py": "66685b3a8a402b367ee257af466fc4f834d99b1a2a1743f7052e9faba5b732a3",
+    "research/movement_coherence_20260921/dataset.py": "13ca3b6cf3e0bd3213344a7bcb1c5c43bcba842a1dc5485f67df4c7800266833",
+    "research/unified_planner_campaign_20260915/settling_campaign_v1/settle_train.py": "4480be76d15c6c910cff6152da8c0908be56b045b2325601f6f1bdb5bedff4f3"
+  }
+}

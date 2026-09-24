@@ -1,8 +1,8 @@
 # Detection results
 
 This directory keeps the compact, publishable record behind
-[`DETECTION.md`](../../DETECTION.md). The private mouse recordings and large
-per-group ledgers are not copied into the repository.
+[`DETECTION.md`](../../DETECTION.md). Raw mouse recordings are provided as separate Release attachments; large
+per-group ledgers are not copied into this compact evidence directory.
 
 [`renderer_oracle_b80.json`](renderer_oracle_b80.json) is the isolated Renderer
 result. It records:
@@ -23,8 +23,8 @@ It records:
 - the warm mixture sweep and its predeclared cutoff sensitivity.
 
 The files keep the aggregate counts, exact artifact identities, test boundaries, and
-digests of the sealed research record. They do not contain the private source
-movements needed to recalculate those exact numbers from a clone.
+digests of the sealed research record. The [public reproduction guide](../../docs/DETECTION_REPRODUCTION.md) starts at
+the raw attachments and rebuilds the exact study inputs using the frozen recipe.
 
 The matching-human ruler isolates the Renderer, while the published cold and warm
 results run the complete Planner→Renderer pipeline. The ruler and population tables

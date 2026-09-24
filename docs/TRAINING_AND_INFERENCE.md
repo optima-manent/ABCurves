@@ -1,252 +1,267 @@
-# Training and running ABCurves
+# Training and exporting ABCurves
 
-ABCurves finishes a movement that a person has already started.
+Start with the raw session downloads and public Capture tools in
+[DATASET.md](DATASET.md). This guide gives the complete selected recipes. Runtime
+state, timing, units and examples are in [INTEGRATION.md](INTEGRATION.md).
 
-The person moves from **A** toward a target. At **B**, ABCurves takes over and
-generates B→C. The Planner chooses a smooth finish. The global Renderer turns that
-intent into one signed integer `dx, dy` report per millisecond.
+Install `python -m pip install -e ".[training]"`. The commands below run from the
+repository root, use fresh output directories, and assume the dataset guide has
+created `prepared/capture-static/` and `prepared/tracking/`. CUDA improves training
+speed; `--device cpu` is supported. Runtime versions are in `constraints-tested.txt`. Training/export were checked
+with Python 3.13.14, PyTorch 2.12.0+cu130, pandas 3.0.3 and ONNX 1.22.0.
+
+Frozen source manifests identify the selected data for reproduction. New recordings
+can use the general preparation tools with their own source selections. Sources,
+filters, roles, normalizers, model seeds, sampling seeds and export hashes have
+separate identities.
+
+## Continuous Planner: complete dependency chain
+
+The deployed system contains a motor, coherent movement selector, and a component
+network containing braking and stop/restart hazards. The accepted policy combines
+these components; the final brake alone is insufficient. Its technical selection
+identity is B2-23.
 
 ```mermaid
 flowchart LR
-    A["Human A→B prefix"] --> P["Planner\ncausal TCN · 16 heads"]
-    T["Target at B"] --> P
-    P --> I["One sampled ProDMP intent"]
-    S["Representative 256-report sample"] --> RP["Reusable RendererProfile\nprepared before B"]
-    RP --> R["Global Renderer\n20 features · width 80 · radius 5"]
-    I --> R
-    R --> O["Integer B→C stream\none report per ms"]
+    Raw[Raw static and tracking sessions] --> Data[Authenticated physical preparation]
+    Data --> Teacher[Teacher motor]
+    Teacher --> Feedback[Generated-history feedback]
+    Feedback --> Settling[Settling precursor]
+    Settling --> Prior[Human prior]
+    Prior --> Motor[Coherent motor]
+    Data --> Patterns[Transition and brake supervision]
+    Patterns --> Events[Hazards and initial brake]
+    Motor --> ChoiceData[Connected choice sequences]
+    Patterns --> ChoiceData
+    ChoiceData --> Selector[Coherent selector]
+    Patterns --> C2Data[Actual-path C2 supervision]
+    Events --> Brake[C2 brake; hazards frozen]
+    C2Data --> Brake
+    Motor --> Export[Complete deployment bundle]
+    Selector --> Export
+    Brake --> Export
 ```
 
-This guide begins with the release API, then explains the causal A/B seam, the two
-models, training, checkpoint selection, and the native deployment contract. Dataset
-construction is documented separately in [DATASET.md](DATASET.md).
+### Physical preparation
 
-## Install and run the finished pipeline
-
-Python 3.10 or newer is required. From the repository root:
-
-```bash
-python -m venv .venv
-
-# Windows PowerShell
-.\.venv\Scripts\Activate.ps1
-
-# macOS or Linux instead
-# source .venv/bin/activate
-
-python -m pip install -e ".[all,dev]"
+```powershell
+python -m training.continuous.prepare_motor --exports prepared/capture-static/exports/static --original-tracking prepared/tracking/original --new-tracking prepared/tracking/new --output prepared/motor
 ```
 
-The Planner runs on CPU. The Windows release includes the native Renderer library.
-On macOS or Linux, build the C99 library before the first run:
+This authenticates 59 static native streams and the complete tracking indices and
+episodes. It reconstructs 333,326 late and 170,416 early static cuts from 21,302
+physical parents, plus 48,695 original tracking anchors. Source enrollment,
+visibility augmentation, rotations, weights and all fifteen cached feature/label
+arrays are checked against the selected hashes. Source identity and target timing
+are retained alongside motion.
 
-```bash
-cmake -S runtime/c -B runtime/c/build
-cmake --build runtime/c/build --config Release
-ctest --test-dir runtime/c/build -C Release --output-on-failure
+The model uses a 640 ms history, sixteen 128 ms ProDMP proposals, width-96 GRU
+encoding, 70×9 coarse inputs, 54 fine inputs and eight dynamics inputs. The final
+commitment is 32 ms. Physical features use the selected velocity scale
+`1.1982087601807259`, position scale `81.73350722609987`, and 32 ms target secants.
+The exact configuration is in the motor checkpoint and deployment manifest.
+
+Base teacher batches contain 64 late-static, 64 early-static and 128 original
+tracking examples. Static physical parents cycle through their selected cuts;
+tracking sampling retains its person/family/source hierarchy. Rotation and
+visibility augmentation have independent seeded streams. Later training adds 64
+examples from the new tracking cohort, then takes the selected 160-example subset
+of the 320-example teacher batch. The source algorithms and original authority
+hashes are retained in `recipes/continuous/`.
+
+### Motor training
+
+| Stage | Model seed | Updates | Learning rate | Purpose |
+| --- | ---: | ---: | ---: | --- |
+| `teacher` | 7 | 20,000 | 0.0002 | Sixteen-head RWTA motion representation; 64 ms precursor commitment |
+| `feedback` | 7 | 3,000 | 0.00005 | 32 ms generated-history rollout and terminal control |
+| `settling` | 7 | 3,500 | 0.00002 | Preserve useful motion while learning settling exposure |
+| `prior` | 7 | 2,500 | 0.00005 | Later human-motion prior and synthetic quiet exposure |
+| `motor` | 7 | 600 | 0.00003 | Coherent proposals with generated-history and frozen-prior constraints |
+
+All use AdamW, weight decay 0.0001, betas `(0.9,0.999)`, epsilon `1e-8`, and gradient
+norm limit 5. The base stages preserve the original float64 global gradient norm
+before float32 scaling. Training uses no mixed precision or TF32. The settling
+budget is the original 1,000-update pilot followed by 2,500 further updates with
+uninterrupted optimizer/RNG state, not two independently initialized fits.
+
+The teacher uses RWTA position, velocity and acceleration supervision, with the
+acceleration term weighted 0.25. Epsilon anneals from 0.20 to 0.05 by halfway through
+the teacher budget; feedback retains 0.05, adds generated-history sequences and
+static-terminal control weight 4. The final motor retains the exact human-prior,
+quiet, rollout and functional-source objectives in `coherence_loss.py`. These
+objectives keep purposeful acquisition and motion variation in the same training
+trajectory; a single endpoint-error objective was not sufficient.
+
+```powershell
+python -m training.continuous.train_motor --stage teacher --data prepared/motor --output runs/teacher
+python -m training.continuous.train_motor --stage feedback --data prepared/motor --initial runs/teacher/step_20000.pt --output runs/feedback
+python -m training.continuous.train_motor --stage settling --data prepared/motor --initial runs/feedback/step_03000.pt --output runs/settling
+python -m training.continuous.train_motor --stage prior --data prepared/motor --initial runs/settling/step_03500.pt --output runs/prior
+python -m training.continuous.train_motor --stage motor --data prepared/motor --initial runs/prior/step_02500.pt --output runs/motor
 ```
 
-The Python binding also accepts an explicit `renderer_library=` path, or the
-`ABCURVES_RENDERER_LIBRARY` environment variable.
+The selected final motor is the terminal 600-update checkpoint. `--steps N` runs a
+shortened, explicitly labeled smoke fit. `--resume <state-file>` restores optimizer
+and RNG state into a new output directory and verifies the original donor and data
+receipt; preserve the same `--initial`. Checkpoint tensors and resume state have
+separate files. The five stages are dependencies, not alternative model candidates.
 
-Now the same checks work on every supported host:
+### Hazards, coherent choice and final brake
 
-```bash
-python examples/quickstart.py
-python examples/streaming.py
-python -m pytest
+```powershell
+python -m training.continuous.patterns.prepare --static prepared/motor --old-index prepared/motor/tracking/development.json --new-index prepared/motor/new_tracking/episodes.json --output prepared/patterns
+python -m training.continuous.train_components --data prepared/patterns/components --output runs/events
+python -m training.continuous.prepare_selector --data prepared/motor --components prepared/patterns/components --motor runs/motor/step_00600.pt --output prepared/selector
+python -m training.continuous.train_selection --stage selector --data prepared/selector --output runs/selector
+python -m training.continuous.prepare_brake --data prepared/motor --components prepared/patterns/components --output prepared/brake
+python -m training.continuous.train_selection --stage brake --data prepared/brake --initial-events runs/events/components.pt --output runs/brake
 ```
 
-## The shortest complete Python example
+The pattern stage has 1,395 sources: 1,024 strict static training movements, 167
+original tracking and 204 later tracking episodes. The 58 original Person3
+acquisition replacements enter the motor cohort but are absent from this component
+footprint. Static 512 ms zero-report tails are explicitly synthetic and carry 0.15
+mass. There are 239,271 transition/decision rows and 9,757 brake rows. The selected
+motor filter reduces 63,608 metadata cuts to 50,173 with per-source mass restored;
+it leaves natural decision/brake pause exposure intact.
 
-The Planner prefix is event-specific. The Renderer profile is not: prepare one
-representative texture sample before a latency-sensitive B handoff and reuse it:
+Quiet is motion norm at most 0.01 common units/ms for at least 32 ms. Decision
+exposure is sampled every 32 ms after 160 ms, using valid active/known support.
+Future pauses and retrospective peaks create training labels only. Right-censored
+pauses provide survival exposure without invented restart events. Fit, grouped
+TRAIN holdout and inherited external-validation roles remain distinct.
+
+The precursor component fit uses seed 7, 6,000 updates, AdamW learning rate 0.0005
+and weight decay 0.0005. Each update samples 512 brake rows and 2,048 rows for each
+hazard mode according to natural source mass. The joint held-out brake/hazard
+objective is checked every 250 updates; the selected fit chose update 2,250.
+
+The coherent selector uses 16 connected 32 ms steps, authentic causal support and
+per-source caps of 8 static/20 tracking sequences. Its emission scale is fitted
+only on TRAIN via a weighted median with a 0.05 floor; the selected value is
+`0.2122621387243271`. Preparation yields 11,302 sequences and 69,561 valid frames.
+Training uses seed 23, batch 128, AdamW `lr=0.001`, `weight_decay=0.0001`.
+
+The final C2 brake preserves the same 9,757 rows and weights, using 17 actual
+normalized path positions and incoming acceleration from two preceding 8 ms mean
+velocities. Its objective evaluates the finite C2 path, rather than only fitting
+precursor coefficient targets. Hazards remain frozen. It uses seed 23, batch 512,
+AdamW `lr=0.0005`, `weight_decay=0.0005`.
+
+Both final selections evaluate every 200 updates, with a 6,000-update ceiling,
+1,600-update minimum, improvement threshold 0.0001 and patience of 1,000 updates.
+The historical selector selected update 6,000. The brake selected update 1,200 and
+stopped at 2,200. The minimum controls when stopping is allowed, not which earlier
+checkpoint may win. New fits record their chosen checkpoint in `selection.json`;
+read it rather than assuming cross-platform retraining selects the same step.
+
+### Export and inference
+
+To reconstruct the accepted exports directly from the complete released learned
+components:
+
+```powershell
+python tools/export_continuous.py --output exports/continuous-frozen
+```
+
+To export a new fit, pass its final motor and the two checkpoint paths named in
+`runs/selector/selection.json` and `runs/brake/selection.json`:
+
+```powershell
+python tools/export_continuous.py --motor runs/motor/step_00600.pt --selector runs/selector/step_06000.pt --events runs/brake/step_01200.pt --output exports/continuous-new
+```
+
+The shown step names are the historical selections. Export rejects precursor
+motor/event stages, incompatible deployment configurations and nonfinite tensors.
+It writes all six ONNX graphs plus `weights.npz` and a manifest binding 182,708
+learned parameters, configuration, source checkpoint identities and file hashes.
+ONNX uses opset 17; neural computation is float32 and physical geometry is float64.
 
 ```python
-import numpy as np
-from abcurves import Pipeline
-
-# Causal A→B movement used by the Planner.
-planner_prefix = np.asarray(prefix_raw_dxdy, dtype=np.float32)
-
-# Exactly 256 chronological physical reports from a representative recording.
-profile_window = np.asarray(representative_256_raw_reports, dtype=np.int16)
-assert profile_window.shape == (256, 2)
-
-with Pipeline.from_pretrained() as pipeline:
-    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
-    counts = pipeline.generate(
-        planner_prefix,
-        renderer_profile=renderer_profile,
-        target_rel_at_B=(140.0, -22.0),
-        target_radius=18.0,
-        progress_center=0.74,
-        seed=2026,
-    )
-
-print(counts.shape, counts.dtype)  # (duration_ms, 2), int16
+from abcurves import ContinuousPlanner
+movement = ContinuousPlanner("exports/continuous-new", allow_custom_assets=True)
+movement.update_target((100., 30.), timestamp_us=0)
+positions = movement.advance(1_000_000)
 ```
 
-Profile preparation accepts exactly `(256, 2)` finite integer reports. There is no
-implicit truncation or padding: select the representative chronological window in
-the caller, where its provenance is known. The window need not end at B. An
-indicative one-draw Renderer-only engineering probe found little practical dependence
-on millisecond-perfect alignment, with overlapping uncertainty intervals; it is not
-a promotion or equivalence result. Its scope and measurements are recorded in the
-[`Renderer profile sensitivity receipt`](../results/inference/renderer_profile_sensitivity.json).
-Preparing the profile ahead also keeps its replay off the handoff-critical path.
+The packaged default verifies immutable accepted asset hashes. Custom loading is
+explicit and still verifies its manifest. All seven released graph/NPZ files were
+re-exported byte for byte from the public checkpoints in the tested environment.
+The optimized native path preserves the accepted arithmetic tradeoffs: scalar
+nonlinear approximations and physical-kernel evaluation can have small numerical
+differences from reference backends, so long sampled traces need not remain
+bit-identical at every discrete decision. Runtime differential tests and the
+recorded selected implementation define the accepted boundary; speedups from
+separate optimization tasks are not added together.
 
-Keep the returned `RendererProfile` and pass it to any number of independent events.
-Prepare a replacement between events only when the physical device or setup changes
-materially. Changing the event seed, not rotating the profile on a timer, is the
-normal source of output variation.
+### Accepted inference arithmetic
 
-The compact fixture in `examples/quickstart.py` has no separate representative
-recording, so its example profile declares quiet history before the shorter prefix.
-That is a demo convention. A real application should prepare a genuine sample from
-the device or setup it intends to use.
+The selected native backend uses specialized Padé9 nonlinear arithmetic and
+float64 physical geometry; ONNX remains a numerical and portability reference.
+The retained [optimization qualification](../results/qualification/continuous-numerics.json)
+compares each accepted implementation with its original reference over 84 matched-seed
+streams: 21 scenarios, four seeds and 1,075,444 endpoints per implementation.
 
-### What each input means
+| Paired endpoint measure | Native Padé9 | ONNX |
+| --- | ---: | ---: |
+| Position RMS, common counts | 0.0000736828 | 0.0000759844 |
+| Maximum position difference, common counts | 0.00139070 | 0.000607218 |
+| Velocity RMS, common counts/ms | 0.000000895429 | 0.000000903207 |
 
-Everything is measured in **raw mouse counts**, before desktop sensitivity or
-cursor acceleration.
+Both matched all 33,344 movement choices and 1,489 mode/brake signatures in that
+roster. Native production pruning and diagnostics settings were bitwise equivalent
+across all endpoints, reducing motor evaluations from 33,344 to 19,706 while retaining
+every decision. This supports the chosen tradeoff on the measured roster; it is
+not a universal bound for arbitrarily long stochastic trajectories. The identical-
+physical-state comparison and metric definitions remain in the compact receipt.
+These are retained optimization measurements, separate from the combined runtime
+performance campaign and the public archive reconstruction checks.
 
-- `planner_prefix` is the real A→B recording. It is a finite `(P, 2)` array with one
-  closed 1 ms bin per row; the final row ends at B.
-- `profile_window` is exactly 256 finite, integer-valued physical reports from a
-  representative 1 kHz recording. Values must fit signed int16. The Planner supplies
-  the event-specific smooth-intent boundary; the profile supplies Renderer packet
-  state such as previous emission, last smooth motion, run state, and recent activity.
-  It is not a user identity.
-- `target_rel_at_B=(x, y)` is the target centre relative to the cursor at B, in raw
-  count space.
-- `target_radius` is a positive radius in the same space.
-- `progress_center` is progress from A toward the target centre. Use the value from
-  the causal B trigger, not edge progress.
+## Reproduce the Static Planner inputs and fits
 
-All three geometry fields are required at every Planner entry point. Passing zero as
-"unknown" is not neutral: radius, target distance, and progress are learned summary
-features and materially change the predicted finish.
-
-Do not mix pixels and raw counts. Do not interpolate or smooth the observed reports.
-If hardware reports faster or slower than 1 kHz, first accumulate them causally into
-closed 1 ms bins. That is the timebase the release learned.
-
-The event `seed` makes both Planner-head choice and Renderer sampling repeatable. A
-different seed requests another sample; it does not generate several candidates and
-pick the nicest one. Renderer randomness is counter-based and local to the event, so
-another request cannot disturb it through process-global random state.
-
-## Streaming one report at a time
-
-Create one `Pipeline` when the process starts and keep it alive. Prepare the Renderer
-profile before B; the B-time path then only freezes the Planner prefix and clones the
-already prepared profile state:
-
-```python
-with Pipeline.from_pretrained(prewarm=True) as pipeline:
-    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
-
-    # Later, when the causal trigger fires:
-    pending = pipeline.begin_at_b(planner_prefix, renderer_profile=renderer_profile)
-
-    stream = pending.finish(
-        target_rel_at_B=target_rel_at_B,
-        target_radius=target_radius,
-        progress_center=progress_center,
-        planner_seed=event_seed,
-        renderer_event_seed_u64=event_seed,
-    )
-
-    while not stream.complete:
-        dx, dy = stream.step()
-        send_one_1khz_report(int(dx), int(dy))
+```powershell
+python -m training.static.prepare --exports prepared/capture-static/exports/static --output prepared/static
+python -m training.static.train --data prepared/static --seed 7 --output runs/planner_seed7.pt
+python -m training.static.train --data prepared/static --seed 23 --output runs/planner_seed23.pt
 ```
 
-`prepare_renderer_profile()` validates and owns the 256-report input, then prepares
-one immutable template. `begin_at_b()` copies the Planner prefix. `finish()` samples
-one Planner head, clones the profile into independent event state, starts the
-Renderer, and returns a stream that owns that event state.
+`recipes/static/recipe.json` binds the frozen 86-session audit roster, its known
+quarantine, 21,302 training physical events from 59 sessions/58 installation keys,
+361,080 ordered cuts (333,326 native and 27,754 tiny-target rows), and 1,885
+shrink-only target variants. Every audited event retains a decision/reason.
 
-Each `PendingB` can be finished once. A `RendererProfile` may be reused by independent
-events from the same `Pipeline`; a `PreparedStream` may not. Applications must not
-race `Pipeline.close()` with active calls. Use `render_remaining()` when a complete
-array is more convenient than per-tick output.
+The separate training-development panel has 3,787 legacy B80 rows. It is not the
+candidate audit's 3,549 retained development events, its 52,741 dense development
+cuts, or the historical detection panel. The builder rechecks raw source identity,
+absolute clocks and full native streams before generating sufficient targets.
+It checks every selected NPY hash, the validation arrays and the train-only
+normalizer. Compact sufficient targets avoid duplicating every padded 1,000 ms
+future across all 361,080 training rows.
 
-`prewarm=True` is the default, as is one Torch CPU thread. Prewarming pays for model
-loading, ProDMP caches, compiled Planner kernels, the native model view, and worker
-startup once. Creating a new `Pipeline` for every movement discards that work.
+Each physical parent has total normalization weight one across native/tiny
+siblings. Statistics use the selected two-pass float64 reductions in 8,192-row
+chunks; prefix statistics are stored float32. Turn thresholds use CPU float64 on
+the saved 48-point paths. The canonical statistics digest is
+`57aef637b9371096f652a08b09d40994803dd0b063d38fefd4dcc6cbf083cbad`.
+Full variant/cut IDs are preserved because renaming them changes the seeded
+source-specific shuffled-cycle schedule.
 
-### What the runtime does not own
+Each seed trains independently for 260 epochs: 5,538,520 physical-source
+presentations, 43,420 optimizer updates, 167 batches per epoch with 54 sources in
+the last batch. The selected checkpoint is terminal epoch 260.
+`--epochs 1` performs a labeled full-data smoke fit. The exported checkpoint is
+loadable as `StaticPlanner(path)` or `StaticPipeline(planner_checkpoint=path)`.
 
-ABCurves emits signed integer reports. It does not open a USB device or schedule HID
-polls. Firmware, permissions, operating-system scheduling, queues, synchronization,
-and final output are caller-owned. Benchmark those layers in the real application.
+## Static Planner representation and objective
 
-The recommended native handoff is deliberately small: prepare exactly 256
-representative reports before B, copy that prepared profile for an event, then begin
-once. There is no continuously running observer and no timing-dependent rolling
-state. `renderer_context_raw_dxdy=` remains available for exact per-event evaluation
-and compatibility; because it replays its 256 reports at B, it is not the recommended
-latency-sensitive path.
-
-## Finding A and B without looking ahead
-
-The helpers in [`abcurves/seam.py`](../abcurves/seam.py) make decisions only from
-reports that have already arrived. Feed `OnsetDetector` and `BTrigger` once per
-closed 1 ms bin.
-
-### Finding A
-
-A is the estimated beginning of purposeful target-directed motion. After 12 moving,
-target-aligned bins confirm the movement, A is placed four bins before that run
-began. This moves A closer to the true onset without pretending it was known at the
-time.
-
-| Setting | Release value |
-| --- | ---: |
-| Quiet/noise window | 24 ms |
-| Speed threshold | `max(0.35, median + 6 × MAD)` counts/ms |
-| Minimum target-alignment cosine | 0.15 |
-| Consecutive qualifying bins | 12 |
-| Backtrack before confirmed run | 4 ms |
-
-If capture starts after the hand is already moving, the quiet estimate can be
-contaminated. When its median already exceeds `0.35`, the detector falls back to the
-fixed floor so a bad baseline cannot hide A.
-
-Keep a short ring buffer. `OnsetEvent.index` points to the earlier estimated A, not
-the later tick on which the detector gained enough evidence to confirm it.
-
-### Choosing B
-
-After A, arm `BTrigger` with the target vector and radius. B fires at 80% of progress
-toward the **near edge of the target**, while the cursor remains outside and enough
-movement remains to generate.
-
-The handoff is accepted only when:
-
-- at least 8 counts remain;
-- centre progress is at most 0.92;
-- A→B is at most 1,500 ms; and
-- progress has not regressed by more than 0.18.
-
-The 24 ms minimum prefix and 12 ms minimum future are offline training eligibility
-rules. A live trigger cannot inspect a future that has not happened.
-
-`BFire.progress_edge` explains why the trigger fired. Pass
-`BFire.progress_center` to the Planner. They differ most when the target is large.
-If no valid B appears, leave the movement to the person or the application's normal
-fallback. Moving B later in secret creates a different system.
-
-## What the Planner learns
-
-The Planner does not guess hundreds of future reports one by one. Instead it predicts
+The Static Planner does not guess hundreds of future reports one by one. Instead it predicts
 a compact smooth movement with ProDMP. Position and velocity at B are built into the
 representation, so the curve begins from the motion the person was already making.
 Forty-two values describe both axes and one describes duration.
 
-The same beginning can have several legitimate endings. The Planner keeps sixteen
+The same beginning can have several legitimate endings. The Static Planner keeps sixteen
 heads and trains them with relaxed winner-takes-all. The head closest to the recorded
 finish gets most of the loss while the others get a small share so they remain
 useful. At runtime, one head is sampled uniformly. There is no ensemble, best-of-K
@@ -306,24 +321,6 @@ epoch 46 through 260:
 ```text
 epsilon(epoch) = 0.50 + (0.05 - 0.50) × min(1, (epoch - 1) / 45)
 ```
-
-Train the two Planner replications independently:
-
-```bash
-python training/train_planner.py \
-  --train prepared/planner_train.npz --val prepared/planner_val.npz \
-  --out runs/planner_seed7.pt --epochs 260 --wta-anneal-epochs 45 \
-  --heads 16 --seed 7 --device cuda
-
-python training/train_planner.py \
-  --train prepared/planner_train.npz --val prepared/planner_val.npz \
-  --out runs/planner_seed23.pt --epochs 260 --wta-anneal-epochs 45 \
-  --heads 16 --seed 23 --device cuda
-```
-
-The one-cut-per-source schedule and terminal-epoch export are the trainer's single
-recipe rather than optional switches. The trainer refuses to overwrite an existing
-checkpoint.
 
 ## What the global Renderer learns
 
@@ -419,7 +416,7 @@ the quiet gate.
 ## Renderer training: presentations, not epochs
 
 The selected P0 training corpus contains 81,737 windows from 54 sessions and 45
-users. Validation contains 10,807 windows from 8 sessions and 8 users held out from
+installation keys. Validation contains 10,807 windows from 8 sessions and 8 keys held out from
 Renderer training. It is not automatically a joint Planner-and-Renderer holdout,
 because the branches preserve different frozen split salts.
 
@@ -461,12 +458,18 @@ mixes the end of one shuffled pass with the beginning of the next.
 | Loss | Future-only emit BCE + valid joint-offset cross-entropy |
 | Budget | 118,345 presentations |
 
+First prepare the authenticated cohort and its eight complete validation sessions:
+
+```bash
+python -m training.renderer.prepare prepared/capture-static recipes/renderer/cohort.json prepared/renderer
+```
+
 Train the float reference with:
 
 ```bash
 python training/train_renderer.py \
-  --train prepared/renderer_train \
-  --val prepared/renderer_val \
+  --train prepared/renderer/renderer_train \
+  --val prepared/renderer/renderer_val \
   --out runs/renderer_p118345.pt \
   --presentations 118345 --batch-size 256 \
   --seed 7 --device cuda
@@ -476,12 +479,12 @@ Use `--device cpu` when CUDA is unavailable. The program memory-maps the prepare
 arrays, checks whole-user train/validation isolation, records data hashes, and refuses
 to overwrite the output.
 
-The resulting float checkpoint is directly usable through the normal Pipeline API:
+The resulting float checkpoint is directly usable through the StaticPipeline API:
 
 ```python
-from abcurves import Pipeline
+from abcurves import StaticPipeline
 
-with Pipeline(
+with StaticPipeline(
     float_renderer_checkpoint="runs/renderer_p118345.pt",
     float_renderer_device="cuda",  # use "cpu" when needed
 ) as pipeline:
@@ -499,8 +502,8 @@ with Pipeline(
 This path uses the same 256-report profile shape and AF1.5 sampling law. The profile
 object is reusable at the API boundary, but the float backend still replays its raw
 window through the float GRU and samples the whole continuation when each event
-begins. It is intended for research and ordinary Python use—not as a claim of native
-profile-clone latency or embedded validation.
+begins. This makes it useful for research and ordinary Python use, with its own
+preparation cost at each handoff.
 
 The two hysteresis values are intentionally different stages. `1.0` defines the
 offset labels used while fitting the neural law. The later carried-state sampling
@@ -532,7 +535,7 @@ This rule is stored in the training report and dataset configuration so a conven
 Run the public carried-session selector on each candidate instead:
 
 ```bash
-python -m evaluation renderer-selection full_sessions/sessions.json \
+python -m evaluation renderer-selection prepared/renderer/selection_sessions/sessions.json \
   --backend float --model runs/renderer_p118345.pt \
   --specs w3 w5 --seed 7001 \
   --output runs/renderer_p118345_selection.json
@@ -550,13 +553,13 @@ gate-eligible false activation; and `D` is session-equal relative net error. The
 evaluator invents no epsilon: undefined ratios or no eligible quiet ticks invalidate
 the score.
 
-The command makes the selection rule executable on a local panel. It cannot recreate
-the checked-in eight-session numbers without those private sessions, nor can it prove that a
-new panel's users were absent from model development. Compare candidates only on the
+The command makes the selection rule executable on a local panel. The frozen
+eight-session panel is included in the public raw sources and identified by
+`recipes/renderer/cohort.json`. A new panel does not by itself establish that its
+users were absent from model development. Compare candidates only on the
 same hash-bound panel, specs, seed, and backend contract. One invocation scores one
-artifact and one draw seed; it does not automatically reproduce the frozen two
-model seeds by two smoothing views by two draw seeds hierarchy. Run and retain each
-cell separately before applying that frozen aggregation.
+artifact and one draw seed. To reproduce the study's aggregation, run and retain
+each cell across both model seeds, both smoothing views and both draw seeds.
 
 ### Why the full corpus was retained
 
@@ -627,173 +630,109 @@ and L2 packet rates, and the x-axis sign-flip rate. The cited component values a
 user-macro within one frozen cell: model-training seed 7, W5 smoothing and Renderer
 draw seed 7001. On that cell, the final fixed-online artifact had `S=1.4328467`; the
 source float model had `S=1.4311797`. Promotion therefore changed the score by
-`+0.11648%`. The corpus-selection study aggregated a wider route/seed/draw
-hierarchy; this compact promotion receipt does not claim to reproduce that hierarchy.
+`+0.11648%`. This promotion comparison uses one cell. The corpus-selection study
+aggregates a wider route/seed/draw hierarchy.
 
 A different check isolates the online handoff rather than quantization. Against the
 same fixed model initialized by the reference warm replay, only 8 of 22,829,006 scalar
-output components differed, and every difference was one count. These two tests
-answer different questions and must not be merged into one “exact quantization”
-claim.
+output components differed, and every difference was one count. The first test
+measures the effect of quantization on texture, while the second measures agreement
+between handoff initialization methods.
 
 The compact public
 [`renderer_promotion.json`](../results/inference/renderer_promotion.json)
 binds the formula, panel size, scope, artifact and source hashes, component values,
-and sealed research-receipt digest. The raw panel sessions are not redistributed; the
-receipt is auditable evidence, while the public carried-session scorer can be run on
-a correctly structured local corpus.
+and sealed research-receipt digest. The raw panel sessions are included in the
+public static collection. Use their frozen roles and source hashes when rebuilding
+the carried-session panel.
 
 The Python loader checks both file size and hash before the C runtime checks its
 internal format, CRC, and source identity. Training a float checkpoint does not
-silently replace this file. A newly promoted artifact needs its own quantization
-validation, cross-language differential tests, manifest entry, and release audit.
+silently replace this file. A new candidate uses the explicit model-bound export and separate native build
+below. Publishing it as a selected model still needs numerical and sampling qualification.
 
-## Native C99 contract
 
-The portable runtime lives in [`runtime/c`](../runtime/c). Prepare a profile outside
-the B-critical path, keep that template unchanged, and copy it for every event:
+## Renderer preparation, adapter and native export
 
-```c
-int status = abc_online_model_init(&model, blob, blob_bytes);
-if (status != ABC_FIXED_OK) return status;
-status = abc_online_reset(&profile, &model);
-if (status != ABC_FIXED_OK) return status;
+If `prepared/renderer` was created earlier, reuse it and skip this preparation step.
 
-for (size_t i = 0; i < 256; ++i) {
-    status = abc_online_observe_raw(&profile, sample[i].dx, sample[i].dy);
-    if (status != ABC_FIXED_OK) return status;
-}
+Rebuild the frozen whole-session windows from the public static exports:
 
-/* At B: copy the prepared template; never begin on the template itself. */
-renderer = profile;
-status = abc_online_begin(&renderer, event_seed);
-if (status != ABC_FIXED_OK) return status;
-
-for (size_t t = 0; t < duration; ++t) {
-    status = abc_online_step(
-        &renderer, smooth_x_q16[t], smooth_y_q16[t], &report
-    );
-    if (status != ABC_FIXED_OK) return status;
-    send_report(report.dx, report.dy);
-}
+```powershell
+python -m training.renderer.prepare prepared/capture-static/exports/static recipes/renderer/cohort.json prepared/renderer
 ```
 
-All status codes must be checked. `abc_online_begin()` fails unless the copied state
-contains exactly 256 observations. Smooth intent uses signed Q16 deltas. The sample
-must contain chronological physical reports, but it does not need to end at B.
+All 81,737 training and 10,807 validation windows are reconstructed byte for byte.
+The recipe retains original outer-cohort row IDs for the adapter's 90/10 membership
+rule. The historical H80 fit used a one-row synthetic validation diagnostic; the
+10,807-window human panel served calibration/evaluation rather than checkpoint
+selection. Using it as the public trainer's diagnostic does not alter the fixed
+presentation budget or optimizer updates, but its reported validation metric is a
+different diagnostic and should not be relabeled as the historical one.
 
-The library allocates no heap. Callers retain the model view and the prepared profile
-for as long as any copy refers to them. Copy only the fully prepared template, create
-one independent state per event, and never overwrite an active event with a refreshed
-profile. A new profile can be prepared off-path and selected between events.
+The sampling temperatures were inherited through the selected H96 calibration /
+H80 deployment lineage; they are fixed sampler constants, not extra learned
+weights or a new fit to the later handoff test. Their values are listed above.
 
-| Native quantity | Release value |
-| --- | ---: |
-| Model image | 44,484 bytes |
-| Model view | 208 bytes on validated Windows x64 ABI |
-| Prepared profile or active-event state | 5,088 bytes each on validated Windows x64 ABI |
-| Generated-tick hot work | 33,760 int8 multiply-accumulates |
+For the published float checkpoint, rebuild the learned observer handoff:
 
-The image size and MAC count are platform-independent. Structure sizes depend on
-compiler alignment and pointer width; firmware ports should call
-`abc_online_model_size()` and `abc_online_renderer_size()` on the target ABI. Keeping
-one profile and one active event requires two Renderer-state objects.
-
-The hot GRU path is fixed-point/int8. Context observation, regime statistics, and the
-rank-16 handoff still use float/double and math-library operations. The code is
-functionally portable to small C targets and is a concrete ESP32 starting point, but
-it has not been timed or certified on ESP32 hardware.
-
-The artifact and C/Python behavior were checked across the release toolchains,
-including optimized builds and undefined-behavior instrumentation. Repeat those
-checks for a new compiler, architecture, or promoted artifact.
-
-## Performance measurements
-
-On the Windows x64 machine used for the native release microbenchmark:
-
-| Operation | p99 |
-| --- | ---: |
-| Prepare all 256 profile reports off-path | 3,629.5 µs |
-| Observe one physical profile report | 14.3 µs |
-| Copy the profile and begin | 8.1 µs |
-| Generate one report | 23.4 µs |
-
-Profile preparation comprises 256 observations and is completed before B. The
-latency-sensitive event path copies the prepared state and begins from that copy.
-These warmed measurements describe the native Renderer core on that machine and
-include timer overhead. They are not ESP32 results and do not include the Planner,
-USB, HID scheduling, application queues, or operating-system jitter. The published
-receipt records the host, compiler, timer, and sample counts:
-[`native_renderer_windows_x64.json`](../results/inference/native_renderer_windows_x64.json).
-
-The composed warmed Python benchmark on the same host measured B→stream-ready at
-239.85 µs median / 433.517 µs p99 and B→first report at 275.8 µs median /
-546.751 µs p99. Those values include the Planner and native profile clone but exclude
-the off-path profile preparation, USB/HID transport, and application scheduling. The
-checked-in [`composed benchmark receipt`](../results/inference/benchmark_this_machine.json)
-records the full phase breakdown and limitations; it is a host measurement, not a
-hard real-time guarantee.
-
-Rebuild, test, and reproduce it with:
-
-```bash
-cmake -S runtime/c -B runtime/c/build
-cmake --build runtime/c/build --config Release
-ctest --test-dir runtime/c/build -C Release --output-on-failure
-runtime/c/build/Release/abc_renderer_benchmark.exe \
-  models/renderer_global_h80.bin native_renderer_local.json 128
+```powershell
+python -m training.renderer.build_adapter_cache --prefix prepared/renderer/renderer_train/prefix_raw_dxdy.npy --source-row-ids prepared/renderer/renderer_train/source_row_ids.npy --model models/renderer_global_h80_float.pt --output prepared/adapter
+python -m training.renderer.train_adapter --cache prepared/adapter --output runs/adapter
+python -m training.renderer.export_renderer --mode frozen --model models/renderer_global_h80_float.pt --adapter runs/adapter/adapter_int8.bin --out exports/renderer-frozen.bin
 ```
 
-With a single-config Unix generator, the benchmark is normally at
-`runtime/c/build/abc_renderer_benchmark` instead of the `Release` subdirectory and
-has no `.exe` suffix.
+The full 81,737-row adapter cache has 73,576 fit and 8,161 development rows. The
+rank-16 fit uses seed 7, 80 epochs, batch 1,024, AdamW `lr=0.003`, weight decay
+`1e-5`, selecting minimum development MSE. The packed format stores normalization
+as float16, quantized rank matrices and float32 bias/scales. Overflow is rejected;
+normalizers are not silently clamped. Rebuilding this cache and fit reproduced the
+released 4,972-byte adapter exactly in the checked environment.
 
-Measure the composed Python path locally without overwriting a checked-in receipt:
+For a newly trained float model, build a cache against that model, fit its adapter,
+and use candidate export with its binding receipt:
 
-```bash
-python examples/benchmark_runtime.py --trials 200 --out benchmark_local.json
+```powershell
+python -m training.renderer.build_adapter_cache --prefix prepared/renderer/renderer_train/prefix_raw_dxdy.npy --source-row-ids prepared/renderer/renderer_train/source_row_ids.npy --model runs/renderer_p118345.pt --output prepared/new-adapter
+python -m training.renderer.train_adapter --cache prepared/new-adapter --output runs/new-adapter
+python -m training.renderer.export_renderer --mode candidate --model runs/renderer_p118345.pt --adapter runs/new-adapter/adapter_int8.bin --adapter-receipt runs/new-adapter/receipt.json --out exports/renderer-new.bin
+python -m training.renderer.bind_native --artifact exports/renderer-new.bin --receipt exports/renderer-new.bin.json --output exports/renderer-binding
+cmake -S runtime/c -B builds/renderer-new -DABC_MODEL_BINDING_DIR="$PWD/exports/renderer-binding" -DABC_RENDERER_BLOB="$PWD/exports/renderer-new.bin"
+cmake --build builds/renderer-new --config Release
+ctest --test-dir builds/renderer-new -C Release --output-on-failure
 ```
-
-## What the model seed controls
-
-The release contains two independently trained Planners and one shared selected
-Renderer:
 
 ```python
-with Pipeline(model_seed=7) as default:
-    pass
-
-with Pipeline(model_seed=23) as planner_replication:
-    pass
+from abcurves.portable_renderer import PortableRendererModel
+model = PortableRendererModel.from_custom(
+    "exports/renderer-new.bin", "exports/renderer-new.bin.json",
+    library="builds/renderer-new/Release/abcurves_renderer.dll",
+)
+profile = model.prepare_context(canonical_256_raw_reports)
+stream = profile.begin_stream(event_seed=101)
+report = stream.step((0.5, 0.2))  # Smooth native-count displacement for one tick.
 ```
 
-`model_seed` selects Planner weights. The event `seed` selects a Planner head and
-Renderer random stream for one movement. Neither setting forms an ensemble or runs a
-best-of-many search.
+On Linux the library is `builds/renderer-new/libabcurves_renderer.so`; on macOS it
+is `libabcurves_renderer.dylib`. The generated header binds source identity, body
+CRC, adapter CRC and sampling configuration to this specific export. The export
+receipt additionally binds the full SHA256. A separate custom build cannot replace
+the default release anchors by accident. `ContinuousPipeline(renderer_model=model,
+...)` accepts the custom model while preserving independent stream state.
 
-The exact files and integrity rules are in
-[`models/README.md`](../models/README.md).
+## Verification and numerical limits
 
-## Practical rules worth preserving
+| Stage | Verification |
+| --- | --- |
+| Raw data and preparation | Nested static collection and all six selected tracking sources; complete Static, Continuous physical/pattern/selector/brake arrays and Renderer windows matched their selected references. |
+| Training | One full-data Static epoch, short real-input motor/component fits, all five motor resume paths, and full adapter reproduction. Full neural fit evidence comes from the selected training runs. |
+| Training arithmetic | Loss, gradients, optimizer/RNG state and checkpoint-selection rules compared with the original source. |
+| Export and inference | Exact selected graph/NPZ and Renderer binary re-exports; newly trained models loaded through their public runtime paths. |
 
-- Keep geometry in raw count space and time on closed 1 ms bins.
-- Keep A and B causal; do not substitute edge progress for centre progress.
-- Split people before fitting normalizers, models, or judges.
-- Give each physical Planner source total weight one across its candidate cuts.
-- Sample one Planner head without reranking.
-- Train the Renderer on uninterrupted sessions, not reconstructed event crops.
-- Preserve blind non-overlapping `[256 | 800]` Renderer windows and drop only the
-  incomplete tail.
-- Count Renderer work in presentations, not copied epoch labels.
-- Treat teacher-forced loss as diagnostic and select on sampled carried texture.
-- Prepare a reusable profile from exactly 256 genuine chronological reports before
-  B; never depend on implicit slicing or padding.
-- Clone the prepared native profile for each event. Do not rotate it on a timer or
-  treat it as a user identity.
-- Keep AF1.5 enabled anywhere claiming to reproduce the deployed sampler.
-- Evaluate the composed Planner→Renderer output, because that is what users run.
-- Measure USB and application integration separately from native-core timing.
+Retraining can vary with the framework, compiler and accelerator even with the
+same seeds. Preserve the input and configuration hashes when comparing runs.
 
-Detection results and their separate evaluation safeguards are in the
-top-level [DETECTION.md](../DETECTION.md).
+Install `python -m pip install -e ".[all,dev]"`, then run `python -m pytest -q` for the public suite and CTest for native builds. The
+detection study uses the Static B80 configuration and inputs in
+[DETECTION_REPRODUCTION.md](DETECTION_REPRODUCTION.md). Combined runtime timings
+are in [PERFORMANCE.md](PERFORMANCE.md).

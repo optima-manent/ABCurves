@@ -115,6 +115,12 @@ class PlannedIntent:
 class FastPlanner:
     """Checkpoint-exact input/decode with the compiled selected-head TCN."""
 
+    @classmethod
+    def from_pretrained(cls, *, model_seed: int = 7, model_dir=None, prewarm: bool = True):
+        """Load one independently trained Static Planner variant."""
+        files = resolve_model_files(model_seed, model_dir=model_dir)
+        return cls(files.planner, prewarm=prewarm)
+
     def __init__(self, path: str | Path, *, prewarm: bool = True) -> None:
         self.planner = Planner(path, device="cpu", prewarm_decode=prewarm)
         _require(self.planner.heads == 16, "release Planner must have 16 heads")
@@ -188,7 +194,11 @@ class FastPlanner:
             b_index_ms=b_index_ms,
             assume_finite_counts=True,
         )
-        prefix_tensor, _ = self.planner._prefix_tensor(represented)
+        # Summaries use the full represented prefix; the TCN only consumes
+        # its receptive window, including normalized-space zero padding.
+        prefix_tensor = self.planner._normalized_prefix_window(
+            represented, self.all_heads.window
+        )
         boundary_velocity = (
             boundary[-1].astype(np.float64)
             if len(boundary)
@@ -355,6 +365,7 @@ class Pipeline:
         *,
         model_dir: str | Path | None = None,
         renderer_library: str | Path | None = None,
+        planner_checkpoint: str | Path | None = None,
         float_renderer_checkpoint: str | Path | None = None,
         float_renderer_device: str = "cpu",
         float_renderer_prefix_smoothing_spec: str | None = None,
@@ -368,8 +379,8 @@ class Pipeline:
         self.model_files = resolve_model_files(
             model_seed, model_dir=model_dir, verify=verify_models
         )
-        self.model_seed = self.model_files.seed
-        self.planner = FastPlanner(self.model_files.planner, prewarm=prewarm)
+        self.model_seed = self.model_files.seed if planner_checkpoint is None else None
+        self.planner = FastPlanner(planner_checkpoint or self.model_files.planner, prewarm=prewarm)
         if float_renderer_checkpoint is None:
             self.renderer = PortableRendererModel(
                 self.model_files.renderer,
@@ -393,12 +404,30 @@ class Pipeline:
         )
         self._closed = False
         if prewarm:
-            context = np.zeros((CONTEXT_TICKS, 2), dtype=np.int16)
-            self._context_worker.submit(self.renderer.prepare_context, context).result()
+            try:
+                context = np.zeros((CONTEXT_TICKS, 2), dtype=np.int16)
+                profile = self._context_worker.submit(
+                    self.prepare_renderer_profile, context
+                ).result()
+                # Exercise the public handoff and first tick with disposable
+                # state and private seeds, before any real input is available.
+                self.prepare(
+                    np.zeros((self.planner.prefix_len, 2), dtype=np.float32),
+                    renderer_profile=profile,
+                    target_rel_at_B=(100.0, -30.0),
+                    target_radius=18.0,
+                    progress_center=0.75,
+                    planner_seed=0,
+                    renderer_event_seed_u64=0,
+                ).step()
+            except BaseException:
+                self.close()
+                raise
 
     @classmethod
     def from_pretrained(cls, **kwargs: Any) -> "Pipeline":
-        return cls(model_seed=7, **kwargs)
+        kwargs.setdefault("model_seed", 7)
+        return cls(**kwargs)
 
     def prepare_renderer_profile(self, raw_dxdy: np.ndarray) -> RendererProfile:
         """Prepare one immutable profile before a latency-sensitive B handoff."""

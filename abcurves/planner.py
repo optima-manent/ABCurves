@@ -47,7 +47,7 @@ from .prefix_representation import (
     prefix_representation_from_config,
     prefix_representation_from_payload,
 )
-from .prodmp import ProDMP, ProDMPConfig
+from .prodmp import ProDMP, ProDMPConfig, _as_dof_vector
 
 CONTRACTED_PLANNER_SCHEMA = "abcurves.planner.v2"
 SUPPORTED_PLANNER_SCHEMAS = {CONTRACTED_PLANNER_SCHEMA}
@@ -210,9 +210,9 @@ def decode_heads(
     masks = np.zeros((n, k, horizon), dtype=np.float32)
     for i in range(n):
         for j in range(k):
-            dur = int(np.clip(round(float(duration[i, j])), 1, horizon))
+            dur = max(1, min(round(float(duration[i, j])), horizon))
             deltas = prodmp.generate_deltas(w[i, j], np.asarray(ydot_b[i], dtype=np.float64), dur, goal_mode="learned")
-            out[i, j, :dur] = deltas.astype(np.float32)
+            out[i, j, :dur] = deltas
             masks[i, j, :dur] = 1.0
     return out, masks
 
@@ -242,15 +242,67 @@ class _CachedProDMP(ProDMP):
         )
         if not canonical:
             return super()._components(t, tau, t_b)
+        return self._canonical_components(d)
+
+    def _canonical_components(self, d: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Components for positive integer duration, t=1..d, tau=d, B=0."""
+
         hit = self._components_cache.get(d)
         if hit is None:
-            hit = super()._components(t_arr, tau, t_b)
+            t = np.arange(1, d + 1, dtype=np.float64)
+            a = self.alpha / (2.0 * float(d))
+            e = np.exp(-a * t)
+            xi2 = t * e
+            xi1 = e - (-a) * xi2
+            # Phi(0) and its derivative are zero, so H=Phi. Preserve the
+            # general formula's operation order and interpolation; no
+            # derivative samples or boundary corrections are needed here.
+            s = t / float(d)
+            h = np.empty((d, self.n_weights), dtype=np.float64)
+            for j in range(self.n_weights):
+                h[:, j] = np.interp(s, self._s_grid, self._phi_grid[:, j])
+            hit = (xi1, xi2, h)
             self._components_cache[d] = hit
         return hit
 
+    def generate_deltas(
+        self,
+        w_g: np.ndarray,
+        ydot_b: np.ndarray,
+        duration: int,
+        *,
+        y_b: np.ndarray | None = None,
+        goal: np.ndarray | None = None,
+        goal_mode: str = "learned",
+    ) -> np.ndarray:
+        """Use cached canonical components for a learned, B-relative path."""
+
+        d = int(duration)
+        w = np.atleast_2d(np.asarray(w_g, dtype=np.float64))
+        if y_b is not None or goal_mode != "learned" or d < 1 or w.ndim != 2:
+            return super().generate_deltas(
+                w_g, ydot_b, duration, y_b=y_b, goal=goal, goal_mode=goal_mode
+            )
+        if w.shape[0] != self.n_weights:
+            raise ValueError(f"w_g must have {self.n_weights} rows, got {w.shape[0]}")
+        # Match generate()'s C-order weights without copying an already
+        # contiguous decoded head (strided matmul can round differently).
+        w = np.ascontiguousarray(w)
+        velocity = _as_dof_vector(ydot_b, w.shape[1])
+        xi1, xi2, h = self._canonical_components(d)
+        positions = (
+            xi1[:, None] * np.zeros((1, w.shape[1]), dtype=np.float64)
+            + xi2[:, None] * velocity[None, :]
+            + h @ w
+        )
+        deltas = np.empty_like(positions)
+        deltas[0] = positions[0]
+        np.subtract(positions[1:], positions[:-1], out=deltas[1:])
+        return deltas
+
     def prewarm(self, max_duration: int) -> None:
         for d in range(1, int(max_duration) + 1):
-            self._components(np.arange(1, d + 1, dtype=np.float64), float(d), 0.0)
+            self._canonical_components(d)
 
 
 # ---------------------------------------------------------------------------
@@ -382,8 +434,8 @@ class Planner:
             )
         )
         if prewarm_decode:
-            # One-time startup cost (~1 s, ~90 MB) so no live decode ever pays
-            # the cold basis-interpolation price. Optional for offline use.
+            # Prepare all durations so live decode never pays the cold
+            # basis-interpolation cost. Optional for offline use.
             self.prodmp.prewarm(self.horizon)
 
         # Normalizers, materialized once.
@@ -436,18 +488,21 @@ class Planner:
         return self.represented_prefix_views(prefix)[1]
 
     def _prefix_tensor(self, prefix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        length = self.prefix_len
+        out = self._normalized_prefix_window(prefix, self.prefix_len)
+        return out, out[:, :, 2].copy()
+
+    def _normalized_prefix_window(self, prefix: np.ndarray, length: int) -> np.ndarray:
+        """Right-align raw rows; padding stays zero in normalized space."""
+
         raw = np.asarray(prefix, dtype=np.float32)
         take = min(length, raw.shape[0])
         out = np.zeros((1, length, 3), dtype=np.float32)
-        mask = np.zeros((1, length), dtype=np.float32)
         if take <= 0:
-            return out, mask
+            return out
         norm = (raw[-take:] - self._prefix_mean) / self._prefix_std
         out[0, -take:, :2] = norm
         out[0, -take:, 2] = 1.0
-        mask[0, -take:] = 1.0
-        return out, mask
+        return out
 
     def _summary_vector(self, features: dict[str, float]) -> np.ndarray:
         x = np.asarray(
@@ -501,7 +556,7 @@ class Planner:
         dxdy, mask = decode_heads(
             self.prodmp, y, self.y_mean, self.y_std, ydot_b.reshape(1, 2), horizon=self.horizon
         )
-        return dxdy[0, 0].astype(np.float32), mask[0, 0].astype(np.float32)
+        return dxdy[0, 0], mask[0, 0]
 
     # ------------------------------------------------------------------ #
     # The planner entry point (at B)

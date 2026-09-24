@@ -162,6 +162,23 @@ class BTrigger:
         self._radius_at_A = 0.0
         self._t_ms = 0
         self._max_progress_center = 0.0
+        self._minimum_prefix = 0
+        self._minimum_edge_margin = 0.0
+
+    @classmethod
+    def recommended(cls) -> "BTrigger":
+        """Prefer a qualified 90% edge-progress handoff.
+
+        At the first crossing require 24 observed milliseconds and 8 counts
+        outside the current target edge. Reject unsupported late/short seams;
+        do not wait for another crossing or invent a continuation. The 12 ms
+        future-label gate belongs to training and cannot be checked online.
+        ``from_seam_contract`` preserves measured 80% provenance separately.
+        """
+        trigger = cls(CausalBConfig(threshold=0.9))
+        trigger._minimum_prefix = 24
+        trigger._minimum_edge_margin = 8.0
+        return trigger
 
     @classmethod
     def from_seam_contract(cls, contract: Mapping[str, Any]) -> "BTrigger":
@@ -200,6 +217,8 @@ class BTrigger:
             raise ValueError("target_rel_at_A must contain two finite values")
         if not np.isfinite(radius) or radius <= 0.0:
             raise ValueError("target_radius must be positive")
+        if np.linalg.norm(target) <= radius:
+            raise ValueError("A must begin outside the target")
         self._armed = True
         self._movement[:] = 0.0
         self._target_at_A = target.copy()
@@ -246,6 +265,8 @@ class BTrigger:
             raise ValueError("target_rel_now must contain two finite values")
         if not np.isfinite(radius) or radius <= 0.0:
             raise ValueError("target_radius_now must be positive")
+        if not np.isfinite([dx, dy]).all():
+            raise ValueError("motion must contain finite count displacements")
 
         self._movement += (float(dx), float(dy))
         self._t_ms += 1
@@ -265,6 +286,8 @@ class BTrigger:
             return self._reject("progress_regression", progress_center)
         if progress_edge < cfg.threshold:
             return None
+        if cfg.max_realized_progress is not None and progress_edge > cfg.max_realized_progress:
+            return self._reject("max_realized_progress", progress_center)
         if progress_center > cfg.max_center_progress:
             return self._reject("max_center_progress", progress_center)
         remaining = float(np.linalg.norm(target))
@@ -272,6 +295,10 @@ class BTrigger:
             return self._reject("min_remaining_counts", progress_center)
         if cfg.require_outside_target and remaining <= radius:
             return self._reject("inside_target", progress_center)
+        if self._t_ms < self._minimum_prefix:
+            return self._reject("min_prefix_ms", progress_center)
+        if remaining - radius < self._minimum_edge_margin:
+            return self._reject("min_edge_margin_counts", progress_center)
 
         self._armed = False
         return BFire(

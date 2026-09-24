@@ -1,7 +1,182 @@
 # Building datasets for ABCurves
 
-ABCurves has two models, but they should not receive two copies of the same
-event-shaped dataset.
+ABCurves has two planner families and a shared Renderer. Their preparation begins
+with the original Capture sessions, and each role keeps the evidence it needs.
+
+## Raw release downloads
+
+The release attachments retain the original session ZIPs without rewriting their
+sealed contents. The explanatory outer names are:
+
+| Collection | Download | Contents |
+| --- | --- | --- |
+| Static | [abcurves-static-captures-2.0.0-part01.zip](https://github.com/optima-manent/ABCurves/releases/download/v2.0.0/abcurves-static-captures-2.0.0-part01.zip) | 114 sessions, 99 recorded installation IDs |
+| Tracking | [abcurves-tracking-captures-2.0.0-part01.zip](https://github.com/optima-manent/ABCurves/releases/download/v2.0.0/abcurves-tracking-captures-2.0.0-part01.zip) and [part02.zip](https://github.com/optima-manent/ABCurves/releases/download/v2.0.0/abcurves-tracking-captures-2.0.0-part02.zip) | 7 sessions, 6 recorded installation IDs; download both parts |
+
+These are the intended v2.0.0 attachment URLs. They become available when the
+release is published. Each collection also has an inventory and SHA256 checksum
+file; each outer ZIP contains its own inventory, extraction instructions and data
+license. Session counts and installation IDs are not verified distinct-person
+counts. The community acknowledgement of more than 100 contributors refers to
+people who helped collect the project data, not an inference from these IDs.
+
+Datasets and derived examples use [CC BY 4.0](../DATASET_LICENSE.md). Credit Optima
+Manent and the ABCurves contributors, link the source and license, and identify
+changes. Code uses [MIT](../LICENSE). Discord welcomes community discussion and
+new session contributions.
+
+Download each collection's uniquely named
+[static inventory](https://github.com/optima-manent/ABCurves/releases/download/v2.0.0/abcurves-static-captures-2.0.0-inventory.json),
+[static checksums](https://github.com/optima-manent/ABCurves/releases/download/v2.0.0/abcurves-static-captures-2.0.0-SHA256SUMS.txt),
+[tracking inventory](https://github.com/optima-manent/ABCurves/releases/download/v2.0.0/abcurves-tracking-captures-2.0.0-inventory.json) and
+[tracking checksums](https://github.com/optima-manent/ABCurves/releases/download/v2.0.0/abcurves-tracking-captures-2.0.0-SHA256SUMS.txt).
+PowerShell `Get-FileHash <part.zip> -Algorithm SHA256` or Unix
+`sha256sum -c abcurves-static-captures-2.0.0-SHA256SUMS.txt` verifies a download.
+
+Keep both tracking parts together and pass that folder directly to preparation;
+there is no need to unpack the collection first. To inspect the files manually,
+extract each outer part into its own folder. Its `sessions/<session-id>/<original-name>.zip`
+members are unchanged original archives, and its inventory remains beside that part.
+A folder containing these extracted part folders is also a valid input. Do not merge
+the same-named part inventories over one another.
+
+## Build the public Capture tools
+
+[ABCurves Capture](https://github.com/optima-manent/ABCurves-Capture) records both
+static and continuous sessions. Its public validator/exporter are the authorities
+for the capture envelope and journal semantics. Use the pinned source version:
+
+```powershell
+git clone https://github.com/optima-manent/ABCurves-Capture.git ../ABCurves-Capture
+cd ../ABCurves-Capture
+git checkout e61a58148f81b1b2fcc1b8230819791609578305
+cmake --preset windows-x64
+cmake --build --preset release
+ctest --preset release
+```
+
+This build requires Windows 10/11 x64, Visual Studio 2022 Desktop C++ tools,
+CMake 3.25 or later and C++20. USBPcap is needed for live capture, not for exporting
+existing sessions. The executables are in `build/windows-x64/Release/`. The source
+contracts are Capture's `docs/DATA_CONTRACT.md`, `docs/TRACKING_DATA.md` and
+`docs/RESEARCH_EXPORT.md`. Some captures were recorded by older application
+revisions; the readers for those revisions are required reproduction functionality.
+
+## Validate the archives and export their evidence
+
+Run from the ABCurves repository after `python -m pip install -e ".[training]"`:
+
+```powershell
+python tools/prepare_capture.py downloads/static/ prepared/capture-static/ --capture-bin ../ABCurves-Capture/build/windows-x64/Release --keep-going
+python tools/prepare_capture.py downloads/tracking/ prepared/capture-tracking/ --capture-bin ../ABCurves-Capture/build/windows-x64/Release
+```
+
+The input may be a collection ZIP containing session ZIPs, a folder of release
+parts/session ZIPs, or a sealed extracted session/folder of sealed sessions. The
+extracted form retains the unique `manifest.json`, `checksums.sha256`, `COMPLETE`,
+all journal/data files and their recorded relative paths. Do not supply selected
+CSV files as though they were a session. The tool streams nested archives one at a
+time, checks safe extraction, calls the Capture validator and exporter, and writes
+source lineage and content hashes into `ingestion.json`.
+
+`--resume` verifies completed output before reusing it. `--keep-going` records
+rejections while processing the remainder; it does not turn them into accepted
+data. `--validate-only` omits export. `--limit N` is an explicit format smoke test,
+never evidence that a complete corpus was processed. Keep raw sources available
+for integrity checks when resuming.
+
+The static collection produced 111 accepted exports and three recorded rejections:
+
+| Session | Capture export rejection | Selected-model role |
+| --- | --- | --- |
+| `s-66dad92377f786b901793133248f962f` | Append-journal CRC mismatch | Already quarantined in the frozen audit; no selected training/development rows |
+| `s-6c54b077c7441dc01db65b15ae42e879` | Append-journal CRC mismatch | Outside the selected training sources |
+| `s-f1fc9feebc834e00883d9aeaa3cd9957` | Dense range exceeds the exporter's configured safety limit | Outside the selected training sources |
+
+Their raw ZIPs remain in the release inventory. Passing envelope validation does
+not imply a successful semantic export. Do not repair journals or lower safety
+limits and silently describe the result as the selected preparation.
+
+Protocol is read from the manifest. Both kinds use the
+`abcurves.capture.session.v2` envelope, but static gameplay is
+`abcurves.capture-trainer.protocol-v3` and tracking is
+`abcurves.tracking.protocol-v1`. Tracking sessions normally have empty static
+event/block files. Their frame, scenario, target, witness and native-report evidence
+is processed by the tracking adapter, not by inventing static events.
+
+## Prepare the selected tracking cohorts
+
+Keep all seven original session ZIPs, either inside the downloaded parts or in the
+extracted `sessions/` hierarchy. One command authenticates the six selected training
+sources by archive hash, prepares them with their actual source-specific contracts,
+and assembles the two cohorts:
+
+```powershell
+python -m training.tracking.prepare_collection downloads/tracking/ prepared/tracking/ --validator ../ABCurves-Capture/build/windows-x64/Release/abct_session_tool.exe
+```
+
+The seventh source is reserved confirmation and is listed as excluded from this
+training recipe. A missing or duplicate selected source is an error. Selected
+tracking reconstruction requires the original ZIPs because their archive identity
+is part of its contract; an extracted session alone can be validated/exported by
+the general command above but cannot impersonate that original ZIP identity.
+
+For individual sessions, `python -m training.tracking.tracking_prepare prepare
+--archive <session.zip> --source <source-key> --validator <tool> --output <new-dir>`
+supports `person1`, `person2`, `person3`, and the full IDs beginning `6099`, `9324`
+and `aa81`. Exact keys, source rules and individual assembly commands are in
+[tracking preparation](../training/tracking/README.md).
+
+The `original/` result has 225 episodes, 169 training and 56 validation, including
+58 acquisition replacements rather than duplicate additions. Its phase-preserving
+selection retains 48,695 windows, including 2,645 acquisition windows. The `new/`
+result has 282 episodes: 145 training, 59 validation, 36 test and 42 calibration.
+Its selected filter keeps 49,286 of 53,524 windows, including 10,989 protected
+acquisition/quiet/braking-transition windows. Test and calibration roles remain
+outside fitting.
+
+The original source-specific 418 ms support rule, later 192 ms fragments, guide and
+stimulus grouping, Person3 replacements, and later 32-nonzero-report origin anchors
+remain explicit. The later correction changes only coordinate translation, never
+motion deltas or timing. It requires at least two consistent USB/Windows matches.
+The ordinary-window exclusion preserves protected transitions and natural
+person/family/guide/parent weighting; hesitation, corrections, overshoot, stopping
+and reacquisition are not discarded merely for looking imperfect.
+
+## Clocks, coordinates and causal targets
+
+Native USB evidence, Windows Raw Input/applied-cursor witnesses and rendered-frame
+target observations have different roles and clocks. The selected Continuous
+Planner's final tracking lineage uses **native USB motion projected into common
+angular coordinates**, with Windows witnesses for validity/anchoring and causal
+frame target availability. Renderer training uses complete native hardware streams.
+
+Static Capture export bins are half-open `[t,t+1 ms)` and record position before
+the report. Selected tracking native projection uses right-closed bins ending at
+the witness endpoint and position after the interval. Conversion includes the
+recorded origin, sensitivity and Y direction exactly once. Continuous preparation
+then uses the trailing five-tap `[1,2,3,2,1]/9` position filter. This differs from
+the Static/Renderer centered two-box W5 path smoother, whose support is nine taps.
+
+Only the last successfully presented frame whose receipt/presentation-return time
+is available may supply a target at a sample endpoint. Stored future knots and
+visual guides never become future model input. Original zero-time availability
+clamps and later causal acquisition histories are retained in their own readers.
+Pauses, focus loss, clipping, presentation failure, scenario changes and resume
+boundaries use the recorded masks and segmentation. They are not bridged by
+interpolated motion or fabricated targets.
+
+## Frozen selection versus new data
+
+The [training guide](TRAINING_AND_INFERENCE.md) starts from the exports and cohorts
+above. `recipes/static`, `recipes/continuous` and `recipes/renderer` preserve the
+actual source IDs, cuts, weights, splits, normalization and selection. They are
+compact metadata that identify the selected source recordings in the public
+collections.
+
+The following general builders prepare **new** static/renderer datasets with fresh
+splits and source selection. Use the recipes above to reconstruct the selected
+training cohorts.
 
 The **Planner** learns a clean human finish from A through B to C. It needs target
 geometry, outcomes, and carefully audited movement boundaries. The **global
@@ -9,7 +184,7 @@ Renderer** learns the packet law of a physical mouse stream. It needs the comple
 dense session, including movement before A, pauses between events, and motion after
 C.
 
-That distinction is one of the main lessons in this release:
+Each branch needs evidence suited to its job.
 
 | Branch | Question | Required source |
 | --- | --- | --- |

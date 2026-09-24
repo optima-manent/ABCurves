@@ -1,0 +1,184 @@
+{
+  "schema": "abcurves.continuous_physical_recipe.v1",
+  "status": "DECLARED_BEFORE_PHYSICAL_FEATURE_GENERATION",
+  "static_parents": 21302,
+  "native_late_cuts": 333326,
+  "early_cuts": 170416,
+  "tracking_cuts": 48695,
+  "source_clock": "Exact integer-ns presentation; A=ceil((presentation-origin)/1ms). Stored original dense_c remains authoritative, including original USB-versus-raw-input endpoint semantics.",
+  "static_selection": "Exact final stored TRAIN native retained cuts, all21302parents. No filter rerun. Synthetic radius cuts excluded:7774physical duplicates and19980additional positions; no parent removed.",
+  "static_sampling": "Equal parent mass via unchanged seeded epoch permutations. Each parent has a uniform deterministic initial local cut offset from SeedSequence[seed,12,domain] in the full fixed parent order; (initial+epoch)modcutcount covers every cut before repetition. Teacher and feedback share this method; feedback preserves its prior seed+100000 separation.",
+  "visibility": "Early initial160 genuine causal bins, accumulate to640; late all640 genuine. Target unknown before true presentation. H/radius/B/task/identity only metadata, never features.",
+  "labels": "Causal [1,2,3,2,1]/9 using four genuine preceding native bins. Common units use each source sensitivity. Teacher retains min(256,observed remaining) and storage-only zero padding masked bylength; sequences exactmin(1024,remaining). No synthetic resolution tails.",
+  "feature_cache": "Physical feature vectors beforeasinh, float32; asinh applied after optional physical planar rotation. Two prepared views: original and once-fixed inherited augmentation. Future/incoming stored oncefloat32; sequence sourcefloat64.",
+  "augmentation": "augmentation=True always selects fixed augmented teacher view: independent50%receipt thinning then50%prefix truncation, preserved last16/labels. This is NOT the priorhalf-originalhalf-augmented mixture. False selectsoriginal. Lazy sequences apply the same two decisions freshly.",
+  "cache_rng": {
+    "seeds": {
+      "late": 2026091561,
+      "early": 2026091562,
+      "tracking": 2026091563
+    },
+    "order": "domain separately; increasing original row batches1024 then same order augmented; RNG draws only for augmented rows"
+  },
+  "rotation": "Independent per-step stream, probability0.5 for oneuniformangle[-pi,pi] shared bybatch. Vectors and labelsrotate, relativeerrorsasinh only afterward. No-rotationdoesnotchangeindicesorvisibility.",
+  "teacher": "64late,64early,128tracking; trackingonly256. One-basedstep; SeedSequence[seed,stream,step],staticpermutation[seed,11,domain,epoch]. Selection21,rotation23; sequencesselection31,augmentation32,rotation33.",
+  "static_evaluation_overlap": {
+    "event": 0,
+    "session": 0,
+    "collection": 0
+  },
+  "tracking_full56_role_overlap": {
+    "id": 0,
+    "parent": 0,
+    "group": 0
+  },
+  "tracking_validation56_hashes_unchanged": true,
+  "cache_specs": {
+    "late": {
+      "coarse_linear": {
+        "shape": [
+          2,
+          333326,
+          70,
+          9
+        ],
+        "dtype": "float32"
+      },
+      "fine_linear": {
+        "shape": [
+          2,
+          333326,
+          54
+        ],
+        "dtype": "float32"
+      },
+      "incoming": {
+        "shape": [
+          333326,
+          2
+        ],
+        "dtype": "float32"
+      },
+      "delta": {
+        "shape": [
+          333326,
+          256,
+          2
+        ],
+        "dtype": "float32"
+      },
+      "length": {
+        "shape": [
+          333326
+        ],
+        "dtype": "int16"
+      }
+    },
+    "early": {
+      "coarse_linear": {
+        "shape": [
+          2,
+          170416,
+          70,
+          9
+        ],
+        "dtype": "float32"
+      },
+      "fine_linear": {
+        "shape": [
+          2,
+          170416,
+          54
+        ],
+        "dtype": "float32"
+      },
+      "incoming": {
+        "shape": [
+          170416,
+          2
+        ],
+        "dtype": "float32"
+      },
+      "delta": {
+        "shape": [
+          170416,
+          256,
+          2
+        ],
+        "dtype": "float32"
+      },
+      "length": {
+        "shape": [
+          170416
+        ],
+        "dtype": "int16"
+      }
+    },
+    "tracking": {
+      "coarse_linear": {
+        "shape": [
+          2,
+          48695,
+          70,
+          9
+        ],
+        "dtype": "float32"
+      },
+      "fine_linear": {
+        "shape": [
+          2,
+          48695,
+          54
+        ],
+        "dtype": "float32"
+      },
+      "incoming": {
+        "shape": [
+          48695,
+          2
+        ],
+        "dtype": "float32"
+      },
+      "delta": {
+        "shape": [
+          48695,
+          256,
+          2
+        ],
+        "dtype": "float32"
+      },
+      "length": {
+        "shape": [
+          48695
+        ],
+        "dtype": "int16"
+      }
+    }
+  },
+  "estimated_array_bytes": 4159850610,
+  "max_cut_target_error_native": 0.0,
+  "source_horizon_quantiles": {
+    "min": 220.0,
+    "p05": 305.0,
+    "p25": 378.0,
+    "median": 470.0,
+    "p75": 609.0,
+    "p95": 811.0,
+    "max": 15992.0
+  },
+  "model_calls": 0,
+  "learned_cache": false,
+  "archive_extraction": false,
+  "sequence_control_truth": "Unaugmented recorded future target and its physical valid/available mask are copied to loss-only control_target/control_valid. Actor pack alone is augmented; control target and pack share the same rotation. All observed labels/tails retained.",
+  "sequence_source_amendment": {
+    "previous_protocol_sha256": "5cb784892de15f1f6f1c0cc1631db7c2ff7ad2a5a2db2eb8dce3f8109133bb28",
+    "teacher_generation_unchanged": true,
+    "reason": "Root identified that augmented actor target transport must not redefine physical control truth."
+  },
+  "sampler_offset_amendment": {
+    "previous_protocol_sha256": "25f47156a1d3d37eaa37a59c371830e04c286be0093981ffadc8f986765a444e",
+    "reason": "A feedback budget shorter than one parent epoch previously selected only local cut0; random fixed initial phase provides early/mid and late coverage immediately.",
+    "physical_cache_unchanged": true,
+    "all_prior_neural_calls_engineering_only": true
+  }
+}

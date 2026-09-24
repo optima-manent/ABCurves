@@ -1,14 +1,15 @@
 <p align="center">
-  <img src="assets/hero.png" alt="ABCurves, human mouse motion continued in real time." width="920">
+  <img src="assets/hero.png" alt="ABCurves, human mouse motion in real time." width="920">
 </p>
 
 <p align="center">
-  A person starts aiming at a target. ABCurves watches the first part of the movement,
-  then finishes it the way that person might have finished it themselves.
+  Human mouse movement, one millisecond at a time. Follow a changing target,
+  or continue the movement a person has already begun.
 </p>
 
 <p align="center">
   <a href="https://optima-manent.github.io/ABCurves/"><b>▶ Live demo</b></a> ·
+  <a href="docs/INTEGRATION.md"><b>Get started</b></a> ·
   <a href="DETECTION.md"><b>Detection study</b></a> ·
   <a href="docs/TRAINING_AND_INFERENCE.md">Train &amp; run</a> ·
   <a href="docs/DATASET.md">Dataset</a> ·
@@ -17,7 +18,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/Python-3.11%2B-blue" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/sampling-1_kHz-6f42c1" alt="1 kHz sampling">
   <a href="DETECTION.md"><img src="https://img.shields.io/badge/study-detection-2f6f9f" alt="Detection study"></a>
 </p>
@@ -38,23 +39,64 @@ of physical hardware.
 
 But looking like *some* human was never the most interesting goal.
 
-**The real goal is to continue a movement so that the result looks like the same
-human who started it.** ABCurves watches the real beginning, reads how that person is
-moving, and generates only the finish. The Planner chooses the shape of the curve;
-the global Renderer turns it into the raw 1 kHz reports a mouse would actually send.
+**The real goal is for every continuation to feel like it came from the same hand.** A
+fast flick should finish like a flick. A careful adjustment should stay careful.
+And when the target keeps moving, the next correction should grow out of the
+movement already underway.
+
+ABCurves offers two ways to do this. The **Continuous Planner** generates an ongoing
+stream as targets change, starting independently or from a human movement history.
+The **Static Planner** watches a real beginning and generates its finish toward a
+fixed target. Both can use the same global **Renderer**, which turns smooth intent
+into 1 kHz reports that carry the texture of a particular person's hand, mouse,
+and setup.
 
 The repository contains the frozen models, complete data builders, training code,
 streaming Python and C runtimes, and the [detection study](DETECTION.md) used to
-challenge the result.
+challenge the Static Planner and Renderer.
+
+---
+
+## Two ways to plan
+
+| Planner | A good fit for | How you use it |
+|---|---|---|
+| **Continuous Planner** · default | Following changing targets, repeated corrections, acquisition and settling | Keep one stream alive, send target observations with their receipt times, and obtain movement. Human history is optional at the start. |
+| **Static Planner** | Completing a target-directed gesture from a real human beginning | Supply the observed A→B movement and fixed target, then obtain one complete B→C finish. |
+
+A moving target makes the problem much harder. Reaching it is only part of the
+job. The movement also needs variation, little corrections, hesitation, braking,
+the occasional pause, and a convincing way to begin again. Push too hard on target
+error and those details disappear. Preserve variation without enough purpose and
+the hand wanders instead of getting where it meant to go.
+
+The Continuous Planner balances these demands with several small learned parts.
+A ProDMP motor proposes motion, a selector carries a coherent choice between
+plans, and activity and braking models shape the transitions into and out of
+stillness. That gives pursuit and settling room to behave differently, while
+keeping them part of one continuous movement.
+
+These two examples show the selected planner following a freely roaming target
+and a path with sharp changes of direction. Each compares the recorded human with
+four generated movements, with a faint target guide to help you read the scene.
+
+<p align="center">
+  <img src="assets/continuous_roaming.gif" width="830" alt="Recorded human movement and four Continuous Planner draws following a freely roaming target.">
+</p>
+<p align="center">
+  <img src="assets/continuous_switchbacks.gif" width="830" alt="Recorded human movement and four Continuous Planner draws following a target through sharp switchbacks.">
+</p>
+
+The [live demo](https://optima-manent.github.io/ABCurves/) lets you play, pause and
+look more closely. The Static Planner remains a useful choice when the task is
+one finite finish, because its observed beginning anchors the whole gesture.
 
 ---
 
 ## The idea behind A → B → C
 
-The common approach is to choose a start A and a target C, then generate the whole
-movement between them. I think that asks the model to throw away its best evidence.
-
-ABCurves solves this version instead:
+For a fixed target, the beginning of a movement is an unusually useful clue. It
+was the starting point of ABCurves, and it remains the Static Planner's question:
 
 > The human starts the movement. We watch them travel from A toward the target, cut
 > at B, and generate only the finish from B to C.
@@ -74,49 +116,59 @@ producing something broadly human-like to continuing **this human movement**.
 
 ---
 
-## One problem, two models
+## Shape, choice, and texture
 
-Movement shape and millisecond hardware texture are different problems. Trying to
-make one small real-time model learn both blurred them together, so ABCurves gives
-each problem its own tool.
+Human movement has structure at two very different scales. Over a few hundred
+milliseconds, a flick gathers speed, bends toward its target and slows to a stop.
+Inside that same gesture are hundreds of tiny 1 kHz reports, full of zeros, bursts
+and integer steps. The overall movement and the way a particular hand and mouse
+report it are connected, but learning one does not automatically teach the other.
 
-1. **The Planner** reads A→B and the target, then chooses a smooth B→C finish. It
-   decides the path, timing, bend, and landing.
-2. **The global Renderer** turns that plan into the integer reports of a real mouse.
-   It restores the gaps, bursts, cadence, and hardware texture without losing the
-   planned path.
+Asking one small model to learn both at once blurred them together. ABCurves gives
+each scale its own job.
+
+1. **A Planner** chooses an ongoing smooth trajectory for Continuous, or a complete
+   B→C finish for Static. It decides the path, timing, bend, and landing.
+2. **The global Renderer** gives that plan the packet texture of the person and
+   setup it follows. It restores their gaps, bursts and cadence in integer mouse
+   reports while preserving the planned path.
 
 Here is the whole system at a glance:
 
 ```mermaid
 flowchart LR
-    P["Human A → B\nraw 1 kHz reports"] --> B["Cut at B"]
-    B --> PL["Planner\ncausal TCN · 16 ProDMP heads"]
-    T["Target"] --> PL
-    PL --> I["One smooth B → C finish"]
-    S["Representative 256 ms\nphysical report sample"] --> C["Reusable Renderer profile\nprepared before B"]
+    T["Target observations\nwith receipt times"] --> CP["Continuous Planner\npersistent movement"]
+    H["Optional human history"] --> CP
+    P["Human A → B\nand fixed target"] --> SP["Static Planner\none B → C finish"]
+    CP --> I["Smooth motion\nconverted to native-count deltas"]
+    SP --> I
+    S["Representative 256 ms\nphysical report sample"] --> C["Reusable Renderer profile"]
     C --> R["Global Renderer\nGRU + delta-sigma accumulator"]
     I --> R
-    R --> O["B → C mouse reports\none integer report per ms"]
+    R --> O["Mouse motion\none integer report per ms"]
 ```
 
-### The Planner learns the whole finish
+### A curve is easier to learn as a curve
 
-Planning a movement as hundreds of unrelated `dx, dy` predictions is difficult. A
-small error at one step changes the next step, and the whole trajectory can drift.
-ABCurves instead predicts the finish as one object using **ProDMP**.
+Smoothing the reports does not by itself solve the planning problem. The result is
+still hundreds of millisecond `dx, dy` values, while the things that make the gesture
+work live across the whole curve. Its path, speed and acceleration have to fit
+together from beginning to end. A model can get many individual samples close and
+still miss the movement.
 
-The intuition behind ProDMP is simple: a wide range of smooth human curves can be
-written as mixtures of a small set of motion patterns. Think of those patterns as
-motion features. The network learns how strongly to mix them, while ProDMP builds the
-position and velocity already present at B directly into the curve.
+**ProDMP** changes what the network has to learn. A wide range of smooth human curves
+can be built from mixtures of a small set of motion patterns. The Static Planner
+predicts how strongly to mix them, so its weights describe the finish as a whole.
+Each weight shapes motion across time, giving the network a compact, structured
+representation of the movement. ProDMP turns those weights into a curve while
+building the position and velocity already present at B directly into its beginning.
 
 ```text
 finish(t) = boundary from B + motion patterns(t) × learned weights
 ```
 
-That solves the time-series problem, but there is another one. Two almost identical
-beginnings can have different, equally valid human finishes. If an ordinary
+There is still more than one right answer. Two almost identical beginnings can
+have different, equally valid human finishes. If an ordinary
 similarity loss punishes the model whenever it does not copy the single recorded
 answer, all of those valid possibilities pull it toward their average. The average
 may be a dull curve that no person actually drew.
@@ -125,27 +177,39 @@ may be a dull curve that no person actually drew.
   <img src="assets/loss_intuition.png" width="620" alt="Two valid human finishes and the unhelpful average between them.">
 </p>
 
-The Planner therefore has **sixteen ProDMP heads**. That number was not arbitrary: it
-matched the average number of statistically equivalent finish modes I found in the
+The Static Planner therefore has **sixteen ProDMP heads**, matching the average
+number of statistically equivalent finish modes I found in the
 human data. During training, the head closest to the recorded finish learns most from
 that example, so the heads can specialize instead of collapsing into one average. At
-runtime, ABCurves samples one head; it does not generate sixteen answers and secretly
-keep the best one.
+runtime, the Static Planner samples one head. It does not generate sixteen answers
+and secretly keep the best one.
 
 These animations show that range directly. Each begins with the same observed
 movement and target, then compares the real human finish with four finishes sampled
-from the Planner. The first is a fast flick and the second is a fine adjustment.
+from the Static Planner. The first is a fast flick and the second is a fine adjustment.
 
 <p align="center">
-  <img src="assets/spread_flick_2.gif" width="830" alt="A real human flick beside four finishes sampled from the ABCurves Planner.">
+  <img src="assets/spread_flick_2.gif" width="830" alt="A real human flick beside four finishes sampled from the Static Planner.">
 </p>
 <p align="center">
-  <img src="assets/spread_adjust_8.gif" width="830" alt="A real human fine adjustment beside four finishes sampled from the ABCurves Planner.">
+  <img src="assets/spread_adjust_8.gif" width="830" alt="A real human fine adjustment beside four finishes sampled from the Static Planner.">
 </p>
+
+This change of representation was the breakthrough that made the Static finish
+learnable and opened the way to continuous movement. The Continuous motor also uses
+sixteen ProDMP heads, but each forecast becomes
+part of a longer stream. It plans 128 ms ahead and commits the next 32 ms before
+looking again. Choosing a plausible curve is then only half the problem. Successive
+choices must belong together, and a good approach must eventually become a good stop.
+
+Some experiments produced cleaner traces or smaller individual errors while losing
+useful acquisition or settling behaviour. The selected system grew from balancing
+those qualities together. The [training guide](docs/TRAINING_AND_INFERENCE.md)
+preserves the recipes and the reasoning behind that balance.
 
 ### The global Renderer learns texture everywhere, from anyone
 
-The Planner produces a clean curve, but physical mice communicate in small integer
+A planner produces a clean curve, but physical mice communicate in small integer
 steps. Many reports are zero, motion arrives in short bursts, and the rhythm changes
 with speed, direction, the hand, and the device.
 
@@ -156,16 +220,18 @@ with speed, direction, the hand, and the device.
 The global Renderer learns this translation from uninterrupted 1 kHz recordings
 across many people, mice, speeds, and movement types. It is one shared model rather
 than a separate model for each person. At runtime, one representative 256-report
-sample is prepared before B and reused as an immutable texture profile. The runtime
-profile does not have to end at B; the Planner's real A→B prefix supplies the
-event-specific boundary motion.
+sample is prepared once and reused as a texture profile. Static continuations each
+begin their own Renderer stream. Continuous keeps its Renderer state through
+replanning, braking, pauses, and restarts. The profile captures the packet texture
+of the observed hand, mouse and setup, while the planner supplies the movement to
+follow.
 
 Inside it, a GRU decides when to emit and which nearby two-axis integer report fits
 that moment. A delta-sigma accumulator remembers fractional motion until it can be
 released as an integer count, so texture does not quietly destroy the path through
 rounding.
 
-The Renderer is now small enough to run without a machine-learning framework. The
+The Renderer is small enough to run without a machine-learning framework. The
 repository includes its no-heap C99 runtime, so it can be integrated into small
 computers and experimentally ported to ESP32-class devices. USB integration and
 timing on a particular board still belong to the device developer.
@@ -184,6 +250,10 @@ somewhere inside the huge category of “human-like,” or does it stay close to
 human movement it is continuing? And if a completely new person arrives, can a
 judge catch the generated movement without also accusing real people?
 
+These measurements use the Static Planner at 80% target-edge progress and the
+study's recorded Renderer handoff. The [reproduction guide](docs/DETECTION_REPRODUCTION.md)
+keeps that configuration alongside the results.
+
 ### 1. How closely does the Renderer mirror the human?
 
 The cleanest test gives the Renderer the correct smooth human path and judges only
@@ -198,29 +268,28 @@ the raw packet texture it recreates. Texture19 measures nineteen properties of t
 | The closest different person/setup | 0.280 |
 | The average different person/setup | 0.639 |
 
-At **0.263**, the Renderer lands inside the local human range: it is close to the same
+At **0.263**, the Renderer lands inside the local human range. It is close to the same
 source recorded in another session, closer than the nearest different source, and
 **about 59% smaller than the average distance between different people or setups**.
-The global model is not merely adding generic jitter; it recreates texture on the
-local human scale. Human movement itself sometimes varies more: in **3 of 35**
-same-session comparisons, two real-human samples were farther apart than the Renderer
-was from the human it followed.
+The global model recreates texture on the local human scale. Human movement itself
+sometimes varies more. In **3 of 35** same-session comparisons, two real-human samples
+were farther apart than the Renderer was from the human it followed.
 
 ### 2. Can it be detected without knowing the person first?
 
 The cold test hides every recording from the person or setup being judged and tests
-the complete ABCurves pipeline. Its human-safe judges caught **none of 1,280**
-generated trials. A broader search found 6 of 40 fully generated groups,
-but it also accused genuine movement from two of six unseen humans. That is not a
-safe way to identify ABCurves, which remained **undetectable in this practical cold
-setting**.
+the complete ABCurves pipeline. Its human-safe judges **caught none of 1,280
+generated trials**. A broader search found 6 of 40 fully generated groups,
+but it also **accused genuine human movement** from 2 of 6 unseen humans. That is
+not a safe way to identify ABCurves, which remained **undetectable in this practical
+cold setting**.
 
-A warm detector gets a much easier problem: trusted clean movement from the exact
-same recorded session. Before testing, a separate set of real movements fixes how
-strong the evidence must be before raising a flag. At that cutoff it caught **90%
-(36 of 40)** fully generated groups while also flagging 2 of 40 held real-human
-groups. That is a thin, brittle separation, not a line a detector can assume will
-remain fixed.
+A warm detector gets a much easier problem because it receives trusted clean
+movement from the exact same recorded session. Before testing, a separate set of real
+movements fixes how strong the evidence must be before raising a flag. At that
+cutoff it caught 90% (36 of 40) fully generated groups while also flagging 2 of 40
+held real-human groups. That is a thin, brittle separation, not a line a detector
+can assume will remain fixed.
 
 Warm detection is best understood as a laboratory upper bound. It assumes the
 reference remains clean and perfectly matched. In real use, changing sensitivity,
@@ -242,146 +311,97 @@ side benchmark.
 git clone https://github.com/optima-manent/ABCurves.git
 cd ABCurves
 python -m pip install -e .
+python examples/quickstart.py
 ```
 
-The Windows package already includes the native Renderer. On macOS or Linux, build
-it once before the first run:
+Load the Continuous Planner once, give it a target, and ask for movement. A new
+target can arrive while the same stream is running:
+
+```python
+import abcurves
+
+movement = abcurves.load(seed=2026)
+movement.update_target((100.0, 30.0), timestamp_us=0)
+first = movement.advance(500_000)
+
+movement.update_target((125.0, 45.0), timestamp_us=540_000)
+second = movement.advance(1_000_000)
+print(second["xy"][-1])
+```
+
+Times are microseconds from initialization. The returned `xy` values are absolute
+positions sampled every millisecond, in the Continuous model's common angular
+count space. Startup loads and warms the model before the live clock begins.
+
+Continuous inference uses NumPy, SciPy and Numba. The Static extra adds PyTorch.
+Windows includes the native Renderer. On macOS or Linux, build it once before
+running the rendered examples below:
 
 ```bash
 cmake -S runtime/c -B runtime/c/build
 cmake --build runtime/c/build --config Release
 ```
 
-Then run:
+For integer mouse reports, [`examples/streaming.py`](examples/streaming.py) connects
+the planner to a persistent Renderer. Static and Renderer inputs use native mouse
+counts, while Continuous uses its trained angular normalization. Your application maps
+its targets into the chosen planner's coordinates. The
+[integration guide](docs/INTEGRATION.md) explains both boundaries, including 3D and
+nonlinear application mappings.
+
+To begin with human motion, [`examples/assisted_start.py`](examples/assisted_start.py)
+prepares a short recorded history and continues from the observed position. This
+helped the early continuation in the checked starts. The
+[history guide](docs/INTEGRATION.md#optional-human-history-start) explains its use.
+
+For a finite Static continuation:
 
 ```bash
-python examples/quickstart.py
+python -m pip install -e ".[static]"
+python examples/static_quickstart.py
 ```
 
-The Planner prefix and Renderer profile have different jobs. The Planner accepts the
-event's A→B movement. The Renderer profile is one representative sample of
-**exactly 256 chronological integer reports**, prepared before the latency-sensitive
-B handoff and reusable across events.
+Use `StaticPipeline` with `model_seed=7` or `23` to choose the independently trained
+variant. Its runtime `seed` controls a particular draw. The example uses the
+recommended **90% target-edge handoff**, retaining the prefix-length and
+remaining-distance checks. Short movements may need an earlier handoff. The
+[handoff guide](docs/INTEGRATION.md#the-static-handoff) gives the exact rule.
 
-```python
-import numpy as np
-from abcurves import Pipeline
-
-planner_prefix = np.asarray(prefix_raw_dxdy, dtype=np.float32)
-profile_window = np.asarray(representative_256_raw_reports, dtype=np.int16)
-assert profile_window.shape == (256, 2)
-
-with Pipeline.from_pretrained() as pipeline:
-    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
-    counts = pipeline.generate(
-        planner_prefix,
-        renderer_profile=renderer_profile,
-        target_rel_at_B=(140.0, -22.0),
-        target_radius=18.0,
-        progress_center=0.72,
-        seed=2026,
-    )
-
-assert counts.dtype == np.int16
-```
-
-Profile preparation validates the shape and physical integer counts; it does not
-guess, pad, or silently slice a longer buffer. Keep the returned object and reuse it.
-Prepare a replacement only when the device or physical setup changes materially.
-Changing the event seed is the intended source of sample variance. Refreshing the
-profile is not.
-
-The earlier `renderer_context_raw_dxdy=` argument remains supported as an exact
-per-event evaluation and compatibility path. It replays 256 reports at B, so the
-reusable profile is the recommended real-time path.
-
-On the checked-in Windows host benchmark, the warmed composed profile path reached
-stream-ready in 0.240 ms median / 0.434 ms p99 and produced its first report in
-0.276 ms median / 0.547 ms p99. These are host measurements, not USB or hard
-real-time guarantees; the full phases and limitations are in the
-[`benchmark receipt`](results/inference/benchmark_this_machine.json).
-
-[`examples/quickstart.py`](examples/quickstart.py) has only a compact event fixture,
-so its example profile explicitly assumes quiet history before the shorter prefix. A
-real integration should prepare a genuine representative sample from its device.
-For one-report-at-a-time output, see [`examples/streaming.py`](examples/streaming.py).
-
-ABCurves returns integer reports; it does not own a USB device. Polling, queues,
-permissions, firmware, and the final HID write remain the caller's responsibility.
+On the measured Ryzen 7 9800X3D, warmed Continuous planning with the Renderer took
+**0.234 ms median** for a fresh motor call. A buffered 1 ms output call took
+**0.0255 ms median**. These are CPU call times. Startup, Static planning and output
+scheduling are covered in [Performance](docs/PERFORMANCE.md).
 
 ---
 
-## Train it on your own data
+## The data, and how to reproduce it
 
-The two branches deliberately accept different information.
+[ABCurves Capture](https://github.com/optima-manent/ABCurves-Capture) is the sister
+project that records static and continuous sessions. Start with the
+[raw session downloads](docs/DATASET.md#raw-release-downloads), then validate and
+export them with Capture's public tools. The entry point accepts a collection ZIP,
+a folder of session archives, or complete extracted sessions.
 
-- The **Planner** needs audited A→C events with target geometry and outcomes.
-- The **Renderer** needs uninterrupted 1 ms mouse reports.
-
-A validated Capture export tree contains both, so it can build both branches:
-
-```bash
-python -m pip install -e ".[data]"
-
-python tools/prepare_dataset.py validated_exports/ prepared/ \
-  --config configs/final.json --branch both
-```
-
-A portable `events.npz` can build the Planner only:
+After [building Capture's tools](docs/DATASET.md#build-the-public-capture-tools),
+run from this repository:
 
 ```bash
-python tools/prepare_dataset.py events.npz prepared_planner/ \
-  --config configs/final.json --branch planner
+python -m pip install -e ".[training]"
+python tools/prepare_capture.py downloads/static/ prepared/capture-static/ --capture-bin ../ABCurves-Capture/build/windows-x64/Release --keep-going
+python tools/prepare_capture.py downloads/tracking/ prepared/capture-tracking/ --capture-bin ../ABCurves-Capture/build/windows-x64/Release
 ```
 
-A portable `abcurves.full_sessions.v1` `sessions.json` can build the Renderer only:
+Each model then keeps the evidence it needs. Static learns from target-directed
+events. Continuous learns from causal target observations and recorded cursor
+motion, together with the static movements that helped establish its motor. The
+Renderer learns from uninterrupted native hardware reports, including quiet periods
+and movement between targets.
 
-```bash
-python tools/prepare_dataset.py full_sessions/sessions.json prepared_renderer/ \
-  --config configs/final.json --branch renderer
-```
-
-The tool fails closed when the chosen input does not contain the history required by
-the requested branch.
-
-```bash
-python training/train_planner.py \
-  --train prepared/planner_train.npz \
-  --val prepared/planner_val.npz \
-  --out runs/planner_retrained.pt
-
-python training/train_renderer.py \
-  --train prepared/renderer_train \
-  --val prepared/renderer_val \
-  --out runs/renderer_retrained.pt
-```
-
-The Renderer command writes a float checkpoint that can be used directly in the
-same pipeline:
-
-```python
-from abcurves import Pipeline
-
-with Pipeline(float_renderer_checkpoint="runs/renderer_retrained.pt") as pipeline:
-    renderer_profile = pipeline.prepare_renderer_profile(profile_window)
-    counts = pipeline.generate(
-        planner_prefix,
-        renderer_profile=renderer_profile,
-        target_rel_at_B=(140.0, -22.0),
-        target_radius=18.0,
-        progress_center=0.72,
-        seed=2026,
-    )
-```
-
-The retrained checkpoint uses the same public Pipeline API, but it remains a research
-path: each event still replays the profile through the float graph and pre-renders
-the continuation. The native profile latency does not apply to it. Candidate
-Renderers are scored with `python -m evaluation renderer-selection ...`, because
-sampled texture is the behavior that matters; teacher-forced loss is diagnostic.
-Dataset formats are explained in [DATASET.md](docs/DATASET.md); the complete training
-and runtime recipe is in
-[TRAINING_AND_INFERENCE.md](docs/TRAINING_AND_INFERENCE.md).
+The [dataset guide](docs/DATASET.md) explains the formats, filtering and splits.
+The [training and export guide](docs/TRAINING_AND_INFERENCE.md) carries each released
+component from those inputs to a usable model, with its seeds, objectives, budgets,
+selection rules and exports. Frozen source selections and hashes make it possible
+to reconstruct the exact training inputs as well as train on new recordings.
 
 ---
 
@@ -389,49 +409,46 @@ and runtime recipe is in
 
 ```text
 abcurves/
-  pipeline.py            load-once Planner → Renderer API
-  planner.py             smooth path, timing, and landing
-  renderer.py            float Renderer training and checkpoint runtime
-  portable_renderer.py   authenticated native runtime binding
-  global_data.py         whole-session Renderer dataset builder
-  preprocessing.py       event-aligned Planner dataset builder
-  judges.py              similarity and detection measurements
+  continuous.py          target receipts, motion and optional human history
+  continuous_pipeline.py Continuous Planner → Renderer composition
+  pipeline.py            Static Planner → Renderer continuation
+  portable_renderer.py   native count-space Renderer
 
-models/                   two Planners, one global Renderer, integrity manifest
-runtime/c/                no-heap C99 Renderer runtime and loader test
-training/                 Planner and Renderer training programs
+models/                   selected models, export sources and integrity manifests
+runtime/c/                no-heap C99 Renderer runtime
+training/                 preparation and training for every learned component
+recipes/                  exact source selections and reproduction settings
+tools/                    raw archive ingestion, exports and benchmarks
 evaluation/               similarity and detector experiments
 results/                  compact result receipts
-examples/                 quick start, streaming, benchmark, and sample data
-docs/                     dataset, training, inference, and FAQ guides
+examples/                 both planners, streaming, human starts and sample data
+web/                      website source and recorded demonstration data
+docs/                     website, integration, dataset, training and FAQ guides
 tests/                    model, runtime, data, seam, and evaluation checks
 ```
-
-The small example data demonstrates formats and runs smoke tests. It is not the full
-contributed hardware corpus used to select the release.
 
 ---
 
 ## The people who made this possible
 
-Roughly 100 people took time to run ABCurves Capture and share real sessions from
+More than 100 people took time to run ABCurves Capture and share real sessions from
 their hands, mice, computers, and settings. That data made it possible to move beyond
 “this looks convincing” and test the idea across real hardware and real human
 variation.
 
 Thank you, and know that this release exists because of you :)
 
-The complete movement corpus is not bundled yet. It is valuable, still growing, and
-deserves careful handling. If you want to work with it, join the
-**[Discord](https://discord.gg/Nyf272vUjz)** and contribute a Capture session.
-Contributors can request research access, and the intention is to publish the full
-corpus for everyone later.
+The raw sessions are shared under [CC BY 4.0](DATASET_LICENSE.md), with downloads
+and source inventories in the [dataset guide](docs/DATASET.md). If you would like
+to share a session, ask questions, or help the project grow, join the
+**[Discord](https://discord.gg/Nyf272vUjz)**. There is still a great deal to learn
+from the ordinary things our hands do every day.
 
 ---
 
 ## Acknowledgements and citation
 
-The Planner's movement representation builds on **ProDMP**:
+Both planners' movement representation builds on **ProDMP**:
 
 > Ge Li, Zeqi Jin, Michael Volpp, Fabian Otto, Rudolf Lioutikov, Gerhard Neumann.
 > *ProDMP: A Unified Perspective on Dynamic and Probabilistic Movement Primitives.*
@@ -441,14 +458,15 @@ If ABCurves helps your work, cite this repository:
 
 ```bibtex
 @software{abcurves,
-  title  = {ABCurves: Real-Time Human-Conditioned Mouse-Motion Continuation},
+  title  = {ABCurves: Human Movement Generation and Continuation},
   author = {Optima Manent},
   year   = {2026},
   url    = {https://github.com/optima-manent/ABCurves}
 }
 ```
 
-Released under the [MIT License](LICENSE).
+Code is released under the [MIT License](LICENSE), and datasets and derived examples
+under [CC BY 4.0](DATASET_LICENSE.md).
 
 ---
 

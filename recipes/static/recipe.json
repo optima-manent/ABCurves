@@ -1,0 +1,439 @@
+{
+  "schema": "abcurves.static_frozen_recipe.v1",
+  "model_seeds": [
+    7,
+    23
+  ],
+  "source_session_count": 86,
+  "training": {
+    "physical_events": 21302,
+    "rows": 361080,
+    "sessions": 59,
+    "installation_keys": 58,
+    "synthetic_rows": 27754,
+    "tiny_variants": 1885,
+    "row_order": "corpus, session_id, integer event_id, source_trial_id, variant_id, requested_index",
+    "row_order_sha256": "3323ac7a0f6bfa246bce34dc4a1670408d9549ea61f1fb96343168442e0ecb5e",
+    "source_weight": "one per physical parent across native and synthetic retained rows",
+    "epochs": 260,
+    "source_presentations": 5538520,
+    "optimizer": "AdamW",
+    "gradient_norm_clip": 5.0,
+    "wta_anneal_intervals": 45,
+    "cut_sampling": "one_per_source_per_epoch",
+    "cut_schedule": "source_specific_shuffled_cycle.v1",
+    "checkpoint_selection": "the selected terminal epoch260 of each independent seed trajectory, not minimum validation loss",
+    "optimizer_defaults": {
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "amsgrad": false,
+      "scheduler": "none",
+      "mixed_precision": false
+    },
+    "initialization": "torch.manual_seed(seed); np.random.seed(seed); new MultiHeadModel; no inherited learned weights",
+    "per_epoch_steps": 167,
+    "optimizer_steps": 43420,
+    "last_batch_sources": 54,
+    "loss": "mean over physical sources of RWTA head assignment times public surrogate_distance; all sampled rows have equal optimizer mass"
+  },
+  "validation": {
+    "rows": 3787,
+    "role": "frozen legacy B80 calibration-development, separate from dense candidate cut audit",
+    "source_npz_sha256": "14d0778a5cab433d4e6d2ee380cc61336deffc4295f795569edcf84fd40f7c5d",
+    "logical_array_sha256": {
+      "prefix_raw_dxdy": "8d5d23ad85665d686ba65db8442e1b0fec6851222615b5f6a6d5031316690838",
+      "prefix_mask": "852525921ffdd0927177a4ef89d8e88bd7587dfdc266b0797798282faf7e9ae7",
+      "future_raw_dxdy": "985793bf18856eb213f851ce085d8f7bccdfab43f6bb0b40e51e9cfb9385554d",
+      "future_smooth_dxdy": "9152714be192cc0daedce135095d9ab67f31fb4982a3681aa0397bbd307479d6",
+      "future_mask": "bea9ef4be1c9522c47d96e3f7378568272d05efaec0184548c25c7dbf6186c43"
+    },
+    "contract": {
+      "causal_seam_contract_schema": "abcurves.causal_onset_b.v1",
+      "causal_seam_contract_json": "{\"onset\":{\"alignment_min\":0.15,\"backtrack_ms\":4,\"consecutive_ticks\":12,\"noise_window_ms\":24,\"quiet_baseline_fallback\":true,\"speed_floor\":0.35,\"threshold_mad_multiplier\":6.0},\"planner_context\":{\"progress_reference\":\"center\"},\"schema\":\"abcurves.causal_onset_b.v1\",\"training_eligibility\":{\"min_future_ms\":12,\"min_prefix_ms\":24},\"trigger\":{\"max_ab_ms\":1500,\"max_center_progress\":0.92,\"max_realized_progress\":null,\"min_remaining_counts\":8.0,\"progress_regression_reset\":true,\"progress_regression_threshold\":0.18,\"reference\":\"edge\",\"require_outside_target\":true,\"thresholds\":[0.8]}}",
+      "future_smoothing": "triangular_moving_average_path_w5",
+      "future_endpoint_policy": "none",
+      "cohort": "usable"
+    }
+  },
+  "selected_planner_config": {
+    "seed": 7,
+    "profile_bins": 8,
+    "n_basis": 20,
+    "alpha": 25.0,
+    "alpha_phase": 3.0,
+    "weight_ridge": 0.001,
+    "eps_scale": 1.0,
+    "prefix_len": 160,
+    "prefix_representation": "raw",
+    "prefix_ema_alpha": 0.25,
+    "use_summary_features": true,
+    "hidden": 96,
+    "blocks": 3,
+    "dropout": 0.15,
+    "batch_size": 128,
+    "epochs": 260,
+    "patience": 14,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "grid_size": 48,
+    "dir_s": 0.08,
+    "w_endpoint": 1.0,
+    "w_path": 0.6,
+    "w_speed": 0.5,
+    "w_duration": 0.75,
+    "w_dir": 0.8,
+    "heads": 16,
+    "wta_eps_start": 0.5,
+    "wta_eps_end": 0.05,
+    "w_turn_hinge": 0.3,
+    "turn_hinge_thresholds": [
+      0.38189200231816967,
+      0.8387090935895474,
+      0.7085288063185045
+    ],
+    "turn_hinge_norm": 0.5
+  },
+  "seam_contract": {
+    "onset": {
+      "alignment_min": 0.15,
+      "backtrack_ms": 4,
+      "consecutive_ticks": 12,
+      "noise_window_ms": 24,
+      "quiet_baseline_fallback": true,
+      "speed_floor": 0.35,
+      "threshold_mad_multiplier": 6.0
+    },
+    "planner_context": {
+      "progress_reference": "center"
+    },
+    "schema": "abcurves.causal_onset_b.v1",
+    "training_eligibility": {
+      "min_future_ms": 12,
+      "min_prefix_ms": 24
+    },
+    "trigger": {
+      "max_ab_ms": 1500,
+      "max_center_progress": 0.92,
+      "max_realized_progress": null,
+      "min_remaining_counts": 8.0,
+      "progress_regression_reset": true,
+      "progress_regression_threshold": 0.18,
+      "reference": "edge",
+      "require_outside_target": true,
+      "thresholds": [
+        0.8
+      ]
+    },
+    "b_thresholds": [
+      0.8
+    ],
+    "training_augmentation": {
+      "schema": "abcurves.planner_multib_augmentation.v1",
+      "train_b_thresholds": [
+        0.78,
+        0.786,
+        0.787,
+        0.792,
+        0.794,
+        0.798,
+        0.801,
+        0.804,
+        0.808,
+        0.81,
+        0.8150000000000001,
+        0.8160000000000001,
+        0.8220000000000001,
+        0.8280000000000001,
+        0.8290000000000001,
+        0.8340000000000001,
+        0.8360000000000001,
+        0.8400000000000001,
+        0.8430000000000001,
+        0.8460000000000001,
+        0.8500000000000001,
+        0.8520000000000001,
+        0.857,
+        0.858,
+        0.864,
+        0.8640000000000001,
+        0.87,
+        0.871,
+        0.876,
+        0.878,
+        0.882,
+        0.885,
+        0.888,
+        0.892,
+        0.894,
+        0.899,
+        0.9,
+        0.906,
+        0.913,
+        0.92
+      ],
+      "validation_runtime_b_thresholds": [
+        0.8
+      ],
+      "policy": "training_thresholds_may_differ_runtime_is_fixed_validation_B"
+    }
+  },
+  "normalization_contract": "train-only physical-source total one; weighted two-pass float64, original chunk 8192; prefix stored mean/std float32; turn quantiles CPU float64",
+  "materialization_contract": {
+    "event_range": "native canonical motion[dense_a:dense_c], no sensitivity scaling",
+    "smoothing": "full physical event triangular_moving_average_path:window=5, then split future at B",
+    "prefix": "raw last160 right-aligned, unknown padding mask=0",
+    "initial_velocity": "last raw delta before B",
+    "future": "cumulative W5 future deltas; C remains authoritative human resolution",
+    "target": "target at A minus exact sum of raw prefix deltas",
+    "ProDMP": "column-normalized float64 ridge fit; n_basis20 alpha25 alpha_phase3 ridge.001; flatten XY coefficient pairs then log(duration), stored float32",
+    "path_grid": "48 equally spaced normalized times using np.interp through origin",
+    "features": "62 current summary features from last160 raw prefix; b_index is full A-to-B length"
+  },
+  "filtering_contract": {
+    "b_policy": {
+      "actual_minimum_edge_margin_counts": 8.0,
+      "complete_grid_required": false,
+      "long_edge_distance_counts": 150.0,
+      "long_maximum": 0.92,
+      "minimum": 0.78,
+      "nominal_k": 21,
+      "physical_cut_dedup": "nominal threshold closest to realized progress",
+      "short_maximum": 0.9,
+      "source_weight": "one across all retained native and synthetic cuts for the physical parent"
+    },
+    "event_policy": {
+      "clock_soft_recovery": {
+        "clock_steps": 0,
+        "mapping_available": true,
+        "max_abs_drift_ppm": 500,
+        "max_uncertainty_ms": 0.5,
+        "min_anchors": 32,
+        "min_fit_fraction": 0.65
+      },
+      "excessive_turning": "re-audited cut-locally with count-scale prominent reversals, substantial-turn evidence, re-entry geometry, and resumed stationary pauses; one natural correction remains valid",
+      "old_turn_recovery_gate": {
+        "event_level": true,
+        "max_path_efficiency": 1.2,
+        "max_radial_return_fraction": 0.05,
+        "requires_no_signature_or_long_pause": true
+      },
+      "signature_scope": "any signature or resumed long-pause seam vetoes every native cut from the physical event so the same artifact cannot survive inside a later-B prefix",
+      "tiny_tail_review_arm": {
+        "final_raw_zero": true,
+        "final_smooth_speed_max": 0.35,
+        "last4_net_max": 2,
+        "last4_path_max": 3,
+        "last8_path_max": 6,
+        "planner_c": "authoritative click is unchanged",
+        "post_c16_endpoint_fraction_max": 0.9,
+        "post_c16_excursion_max": 3,
+        "post_c16_path_max": 4,
+        "removes_only": "clicked_while_moving without active_tail"
+      },
+      "unchanged_hard_reasons": "all existing reasons except the two explicit arms below"
+    },
+    "schema": "abcurves.final_dataset_candidate_audit.v2.contract",
+    "shape_rules": {
+      "far_reentry_signature": {
+        "postentry_exits_gte": 2,
+        "postentry_max_radius_fraction_gt": 1.75
+      },
+      "long_preentry_stationary_pause": {
+        "consecutive_zero_bins_gte": 160,
+        "scope": "B until first target entry, with later resumed motion"
+      },
+      "post_b_multiple_axial_reversals": {
+        "prominence_counts": "max(4, 0.08 * remaining_edge_distance)",
+        "prominent_reversals_gte": 2
+      },
+      "post_b_multiple_lateral_swings": {
+        "prominence_counts": "max(3, 0.12 * target_radius)",
+        "prominent_reversals_gte": 2
+      },
+      "post_b_substantial_turn_signature": {
+        "minimum_8ms_displacement_counts": 2.0,
+        "turn_degrees_gt": 600.0
+      },
+      "postentry_signature": {
+        "postentry_exits_gte": 2,
+        "postentry_turn_degrees_gt": 600.0
+      },
+      "preentry_arc_chord_extreme": {
+        "arc_chord_gt": 1.8
+      },
+      "preentry_backtrack": {
+        "arc_chord_gt": 1.45,
+        "axial_regression_over_edge_gt": 0.1
+      },
+      "preentry_multiple_axial_reversals": {
+        "prominence_counts": "max(4, 0.08 * remaining_edge_distance)",
+        "prominent_reversals_gte": 2
+      },
+      "preentry_multiple_lateral_swings": {
+        "prominence_counts": "max(3, 0.12 * target_radius)",
+        "prominent_reversals_gte": 2
+      },
+      "preentry_substantial_turn_signature": {
+        "minimum_8ms_displacement_counts": 2.0,
+        "requires_prominent_reversal": true,
+        "turn_degrees_gt": 540.0
+      },
+      "preentry_wide_detour": {
+        "lateral_over_radius_gt": 1.5,
+        "path_over_edge_gt": 1.6
+      },
+      "repeated_target_reentry": {
+        "postentry_exits_gte": 3
+      }
+    },
+    "source_authority_sha256": "53060c0305fb7c67e15dc3172db4ed119841cd97651eada78df9c84e13255e8c",
+    "split_policy": {
+      "new_supplemental_users": "train",
+      "overlapping supplemental_users": "inherit frozen primary split",
+      "primary_users": "inherit frozen split",
+      "user_leakage": "forbidden"
+    },
+    "tiny_target_policy": {
+      "b_cycle_balance": "retain synthetic seams nearest the trusted native requested B indices, capped at the native retained-seam count",
+      "endpoint_within_half_new_radius": true,
+      "fixed_target_center": true,
+      "last_8ms_inside_new_radius": true,
+      "normalizer": "must be refit on the candidate train split after promotion",
+      "one_synthetic_radius_per_parent": true,
+      "quotas": {
+        "10": 320,
+        "12": 400,
+        "15": 500,
+        "2": 64,
+        "20": 640,
+        "3": 96,
+        "4": 128,
+        "5": 160,
+        "6": 192,
+        "7": 224,
+        "8": 256,
+        "9": 288
+      },
+      "selection": "small radii first, user round-robin, stable SHA-256",
+      "shrink_only": true,
+      "source_identity": "shares the physical parent source_trial_id",
+      "source_weight": "native plus synthetic retained cuts sum to one per parent",
+      "train_only": true,
+      "trainer_compatibility": "one_per_source_per_epoch rotates across the combined native+synthetic cut cycle",
+      "within_parent_exposure_cap": 0.5
+    }
+  },
+  "authority": {
+    "candidate_database_sha256": "0a6c4cd3d568d726ff3f83e9a4793c3361024e23a74f7c1221ba6af52ea7ea9d",
+    "legacy_event_database_sha256": "53060c0305fb7c67e15dc3172db4ed119841cd97651eada78df9c84e13255e8c",
+    "original_contract_sha256": "cad4a315cbe8b6840d8ee4a22a251c59a82babb9730d98f66405e53b1dd4cc91",
+    "original_retained_cut_manifest_sha256": "ec9b2e0bd9b0d976578bb2b471f9609084fc42d41ae89c26ba67e00f507df5ee",
+    "original_session_manifest_sha256": "5c6d03f40f1f2efac1125912e482aae354e16f4850a7938ec3318a14cef9b30b",
+    "materialized_manifest_sha256": "f3fd6b683a65e48a7f1af2b62d1b531ac8bf0a8717e51ff9a000ff6300a680f0",
+    "selected_training_runner_sha256": "a950e3813d83212abc4e4f9962afe882d1a9808b62605938b52de98df43a60b6",
+    "selected_filter_runner_sha256": "bf32d80c5bc49013d2b9a7ffce1733fe5f977ab6427b7e33bce399423a1a0cea"
+  },
+  "materialized_array_file_sha256": {
+    "b_index": "8619774f02ba2b9c2cd662aa7da7366634c51ef98edd99371c42aecc7d52d17e",
+    "corpus": "e2aa73bd5efb10b32d078d8b9165c02f84445107dbd2ac0a6d9a289c4481fe7e",
+    "cut_id": "f6372ef493825983258c44de35a139fcf4b74edf2277124ab571c9234de06740",
+    "event_weight": "bc4cb48360ebef29b325a2e4b45445e09a0edbb88fb2f1c30f3cbb5ab746486e",
+    "future_duration_ms": "26b9540dd5e1d9b0e4f1c974cd26142e74a6116d2d2bc300bdc0fd8afcab0e93",
+    "grid_path": "da43939b220a2d806543660806dd31d5e0bba96bce1bfb55f7e1db53bf367136",
+    "outcome": "c8814ad003e69a8195ea59bf15312f274db9ad37348fea1bd4f99dab9d6c5b90",
+    "prefix_mask": "1725116fab015c38fc6484f39ebb3221f2c285284469d9f40d34ceada4703c5d",
+    "prefix_raw_dxdy": "c0a4fc901d3f00f99a1c4b3d2379300986dc69cd7975d0278a7877277172582e",
+    "progress": "30d87c8eaba782080b6dd6ab356548e970182ed929975185d0ad6884e9eec83a",
+    "session_id": "a8aee6c2d57e4ecb710a57ae3228c74bf25f02b824b8cfea7c67efcbb44b3c4b",
+    "source_trial_id": "6d4b9372c5d19f0f77c8e11930c9ad0cc558907530e5abc1f1ddbcf42a3003d4",
+    "summary_features": "3d2ce31df1515240f0f8d70026f47ebdb431746aea73aa1ce9f432b094e3e187",
+    "synthetic": "3e814aa293cd790e537596218b3a367a2f5f821429a7fdf3491f45728232946d",
+    "target_radius": "f6efece7fd68296b0ac9a8bbbf921e6ceaf76ef00b6cd8e1b9a8cac2ea01e75c",
+    "target_rel_at_b": "c169090cb40a992e7587eba8c408b842f1306d07bbacfc2e7c5d63dbf2165afb",
+    "tau": "54e333a439446caca055a4b1acf27f6c90c8eb84b5d1d23bbf96a7fa4e5f922d",
+    "threshold": "0b1439dee0f3e299fddf50b3c09afb5b4f940cdb0c84dd85fb06144d99851d84",
+    "user_id": "037bf045c3be7b9edd762679c8e34522a6b3f8458f9f1d93cf5d358e2855a245",
+    "variant_id": "85379daf9c1c231f938df9747f1d2188b8c22bf7662dc87142f57cafd8321c25",
+    "y_raw": "66e8868a9b9bec4a761c8695408da7e0f3114334c6ec8674d9d779902202d039",
+    "ydot": "e79d8421c34b52fddc4af082665413622c12f3d203e5ca5ab0248ffc9a999108"
+  },
+  "files": {
+    "archive_inventory.json": {
+      "bytes": 129807,
+      "sha256": "78f2b8880c12b07bd8ab1703595461bf7a868790abd976790f1971e98cc75a2b"
+    },
+    "event_verdicts.csv.gz": {
+      "bytes": 938698,
+      "sha256": "4ba6819777518be5ba2c88802b5e8164802719eecb7b41798cbc03ef42f566e4"
+    },
+    "native_motion.json": {
+      "bytes": 34599,
+      "sha256": "6f59c6a10ead985fb4ad111c1f89814d2074156aa8a0480ce3571899dab50b56"
+    },
+    "normalizer.json": {
+      "bytes": 8369,
+      "sha256": "e56e0e458e81da8c314237879676e4ebb31649eeff418a104f15b59755ee6fbb"
+    },
+    "sessions.json": {
+      "bytes": 330120,
+      "sha256": "fd8c04686af42d27a4be2e6417f3923d64877a433ded9e31e05482ebb6ae43d2"
+    },
+    "tiny_variants.csv.gz": {
+      "bytes": 138304,
+      "sha256": "ae05f9392e304b77188d091c28e16c81c6f483288c39e00c791477533cd078c7"
+    },
+    "train_cuts.npz": {
+      "bytes": 6028280,
+      "sha256": "ab35842d4441f9a000b39aeb2b8724b6fbef4716b2004355b42bfec63878fad9"
+    },
+    "train_sources.csv.gz": {
+      "bytes": 758368,
+      "sha256": "05eb6d2a46a45d75369e424aee1a15720adfaf0d1566631c74047ab7477f1794"
+    },
+    "validation_cuts.npz": {
+      "bytes": 190686,
+      "sha256": "f440828b85d4c55292e6d6cc39056aee774d543384cb8c44b5b29b76ecef9b1a"
+    },
+    "validation_sources.csv.gz": {
+      "bytes": 138685,
+      "sha256": "daf771c7c11fec77855666f703ef9699081cba4cd53fb6804a0db82488ff1400"
+    }
+  },
+  "selected_models": [
+    {
+      "seed": 7,
+      "original_checkpoint_sha256": "23a542ed38dc74f8e0e1218da6aae292a52b9bb476fcc223910cc1c7e899c116",
+      "public_container_sha256_at_verification": "d82c93071224f7eb225d1f2bcf46d52669a7270db414431d7622e032439b280d",
+      "learned_tensor_contract_sha256": "78b6d104f9877b846fd3edd0d833a3d5a72167591b56e00b09dd6b9d0e0d3795"
+    },
+    {
+      "seed": 23,
+      "original_checkpoint_sha256": "2aaa541c35fa7b54740b1fabc31583f9da72d43a8bd6ffe71077be09d23038e5",
+      "public_container_sha256_at_verification": "d691ba155c4fa9b403c5a3e2ed9c44123fe00d3d1bee15c55ee9226f4531a23e",
+      "learned_tensor_contract_sha256": "5d05a4aaf9afee66ccccfb13ea499e8fb796d017ed8f97b227fd6a58a77d7877"
+    }
+  ],
+  "source_schedules": {
+    "7": {
+      "file_sha256": "4483077accebb34fc6b6b97b9d88d66121817f890dd980ae4a7a5084c98016cc",
+      "logical_sha256": "91e97474ad7c7ec56d4846dc2ae4587797fd4b828cb0b0027cfc38ce3370ac14",
+      "shape": [
+        260,
+        21302
+      ],
+      "dtype": "int64"
+    },
+    "23": {
+      "file_sha256": "871ff7dce5f4c612db96563b9d5a8aabdcec6bbc4565c2ac2fa8ff18b2e98c6b",
+      "logical_sha256": "a6722188b752b934134d6f2c7c6e15e5496d3884da61f6bbf6ee39d5cddc9b65",
+      "shape": [
+        260,
+        21302
+      ],
+      "dtype": "int64"
+    }
+  }
+}

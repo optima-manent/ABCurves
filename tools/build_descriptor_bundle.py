@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from abcurves import Pipeline  # noqa: E402
+from abcurves import StaticPipeline as Pipeline  # noqa: E402
 from abcurves.judges import (  # noqa: E402
     FULL_SYSTEM_FEATURE_NAMES,
     TEXTURE_FEATURE_NAMES,

@@ -1,44 +1,48 @@
 # The released models
 
-This folder contains two independently trained Planners and one shared selected
-global Renderer.
+This folder contains both planner families and their shared Renderer. Continuous
+is the default; Static seed 7 and seed 23 are independently trained variants.
 
-| Role | File | Meaning |
+| Role | Files | Meaning |
 | --- | --- | --- |
-| Default Planner | [`planner_seed7.pt`](planner_seed7.pt) | Selected epoch-260 Planner |
-| Planner replication | [`planner_seed23.pt`](planner_seed23.pt) | Independent epoch-260 training cell |
-| Global Renderer | [`renderer_global_h80.bin`](renderer_global_h80.bin) | Shared full-corpus quantized Renderer and prefix handoff |
-| Selected float law | [`renderer_global_h80_float.pt`](renderer_global_h80_float.pt) | Sanitized 20-feature active float graph behind the promotion |
-| Integrity inventory | [`manifest.json`](manifest.json) | Sizes, hashes, architecture, and release contract |
-
-Seed 7 and seed 23 are not an ensemble. Normal inference loads one Planner, samples
-one of its sixteen heads, and sends that one smooth intent to the same global
-Renderer. It does not average the Planners or keep the best-looking candidate.
+| Continuous deployment | [`continuous/manifest.json`](continuous/manifest.json), six ONNX graphs and `weights.npz` | Complete selected motor, choices, activity transitions and braking |
+| Continuous learned sources | `continuous/motor.pt`, `selector.pt`, `events.pt` | Sanitized checkpoints for all deployment export steps |
+| Static Planner | [`planner_seed7.pt`](planner_seed7.pt), [`planner_seed23.pt`](planner_seed23.pt) | Independent epoch-260 training cells |
+| Global Renderer | [`renderer_global_h80.bin`](renderer_global_h80.bin) | Selected quantized base and observed-history handoff |
+| Renderer export sources | `renderer_global_h80_float.pt`, `renderer_adapter.bin` | Selected float graph and packed learned adapter |
+| Static/Renderer integrity | [`manifest.json`](manifest.json) | Artifact identities and frozen scientific contracts |
 
 ## Loading the release
 
 ```python
-from abcurves import Pipeline
+import abcurves
+from abcurves import StaticPipeline
 
-with Pipeline.from_pretrained() as default:
-    # Planner seed 7 + shared global Renderer.
-    pass
+movement = abcurves.load(seed=7)  # Continuous Planner; runtime sampling seed.
+movement.update_target((100.0, 30.0), timestamp_us=0)
+samples = movement.advance(1_000_000)
 
-with Pipeline(model_seed=23) as replication:
-    # Planner seed 23 + the same shared global Renderer.
+with StaticPipeline(model_seed=23) as static:
+    # Reuse this loaded model across finite A→B / B→C events.
     pass
 ```
 
-`model_seed` chooses Planner weights. The event `seed` passed to
-`Pipeline.generate()` is different: it makes the one Planner-head draw and Renderer
-sample repeatable for that movement.
+`model_seed` chooses Static weights. Its event `seed` chooses repeatable head and
+Renderer draws; these are different controls. Continuous has one selected composed
+model, with runtime seeds for variation. It is not an ensemble of Static seeds.
 
-The Renderer prepares a reusable profile from exactly 256 chronological integer
-reports. Prepare it before a latency-sensitive B handoff, then clone that immutable
-state for each event. The profile contract is independent of which Planner seed is
-loaded, and the representative sample does not need to end at B.
+The native Continuous backend uses the complete weight archive. ONNX graphs provide
+an independently useful reference/backend and the Torch checkpoints support public
+export. The final brake checkpoint alone is insufficient: the inherited hazard and
+pattern components, selector, motor, normalization and policy configuration are all
+required. The [training guide](../docs/TRAINING_AND_INFERENCE.md) traces them.
 
-## Planner contract
+Continuous positions use common angular counts with X right and Y up. Static
+geometry and Renderer output use their documented native-count coordinates. Use
+[`ContinuousPipeline`](../abcurves/continuous_pipeline.py) and `CountTransform` for
+composition; see [INTEGRATION.md](../docs/INTEGRATION.md) before connecting a device.
+
+## Static Planner contract
 
 Both Planner files share the same architecture and training rule:
 
@@ -55,7 +59,7 @@ Both Planner files share the same architecture and training rule:
 
 Each `.pt` container stores only the public tensor and runtime contract: model state,
 normalizers, seam rules, prefix representation, ProDMP settings, tensor hash, source
-container identity, and training metadata. It contains no workstation dataset path.
+container identity, and training metadata.
 
 ## Global Renderer contract
 
@@ -66,7 +70,8 @@ The shared Renderer was trained on blind windows from complete dense sessions:
 ```
 
 The selected full training split contains 81,737 windows, 54 sessions, and 45
-users. Validation contains 10,807 windows, 8 sessions, and 8 users held out from
+recorded installation keys. Validation contains 10,807 windows, 8 sessions, and
+8 installation keys held out from
 Renderer training. Planner and Renderer preserve different frozen split salts,
 so this is not by itself a joint whole-system holdout. No A, B, C, target, outcome,
 or success filter participates in Renderer windowing.
@@ -169,7 +174,7 @@ identity before exposing the model view.
 - binary base/handoff sizes; and
 - deployment state, compute, and AF1.5 settings.
 
-`Pipeline` verifies model files before loading by default. A missing, changed, or
+`StaticPipeline` verifies model files before loading by default. A missing, changed, or
 undeclared file raises `ModelIntegrityError`.
 
 ```python
@@ -184,15 +189,13 @@ assert seed7.renderer == seed23.renderer
 print(resolve_renderer_float())  # Independently authenticated research checkpoint.
 ```
 
-Keep verification enabled for distributed bundles. `verify=False` exists for narrow
-development work; it removes a release safeguard and should not be used to describe
-an artifact as the published model.
+Verification checks distributed bundles against the published model identities.
+Use `verify=False` only when working with custom artifacts during development.
 
 ## Float checkpoints are not deployment images
 
-`renderer_global_h80_float.pt` is the sanitized selected float graph: 34,362 active
-learned scalars across eight tensors, a phase-free 20-feature contract, and no
-duplicate compatibility cell, workstation paths, or private roster history. Its
+`renderer_global_h80_float.pt` contains the selected float graph with 34,362 active
+learned scalars across eight tensors and a phase-free 20-feature contract. Its
 active tensors match the selected
 P118345 source, whose container digest is retained in the manifest. Load this
 specific file with `load_count_model(resolve_renderer_float())` so the immutable
@@ -200,14 +203,13 @@ release anchor is checked first.
 
 [`training/train_renderer.py`](../training/train_renderer.py) writes a new float
 research checkpoint. Use it directly with
-`Pipeline(float_renderer_checkpoint="runs/renderer_p118345.pt")`; this safely loads
+`StaticPipeline(float_renderer_checkpoint="runs/renderer_p118345.pt")`; this safely loads
 the float graph through the ordinary `RendererProfile` interface. A float profile
 object may be reused, but that backend replays its raw 256-report window and
-pre-renders the sampled continuation at every event start. It does not recreate or
-overwrite `renderer_global_h80.bin`, and its timing is not the native profile-clone
-claim. A new binary promotion would additionally need post-training quantization,
-context-handoff fitting, C/Python differential tests, a new digest, and an updated
-manifest.
+pre-renders the sampled continuation at every event start. To deploy a new model
+through the native backend, use the public export and custom native-binding
+commands. They perform quantization and context-handoff conversion with explicit
+artifact identities. Evaluate behavior and performance on the resulting model.
 
 Similarly, replacing a Planner `.pt` without updating its tensor contract and
 manifest does not make a valid model directory.
@@ -224,9 +226,9 @@ cmake --build runtime/c/build --config Release
 ctest --test-dir runtime/c/build -C Release --output-on-failure
 ```
 
-The validated native lifecycle is prepare a template from exactly 256 representative
-reports → copy the template for one event → begin once → step once per
-smooth-intent tick. The template is immutable and reusable. It is prepared before B;
+The native lifecycle is prepare a template from exactly 256 representative
+reports → copy the template for one event or continuous stream → begin once →
+step once per smooth-intent tick. Continuous streams retain this state across plans. The template is immutable and reusable. It is prepared before B;
 rolling or arbitrary-length observation is not silently treated as equivalent.
 
 Run the Python release checks with:

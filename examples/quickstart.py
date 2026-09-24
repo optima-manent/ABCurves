@@ -1,39 +1,17 @@
-"""Generate one continuation from a reusable Renderer profile."""
-
+"""Generate independently, then change the target at its actual receipt time."""
 from pathlib import Path
 import sys
 
-import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import abcurves
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+movement = abcurves.load(seed=2026)
+movement.update_target((100.0, 30.0), timestamp_us=0)
+first = movement.advance(32_000)
+movement.update_target((125.0, 45.0), timestamp_us=40_000)
+next_part = movement.advance(64_000)
+print(next_part['time_us'])       # Newly completed 1 ms endpoints
+print(movement.advance(1_000_000)['xy'][-1])        # Absolute position in common angular counts
 
-from abcurves import Pipeline
-
-with np.load(ROOT / "examples" / "aim_test.npz", allow_pickle=False) as data:
-    row = 0
-    prefix = data["prefix_raw_dxdy"][row][data["prefix_mask"][row] > 0.5]
-    # This compact event fixture does not contain earlier session history. For
-    # the example only, declare that the device was quiet before the prefix.
-    renderer_profile_window = np.zeros((256, 2), dtype=np.int16)
-    renderer_profile_window[-len(prefix) :] = np.rint(prefix).astype(np.int16)
-    target = (
-        float(data["target_rel_x_at_B"][row]),
-        float(data["target_rel_y_at_B"][row]),
-    )
-    radius = float(data["target_radius"][row])
-    progress = float(data["progress"][row])
-
-with Pipeline.from_pretrained() as pipeline:
-    profile = pipeline.prepare_renderer_profile(renderer_profile_window)
-    continuation = pipeline.generate(
-        prefix,
-        renderer_profile=profile,
-        target_rel_at_B=target,
-        target_radius=radius,
-        progress_center=progress,
-        seed=2026,
-    )
-
-print(continuation.shape, continuation.dtype)
-print("endpoint counts:", continuation.sum(axis=0).tolist())
+# Keep this instance alive. Advance sample time as observations arrive; the
+# caller owns real-time pacing. Loading once avoids repeated preparation.

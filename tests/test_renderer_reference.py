@@ -10,7 +10,7 @@ import pytest
 import torch
 import training.train_renderer as train_renderer_module
 
-from abcurves import Pipeline
+from abcurves import StaticPipeline as Pipeline
 from abcurves.global_data import (
     FullSession,
     assign_user_splits,

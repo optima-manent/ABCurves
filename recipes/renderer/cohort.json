@@ -1,0 +1,3674 @@
+{
+  "schema": "abcurves.renderer_frozen_cohort.v1",
+  "cohort": "selected P0 full-session native-count corpus",
+  "window": {
+    "prefix": 256,
+    "future": 800,
+    "span": 1056,
+    "start": 0,
+    "stride": 1056,
+    "tail": "drop incomplete final span; record tail ticks",
+    "order": "session_id then absolute_start_tick",
+    "filtering": "none; complete inclusive native streams, including pauses and idle",
+    "axes": "canonical x-right/y-up native USB counts",
+    "dtype": "little-endian float32"
+  },
+  "split_policy": "frozen historical T and V roles; never recompute hash split over a changed corpus",
+  "adapter_development_mask": "(((outer90_row_id * 2654435761) & 0xffffffff) % 10) == 0",
+  "logical_hash_contract": "SHA256 of C-order little-endian float32 values; no NumPy header",
+  "smooth_teacher": {
+    "views": [
+      "triangular_moving_average_path:window=3",
+      "triangular_moving_average_path:window=5"
+    ],
+    "recurrent_warm_ticks": 128,
+    "regime_context_ticks": 256,
+    "prefix": "smooth last 128 observed reports alone",
+    "future": "smooth concatenated last-128-prefix + 800-future, retain future side",
+    "reset_index": 128,
+    "teacher_hysteresis": 1.0,
+    "prefix_loss_weight": 0.0,
+    "view_sampler": "np.random.default_rng([seed, epoch]): draw one uniform w3/w5 choice per compact row before row permutation"
+  },
+  "source_receipts": {
+    "prepared_source_index_sha256": "6eb2958aac63a825775295ae988b6c7a03213efd016be987c0196bae4c686122",
+    "outer_source_index_sha256": "4457b84f950b991207d98b6339c3f64f0cc4fa8a3dd53de6b39395f4ea4cd4e8",
+    "outer_window_identity_sha256": "8405b5c72608a1b03d06fa23b2d36f5f70bae61ad4e3c2e64bd5aacf890f3984",
+    "selection_sha256": "81a7ce568b466f21f1cc6563ef4e345c239eb6b7a5acac0feb1e74f28a6af7d8",
+    "selected_train_outer_row_ids_raw_i64_sha256": "6c4614327589b006370d48c53115316825f49d4380e4b1d0e864b99ac5e330d1"
+  },
+  "splits": {
+    "train": {
+      "windows": 81737,
+      "sessions": 54,
+      "installation_keys": 45,
+      "logical_float32_sha256": {
+        "prefix": "82bffe0f3c76c072468740e84f62defb2e1daea78b4f2cdc3ee07be07c526908",
+        "future": "4acce5e30331c4b8f1866b1cb263a6ea8fddf2b773960d0d04c81aea3b8dab4b"
+      },
+      "original_npy_sha256": {
+        "prefix": "b461de087abf660c4300378cd3651693c25467290ff58d2f5bcc20b4161ccd68",
+        "future": "7e38c4b94caf4db49352c91d1a0775824d87d50123009fb1737a84aeabdaf03a"
+      },
+      "outer_row_ids_raw_i64_sha256": "6c4614327589b006370d48c53115316825f49d4380e4b1d0e864b99ac5e330d1",
+      "sources": [
+        {
+          "session_id": "s-028e771dfcb8850cde9c0001e64186bb",
+          "user_id": "u-9d85d68ebfb3ba4b41d3ebc9b4085f95",
+          "historical_role": "T",
+          "ticks": 1403111,
+          "windows": 1328,
+          "dropped_tail_ticks": 743,
+          "prepared_row_start": 0,
+          "outer90_row_start": 1335,
+          "native_count_logical_float32_sha256": "bcaf1417f2da945cadfb3b192fa6bf1fd8351917e4e90a9820836a8ef516b73e",
+          "original_source_npy_sha256": "31eee7983e732d23f7c9738fdd28d1216e1b04c8f93b473a0d43ebf6ec4bc0a8",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1403111",
+              "first_begin_unix_ns": 1784236764347000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784236764347000000,
+              "last_end_unix_ns": 1784238167458000000,
+              "range_end_exclusive": 1403111
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "1810f6f0bb92d7b7253c84f4f88980302d14fa3f9ee4d892a3f6c38c07afc4d3",
+          "original_mouse_csv_sha256": "2bafe407b35d39823f59669bb273f215c59ba212ab1d07d2f3aa8e4220e770d3",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "6bc0d723468a0ab9e7bf06a786b6ef5e2b8788cf586d63bd9e21910815593675",
+              "size_bytes": "4165"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "ccd34e8c5736d503eb52781529010b59be729980a1f57d47a6af3af17a7246dc",
+              "size_bytes": "34179198"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "a989a5b9eba2565ed46a43d13e581aa4a17e6770686e45a3a53fa35a38235393",
+              "size_bytes": "12261"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "0d2bcb2693b385872ede8b576609f6f21230f0a4a31d59fde902005d50c01058",
+              "size_bytes": "4378619"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "1dd3762cc2e0e4e1f61266e0879b07e88c86e988e9ddf7d2358da93a9367c3b4",
+              "size_bytes": "11732"
+            }
+          ]
+        },
+        {
+          "session_id": "s-0698c0d2b9d2b30bf7c2a102dc585121",
+          "user_id": "u-ea827f38efdc0f062b7571c3a02d5780",
+          "historical_role": "T",
+          "ticks": 1381681,
+          "windows": 1308,
+          "dropped_tail_ticks": 433,
+          "prepared_row_start": 1328,
+          "outer90_row_start": 7801,
+          "native_count_logical_float32_sha256": "d7a9b7ae4a4111049495fed2cb8861a0e8433212a600217a17faa1c20c6889bb",
+          "original_source_npy_sha256": "752325e1840516024a81348faf44e97205e9a8a7945e77aa2d4eb3b1a2d05204",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1381681",
+              "first_begin_unix_ns": 1784960257925000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784960257925000000,
+              "last_end_unix_ns": 1784961639606000000,
+              "range_end_exclusive": 1381681
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "b5a15bf71fc0f769eba885c4bbc8cdd28f4bc495ab588f6bb887a69326de5f73",
+          "original_mouse_csv_sha256": "182f68184ddd1b67bb937f34d4542f0006cf2837114ff40646b048c9b2598131",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "de8617163f72dfb5eebc6ce5a3fcf0782a1c7a05b108ec321254be7d0bb907b0",
+              "size_bytes": "4144"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "6e80db5c256306095c5171c5c2f807d0d4c410bda6e7992bdd275204e9ccd6e8",
+              "size_bytes": "38430460"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "f0156de6015466984894bc25a67da8301e93b87a320eb665577019ed65a786ec",
+              "size_bytes": "12596"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "e57473122863652593b962dfbb491ce7e139c0909408f8c1dcc240c65931c68e",
+              "size_bytes": "4380368"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "ee0a7b46047c441523a816bc829b50d83efd37418d0127b1f437ec7bdded4a24",
+              "size_bytes": "11875"
+            }
+          ]
+        },
+        {
+          "session_id": "s-07fa23bb434adcef405a90227adcb731",
+          "user_id": "u-49f51c7c676f2efa3a9e4f18f0775eb6",
+          "historical_role": "T",
+          "ticks": 1466448,
+          "windows": 1388,
+          "dropped_tail_ticks": 720,
+          "prepared_row_start": 2636,
+          "outer90_row_start": 9109,
+          "native_count_logical_float32_sha256": "bb73558e8a8b9d6235bbde23389ec3fd23848ae64a5ff836fb589446c440bd4d",
+          "original_source_npy_sha256": "32a8301228caf546e956e9c52f99e77aff68e3da2f7888e0a623933bc306962f",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1466448",
+              "first_begin_unix_ns": 1784285542456000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784285542456000000,
+              "last_end_unix_ns": 1784287008904000000,
+              "range_end_exclusive": 1466448
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "72d8f58d98c9765f27d2fbd9e98af96bf70b2fcb6def187e89ddea22088da13e",
+          "original_mouse_csv_sha256": "988be2cfddd81adbb92009f9547fd80049761621afccb14bfde60fabfaf30615",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "900c55e257d04f727529432b324ead22e9efd7d4638d4d447f0c0cc8f6d44fbc",
+              "size_bytes": "7783"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "befa88fc3f3a3e8ab941bcc12dce6b8c587f9f36461e86e5de50b2968914385f",
+              "size_bytes": "45212636"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "71225483abd766f1b4d3595c492c38fba4e38afa60f0e653149d8fac5ba87f2f",
+              "size_bytes": "12955"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "7cffcc2e5f581f51b60d73679ae8be261dcebbb7b5ba334b21d1aa10411f9995",
+              "size_bytes": "4091607"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "a9cc424a5f1eb15fa36ddec9c6c6b114da4753b5b3f3c2834c2d7559395c14f8",
+              "size_bytes": "11812"
+            }
+          ]
+        },
+        {
+          "session_id": "s-0808efbc72e49677821cb3e66eeb4687",
+          "user_id": "u-dadf623bdd06e199d5b8cea1b3c943c7",
+          "historical_role": "T",
+          "ticks": 1377998,
+          "windows": 1304,
+          "dropped_tail_ticks": 974,
+          "prepared_row_start": 4024,
+          "outer90_row_start": 10497,
+          "native_count_logical_float32_sha256": "2fa6aec727b936d8fba3d11c59eed8431f4eba913807daa34823a73da054ad49",
+          "original_source_npy_sha256": "eff634783579446fa8452e7752cbbbe965fbab1550e4e489a6f7f488ed0b5a63",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1377998",
+              "first_begin_unix_ns": 1784084378635000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784084378635000000,
+              "last_end_unix_ns": 1784085756633000000,
+              "range_end_exclusive": 1377998
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "588990ca168e3192e5164a3ee2ce4a387a1091690dd87c61cd28bbcc4a19f045",
+          "original_mouse_csv_sha256": "132933145c6405ddeed7234948a78cc76823d607e8b38b6d45592c58905a143f",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "84d15b504fa8586f69180ee29095ffa1647ab91b4bfcf1e4bf35ea2dde5dd057",
+              "size_bytes": "4151"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "a1ae5640499ec838cc481bb489f5139ec74299f16707421634dfa560da1718d4",
+              "size_bytes": "30313136"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "c8e970076f8941c5cf6f38ae4eecef5347ea9d21c6c98d062ccddb090305dd52",
+              "size_bytes": "12050"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "89414285a1dfbe4bc10f31744bb3bb8754552966edf7dd0b915093aa898fee1a",
+              "size_bytes": "3817960"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "872e1090c480d969aed103987668dfdad167f105afc9188662104928b9f86d47",
+              "size_bytes": "11728"
+            }
+          ]
+        },
+        {
+          "session_id": "s-0b1b058f01b1ecad407e82e3972540a0",
+          "user_id": "u-f349fae2d9bf59f930cb4c1a7fa1cef8",
+          "historical_role": "T",
+          "ticks": 2812074,
+          "windows": 2662,
+          "dropped_tail_ticks": 1002,
+          "prepared_row_start": 5328,
+          "outer90_row_start": 11801,
+          "native_count_logical_float32_sha256": "8f576b9b0a0eb422b661b7d139a9fcbd98bd4ab405ac3819850bf0b331fd4f56",
+          "original_source_npy_sha256": "cca9f3220c11f1b1a88bbbe2b91a3ed18fe6d2ab0deea7092eec7d5871e5225b",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "2812074",
+              "first_begin_unix_ns": 1784084227822000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784084227822000000,
+              "last_end_unix_ns": 1784087039896000000,
+              "range_end_exclusive": 2812074
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "763be8892aa4a70e844cfcbb1b6cb7fcda45dfe47ebab1ad51ea9f5f60ac3de2",
+          "original_mouse_csv_sha256": "2897ba2818702a9803148a5d7dabb0a4431063a32e57c9549e39073ae59f1e3d",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "ba95cc5812a264c331d035ca9c5c176868fa5eb7a498ed8e87d046b71b1f0688",
+              "size_bytes": "4144"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "fd540a64b6053634abd71340f9ab2eb90302c583cdf5dff291b204c076cf5aa3",
+              "size_bytes": "45207882"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "6d91e62ae5f5b85086df19351c623eae7124853ce6f58af13aee1b07b3bfd56d",
+              "size_bytes": "24385"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "630469e1239a6f20fa83202b1441ba8536a98830254ba41343452ae790dbb70b",
+              "size_bytes": "4708716"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "e43b644e8bb7df4af0fd390bf3d8b9a8361e1c6dd9cca6c9abd9f825c22944fe",
+              "size_bytes": "11791"
+            }
+          ]
+        },
+        {
+          "session_id": "s-104252fb20dc62ef7ca912f668ac665d",
+          "user_id": "u-b2854140f494c86f944d5d1ad8d753b5",
+          "historical_role": "T",
+          "ticks": 1414137,
+          "windows": 1339,
+          "dropped_tail_ticks": 153,
+          "prepared_row_start": 7990,
+          "outer90_row_start": 15780,
+          "native_count_logical_float32_sha256": "3d0381b732bf0b714b66c9acbbeceec2a3ede77e0dd51ff77580757a85b581c3",
+          "original_source_npy_sha256": "577eacfef1899d532bcd1e31d9e1f05c4457fd87b0294db553ac518b3a1a0164",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1414137",
+              "first_begin_unix_ns": 1784324135464000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784324135464000000,
+              "last_end_unix_ns": 1784325549601000000,
+              "range_end_exclusive": 1414137
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "0ef5ef3b43bfaee523d0a202ed2455820793b081faec4de006cc3535eeeb1eec",
+          "original_mouse_csv_sha256": "99c6fc006c9e64fea0302bd4f9905530bb9c86a391a0a8666add0c5209ab798a",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "ba4a97c1b936061bcef4091f2295bb6649e4b4b9f2ef4bd014c58f6e7ca7a856",
+              "size_bytes": "4134"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "6053ed25aa54057bfc00ff3ba70b433582cdee0cf2ef0a33b59919db0debd86f",
+              "size_bytes": "27828444"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "096afcebe685c9f799b5777ba3f5aa42f209e68193ea0a709b83569de38b5158",
+              "size_bytes": "12461"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "dad8d7dda3f77b8d4213901630d73e8ac03dd94392bf03c7631ef3b7a3299407",
+              "size_bytes": "4319380"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "52d852e1d5781b556b3bb23f13b6f1b2b9dea690913bffa76f54c7466c1a03d3",
+              "size_bytes": "11333"
+            }
+          ]
+        },
+        {
+          "session_id": "s-105466835d96dd30cf1a5f1c585472be",
+          "user_id": "u-388eebd6f682abedca34a459420edaaa",
+          "historical_role": "T",
+          "ticks": 1586359,
+          "windows": 1502,
+          "dropped_tail_ticks": 247,
+          "prepared_row_start": 9329,
+          "outer90_row_start": 17119,
+          "native_count_logical_float32_sha256": "fb46c8b172182772ac487439a5058ae83ade4afd71f630c6cd38cee35f94cfc3",
+          "original_source_npy_sha256": "ee3f5314bcd32a08964eff7e9163c94307c81bb1408d559aa672029d4700f395",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1586359",
+              "first_begin_unix_ns": 1785607023317000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785607023317000000,
+              "last_end_unix_ns": 1785608609676000000,
+              "range_end_exclusive": 1586359
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "087797db10f126437f3e9873a7e54c0d576936bf43fff6505fdf6c8cccd5302f",
+          "original_mouse_csv_sha256": "f763c15c9c831e2b932566ad82ae3d0423882c4fded280f1a054ff20ab036579",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "6cff5d517068a31df9e770bb2c2c0dbf18332d892b5678ee4963d01dbca286b7",
+              "size_bytes": "4145"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "55488df3a0966bd283eef49f2d2009b98232f35c49638c97038a1db26169669b",
+              "size_bytes": "35688252"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "d4bd322eb848a9b4ab6b02abf508d9d225856ec666011b0089ea32d9efaea345",
+              "size_bytes": "13972"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "027971f3f74bb7d3d8de18f5ef56fa71493a05d7c43c138280c57bb4ad5b6548",
+              "size_bytes": "4510114"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "4ca4cdafb103ee9b40907daad612fce688e82632a87b8e8049100712210f8f17",
+              "size_bytes": "11434"
+            }
+          ]
+        },
+        {
+          "session_id": "s-15bef5c9dd5d5776e526356d92beb47e",
+          "user_id": "u-fcea87c6f9428c5110f2e2011aad8897",
+          "historical_role": "T",
+          "ticks": 1380706,
+          "windows": 1307,
+          "dropped_tail_ticks": 514,
+          "prepared_row_start": 10831,
+          "outer90_row_start": 19943,
+          "native_count_logical_float32_sha256": "12404cf9192017dd1d75677d14bdd2730da90e86a437447e62dfae21f1b82084",
+          "original_source_npy_sha256": "2bd5969f5848a7fd2d704d3fc08b3a8544a8cefcf6862713102bda8c78d315a5",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1380706",
+              "first_begin_unix_ns": 1785289988540000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785289988540000000,
+              "last_end_unix_ns": 1785291369246000000,
+              "range_end_exclusive": 1380706
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "7b6cc260777b077c09ca73f0bb19bb7c758446b8ca14f2ed76bf780a786b0e3c",
+          "original_mouse_csv_sha256": "0bc618fbb6520793193619df56b091ff7d53812143b8e7d7fdcfea21cb87a5a2",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "9a067a753844077c9df20d9f4a053e946ce2a3c5c3524e084c3bcf137fba5d0f",
+              "size_bytes": "4141"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "fd40b3051cae81ee9c9d82b71fc004509bf92fe40552b695e0037b09f4dc5da0",
+              "size_bytes": "29398965"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "4fb7908bbae565511043b59e82580cee9d9b31ff28d582ee9c12aaf2bfcd7a20",
+              "size_bytes": "12300"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "2ec883165e65b384088dcde7c4878a103d07423a3d2ec10c5692245ede69f39a",
+              "size_bytes": "4327619"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "d007b822a2e06f54b2542b96ae1ba67792c03a310497f8d8d80f4a2c61752c95",
+              "size_bytes": "11686"
+            }
+          ]
+        },
+        {
+          "session_id": "s-199cbf10088098ef6727a091b03b24e2",
+          "user_id": "u-7f92917f6a45187319b9a622929d6f32",
+          "historical_role": "T",
+          "ticks": 1381980,
+          "windows": 1308,
+          "dropped_tail_ticks": 732,
+          "prepared_row_start": 12138,
+          "outer90_row_start": 21250,
+          "native_count_logical_float32_sha256": "243b34218eeed64c2ea5277681e5ddebbe701e953b3e17700f2483e72205979a",
+          "original_source_npy_sha256": "dfcd29c18074c181a68981d4f61f248ad018a5ac64309b8aba500f3343f47ee4",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1381980",
+              "first_begin_unix_ns": 1784129056633000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784129056633000000,
+              "last_end_unix_ns": 1784130438613000000,
+              "range_end_exclusive": 1381980
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "30193e350c4156918d5b357c93651bdae18daa5eaa4cde7b5c564f73a0d923cd",
+          "original_mouse_csv_sha256": "21202d513b72c84c00f1b49c8a257bc0deb8c45f1f9762bbf7285afd4e4bf9ba",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "2fd2829a1f700b7416423264ef597520dce395b976744e245817a7d3b338f6d5",
+              "size_bytes": "4132"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "c3a9fd5f69c7ea1d31fd8b967bf976535320b5d0850d8a15c6e24b00a9c45a23",
+              "size_bytes": "32238432"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "1254f8efb6286b99f268a719e882671a5f02a851a2fd33a064c97c9f019d0516",
+              "size_bytes": "12210"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "2c05cd41b0724898ac00a38b71fba6dea3a420ac818747249d0d262e05b8754f",
+              "size_bytes": "3904760"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "8b3a6a0a736d50802e263708f29a5df5d74079344e260e2cbe4c9e77c8b0eccc",
+              "size_bytes": "11330"
+            }
+          ]
+        },
+        {
+          "session_id": "s-1a966891d8d213e6a12522b7f57ea7f6",
+          "user_id": "u-27e00a7e4c16e1f89b2b2f9ddb89d47d",
+          "historical_role": "T",
+          "ticks": 1374572,
+          "windows": 1301,
+          "dropped_tail_ticks": 716,
+          "prepared_row_start": 13446,
+          "outer90_row_start": 22558,
+          "native_count_logical_float32_sha256": "2c98590c5b17075eee86d35257b2492b834b68cdcaca6984761ded0d89238a97",
+          "original_source_npy_sha256": "4241f8b7d3d714b0bae5a7554c85bf1a7903e0e511e92d27c3965563a019bc58",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1374572",
+              "first_begin_unix_ns": 1785340470078000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785340470078000000,
+              "last_end_unix_ns": 1785341844650000000,
+              "range_end_exclusive": 1374572
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "99024cb11442f9ff4a5d2b792d936d21eb35e5d8c409caaa20f8eaa68538aa6e",
+          "original_mouse_csv_sha256": "02b5a5b627ab1d56b60e9c610fde9974a0939387fb97bd1ea903a29dda3a0f2f",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "9f7964f7c3efcad5ffeaa8e5b1f00279ed4cb52729cbb1e87320f0459720cc82",
+              "size_bytes": "4167"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "9f54ce5beeda4d7138ff2bcbc04ccb3e2f2befa52c4c417bf6a5687cf6d03354",
+              "size_bytes": "23866521"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "13a25c27806148b9fa9b37cd8d1b1ffff34657036234ab107cf719b28f9f4f1a",
+              "size_bytes": "12049"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "f257c7d0d91ad8047be18d61e62d0de85cf4da7a902a2a47a3bc3d9c9d4ac39e",
+              "size_bytes": "4370706"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "a2d38b1a1010889e5f8b37b375f6d2f737c64d499b96a6f2040a9297fa1345a8",
+              "size_bytes": "11728"
+            }
+          ]
+        },
+        {
+          "session_id": "s-243b2845c12d2c63ba0f5dd6181cbbda",
+          "user_id": "u-e3d42f4832ccc7e6b67fff5fb32a3469",
+          "historical_role": "T",
+          "ticks": 1406896,
+          "windows": 1332,
+          "dropped_tail_ticks": 304,
+          "prepared_row_start": 14747,
+          "outer90_row_start": 26471,
+          "native_count_logical_float32_sha256": "7f9d206ca0e7769398897984cb2a1cbaa13d38fd17e8f35cc12c7a74215b0c26",
+          "original_source_npy_sha256": "0e4eb3847541049d68fa32b198538f97725d28aa6648093afc26259c5a09d185",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1406896",
+              "first_begin_unix_ns": 1784218858023000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784218858023000000,
+              "last_end_unix_ns": 1784220264919000000,
+              "range_end_exclusive": 1406896
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "be222e831727142fe73e031bd486fa35fe2a388ad0c8d7237af6979ba50deaad",
+          "original_mouse_csv_sha256": "5ea61cfab4dcdea17655abc535a544c2de6fa5b08b1ad607807adc8d7e81f9cf",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "6c24b201f69b6792910c899cc1b2f7fb9516e6b9372df27bc7a5e8e29f4c97d3",
+              "size_bytes": "6543"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "3c9c788ab0c14c5d24d1b134e60654b8872565ee0bc94baaaa52922349c05426",
+              "size_bytes": "38420564"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "2163d8830b84b1928f66849c2499db53e50bffea14551ea303d5e3770e7808db",
+              "size_bytes": "12290"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "73a403de3cd9607cc4b221af8c7eb634748741fca809b37dffec6dd7dc324a48",
+              "size_bytes": "4416496"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "40755a2951b5e8ff94a3ab69ef9cc840a5628381f496d2752c5669be73b44459",
+              "size_bytes": "11738"
+            }
+          ]
+        },
+        {
+          "session_id": "s-266dcf3159a25261f2bf9e7db69f7393",
+          "user_id": "u-b45c789a0a5be0687d5e587f40a220ee",
+          "historical_role": "T",
+          "ticks": 1378642,
+          "windows": 1305,
+          "dropped_tail_ticks": 562,
+          "prepared_row_start": 16079,
+          "outer90_row_start": 27803,
+          "native_count_logical_float32_sha256": "d7d31eb64b18b9e61ad4f3dcbdc08526b7414b3d309f5e6c69ffbff0e6cfaac2",
+          "original_source_npy_sha256": "b5630dba930631718335db637eb8a3fadbd0d61766221a01231ca9086bd590a3",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378642",
+              "first_begin_unix_ns": 1785598141434000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785598141434000000,
+              "last_end_unix_ns": 1785599520076000000,
+              "range_end_exclusive": 1378642
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "b5c575265e806de9f42303f07f9959ad93321c850324d71393afe4c44da44b2d",
+          "original_mouse_csv_sha256": "67af39821393ccd24fedda44613553bcf8284f6adbf581638ea9920fad3963fa",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "1122ad25c3c045ff739ef76bbdb938ed76b3b69c51e67b2c6a79551cb0b8c8c1",
+              "size_bytes": "4143"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "7cc1b8bb3286a52a5711d2c37f07db0bfc80b147c349e37cbcb356a64d54acc2",
+              "size_bytes": "38035808"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "8df84aee217916166f8cd2e933bd5fa6c450f2dc3160bc526eac932a746453da",
+              "size_bytes": "11984"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "212e998f3b100f75d7f2e02f2728f787b798162ba8eefa3af0a42078aa93e9a2",
+              "size_bytes": "4182164"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "e74645fa27a2bc2b282f5217ea7422e2ad6140c4e6e67ee12e3d56caed407663",
+              "size_bytes": "11720"
+            }
+          ]
+        },
+        {
+          "session_id": "s-321d05db7bef582fe3f4306ea8bfb74c",
+          "user_id": "u-18858612a607d51a62fb44ee8193b1da",
+          "historical_role": "T",
+          "ticks": 1386038,
+          "windows": 1312,
+          "dropped_tail_ticks": 566,
+          "prepared_row_start": 17384,
+          "outer90_row_start": 30426,
+          "native_count_logical_float32_sha256": "eeae42ce40bce4d770545161a6277cd57131ecf493fdef21b9a105834ff613ec",
+          "original_source_npy_sha256": "b9c21f2cc2cc46f5ecb2754c0a7c315788f3d14860f8b84be9df96c4dd805f72",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1386038",
+              "first_begin_unix_ns": 1784451239107000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784451239107000000,
+              "last_end_unix_ns": 1784452625145000000,
+              "range_end_exclusive": 1386038
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "62bd477a1401780706dcb35f850a2948ee68e7b83a04e5d4571a85eebc09a9f3",
+          "original_mouse_csv_sha256": "b4737c207dc84e87b54a9f5acbeb6fb245d54177f6d28a30d4bf88d0e5e94933",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "33eb41532e054728622e9d86ca921f5255963de5a5dbf525340e099fd6e0efff",
+              "size_bytes": "4179"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "74e3e1d7f05fda7456f5632f1cd021b8765bd81f904f4b4680040c68ffeab04e",
+              "size_bytes": "29236980"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "08c8bf0067f48e2005fe8a70b91420be6f55f36b29e6b31f78d15532fcd45759",
+              "size_bytes": "12252"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "f179b27d88109ee919959e1f151395ae5022bce98654c46470042491aebef903",
+              "size_bytes": "4140467"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "8cf3c36188eede640f58b31a10291f59f70bab8a10d0c76ee0482fee6ab3b882",
+              "size_bytes": "11708"
+            }
+          ]
+        },
+        {
+          "session_id": "s-3410e20b34a7dffa01cdeac51dc67c2a",
+          "user_id": "u-359f193c1eb320511ed4070208153bd4",
+          "historical_role": "T",
+          "ticks": 1379599,
+          "windows": 1306,
+          "dropped_tail_ticks": 463,
+          "prepared_row_start": 18696,
+          "outer90_row_start": 33050,
+          "native_count_logical_float32_sha256": "5b4a7b7a4e942aa15d5980c69e9cac2f4966ca50a60d71c038d5ba15b976bee2",
+          "original_source_npy_sha256": "5fe30c2102c072c05385199615aea84f6c9e5d5503754e5c636acb5259d8cb6b",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1379599",
+              "first_begin_unix_ns": 1785153036268000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785153036268000000,
+              "last_end_unix_ns": 1785154415867000000,
+              "range_end_exclusive": 1379599
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "325a231e2bd9292165f03641bcd5ea432b41e558d7225146924a3d7a6e157c37",
+          "original_mouse_csv_sha256": "5369c1c806076519229a4f36624486839a7086ebf0bd9614c8cc5fb39bc58748",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "d7122dff3074ebf77e6c8162e1eb37b85c1ccb5b27ee5e469bba9586204c313a",
+              "size_bytes": "4165"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "ab541ba0bd095b7d984993b458daf58d12b5299b7cb46e9d81de93460d18129e",
+              "size_bytes": "51384001"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "a31eecdf195111327de3325ed48c515553a8a18b6e2f20dee7502358c8da169d",
+              "size_bytes": "11992"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "89b1b23db19a517ce3ce4575cfb7e594960616f21be540eb272da05c6181c66b",
+              "size_bytes": "4222519"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "39e46aac009f7a09dc60d0a84ee0cf65c368352258cbc7aa76b8d9124e2adbe4",
+              "size_bytes": "11726"
+            }
+          ]
+        },
+        {
+          "session_id": "s-3901e43007e9d8c845255c98b738ac8d",
+          "user_id": "u-4417c7e902e585e527a43111a69da942",
+          "historical_role": "T",
+          "ticks": 1378222,
+          "windows": 1305,
+          "dropped_tail_ticks": 142,
+          "prepared_row_start": 20002,
+          "outer90_row_start": 35668,
+          "native_count_logical_float32_sha256": "86ed7cc9e2ce78dfe540a19c982a9e8dac787761c98a09d42436896528fdff31",
+          "original_source_npy_sha256": "8bb6b695f68fb71c9403d035a273020b812ec6d066a8b41ec7d3f765ccf452ce",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378222",
+              "first_begin_unix_ns": 1784235462177000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784235462177000000,
+              "last_end_unix_ns": 1784236840399000000,
+              "range_end_exclusive": 1378222
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "e1c9cfbdadc39152813d4b67d73d7326c5b1d1551a7d87b31c504ffbf8e3c36b",
+          "original_mouse_csv_sha256": "19cb5bd528ae4a7b2b03b0896ff7786c15915069464af66809ada17e47b0d09c",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "6ba1a8281261b9c282cf9d08b08d997eb81fde66f362f3b4092666db59519289",
+              "size_bytes": "4173"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "628bd345aa187f015ccd6b8d22e1735e0cc6b4782d25b3012649b15f1694f266",
+              "size_bytes": "30676928"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "40f3f9545f56897e7a03a672baa8c6dfe1cd1df524cb51e29cd40de36e704d98",
+              "size_bytes": "11971"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "95beb29f7e25bbf319fb31ddf1098332b1ce1b50347f5d556cc6ddc49fc144d6",
+              "size_bytes": "4769712"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "6df547816352c2f3819c6547fae522e12a6e08890ae2a52a1dbdf757d7595961",
+              "size_bytes": "11714"
+            }
+          ]
+        },
+        {
+          "session_id": "s-3dc203c29065d27e64558207f3dce38e",
+          "user_id": "u-2a26bade57aa8c0bf2089ce66fa6d5bd",
+          "historical_role": "T",
+          "ticks": 1924056,
+          "windows": 1822,
+          "dropped_tail_ticks": 24,
+          "prepared_row_start": 21307,
+          "outer90_row_start": 38545,
+          "native_count_logical_float32_sha256": "3d92c2ea4e151f3ba0062df6157aceaf2a2a8573d4a40fbf4956e2999e95fb11",
+          "original_source_npy_sha256": "0bfaf982505f3f79a2429c698497eb021539b530c864edb69e50944e1cd0f439",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1924056",
+              "first_begin_unix_ns": 1785488437655000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785488437655000000,
+              "last_end_unix_ns": 1785490361711000000,
+              "range_end_exclusive": 1924056
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "ca2d043dfb086713a001fa05047e5fbfc1b40d0794b97dcef19e1554c9cb7868",
+          "original_mouse_csv_sha256": "b3b81c8330087834466f4ec7cf30e646e4ac178b8272f79ef2d7eb84638fe1d8",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "34e26aae2ebe27002c15ffe155506fc1a23b7659a71c047448d628d9ee0a793e",
+              "size_bytes": "4131"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "fa7445a6b58c58f715eaf21eb978c1578bd5d35aa775b677b06fa0f401d2b023",
+              "size_bytes": "33846045"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "e3719e6abd397df3acb69a8ed123a781bf5d1eee0f7ce124d67ec56bbc2e46c8",
+              "size_bytes": "16746"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "c08baeb6cda26352f7616843db97b8181bee0869463214338d47d78cfb72ca2e",
+              "size_bytes": "4213094"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "fb47fc68dfbe250f088bc706dedd7c020d1045d756b2a4221b675b9ca42bd8ee",
+              "size_bytes": "11349"
+            }
+          ]
+        },
+        {
+          "session_id": "s-3e24117a1f16c73f56ed939216f0077f",
+          "user_id": "u-5bca06704c95226d885f30eac0146be6",
+          "historical_role": "T",
+          "ticks": 1369674,
+          "windows": 1297,
+          "dropped_tail_ticks": 42,
+          "prepared_row_start": 23129,
+          "outer90_row_start": 40367,
+          "native_count_logical_float32_sha256": "43b45d9835bd6654f18db5f9a2e84429b5fc68b42548ed2061b79f5855b820d0",
+          "original_source_npy_sha256": "fbab87f6cfd21201135f046f12c00e606e9c2ea3c1d860ff22a65382c2d8e2a9",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1369674",
+              "first_begin_unix_ns": 1784164913238000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784164913238000000,
+              "last_end_unix_ns": 1784166282912000000,
+              "range_end_exclusive": 1369674
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "bc38522d16b85429acd71c6b27f1ef17c51f35d5ee8b64660f6876d8fb766744",
+          "original_mouse_csv_sha256": "e51a8f95fb66e3a7a6a5ce828c2ddfbdf0a5b87c684f993153efee0310522884",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "1afd31bb8d67b8c29029ce884aadc75c730557ad89de23eb2bd3221aff547858",
+              "size_bytes": "6584"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "c95717807bb0c227c0b5a2f125254e3d0de3a189c511aba7c413401120a7f03a",
+              "size_bytes": "36371546"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "b22aff390bc5f372cd4eb5374df007c3eefb9b6899a0681d6b53a997a95e95b7",
+              "size_bytes": "12193"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "5199d08ec33563f4134e3ab238e79349abb70a192bd93179a67bfe6d7169fe6a",
+              "size_bytes": "4236567"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "4859eb211470f82c1e485b86697f01563f1a014404a1f5ee8d2a019325fd6a91",
+              "size_bytes": "11812"
+            }
+          ]
+        },
+        {
+          "session_id": "s-3f63bad805c51df8034ade4e3fadad75",
+          "user_id": "u-c75e5d8a1878e0c67fef1b57febd3dcb",
+          "historical_role": "T",
+          "ticks": 1378910,
+          "windows": 1305,
+          "dropped_tail_ticks": 830,
+          "prepared_row_start": 24426,
+          "outer90_row_start": 41664,
+          "native_count_logical_float32_sha256": "10ba724fd6fbe1df7a4a5cc0c94538c0b71c52e26bdc0740c844aa81b27138c9",
+          "original_source_npy_sha256": "83b6c14bd614e8eb35ae69d1f4e21ad3ba9fc053fe49f335126e514749fea61b",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378910",
+              "first_begin_unix_ns": 1784465775597000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784465775597000000,
+              "last_end_unix_ns": 1784467154507000000,
+              "range_end_exclusive": 1378910
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "763bf954dbe5da648692e599814b8e5a15e01eb92024874294a6c122a1113617",
+          "original_mouse_csv_sha256": "5daa8b9629e6d90be705693ed461238c7034f7dc9df89833f1f051b724f37bff",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "be64f816dc066a63bcd3e7332f436a7ef86e79b9c9706092e684364f44c3a118",
+              "size_bytes": "4133"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "815297e07d79a5e485da275cba883f0cda96be8c5ebbe5292bbeacea2ff18582",
+              "size_bytes": "31468687"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "13963d2c262c0e3a1925a954e5a9560e0aeb6d1111f8077d0cc2760f878423fe",
+              "size_bytes": "12049"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "eb9057090df5ae7027fa85f1090c4a0622b294fdfd4ba638d56aae1a83949766",
+              "size_bytes": "4455128"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "c58182e0e9d709c719d1b0f5655c154a7925c4c135b6b95027bb38f1a11ea8ad",
+              "size_bytes": "11728"
+            }
+          ]
+        },
+        {
+          "session_id": "s-4988dd0978ba38368aabcb2542d250c1",
+          "user_id": "u-fefccbd5991d8f3985c16fa12ba3ff17",
+          "historical_role": "T",
+          "ticks": 1381178,
+          "windows": 1307,
+          "dropped_tail_ticks": 986,
+          "prepared_row_start": 25731,
+          "outer90_row_start": 44969,
+          "native_count_logical_float32_sha256": "d6293dc9d9e2d18378ca82314f3e14f398b14ef3af304603352e26f41ac6c742",
+          "original_source_npy_sha256": "37ca4c7953435bb58867c9929da305f9c438158e4315c67a51727c50ca6b6063",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1381178",
+              "first_begin_unix_ns": 1785256922659000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785256922659000000,
+              "last_end_unix_ns": 1785258303837000000,
+              "range_end_exclusive": 1381178
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "7a3a9a70841886a316d43ef9abc6aeee5e51c6a23023bfe384e274d3127465b9",
+          "original_mouse_csv_sha256": "3d7b5562e36bcc808efeaefe28b96949c334d6c82f2884d19b75254cd9ed7a6b",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "4d59675af5aede9fb3b6c44388a555f9e21fb5dc5fbf98c802cdda89a32a16e9",
+              "size_bytes": "4157"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "11e8b242d23919f82c4be6de87999ac909ecaded0ab0c9408b93156e909024f9",
+              "size_bytes": "26904919"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "7b68f7d35047d2513408796654525c6501f0dbe60ec5dc89b2f5a0beb7f274a4",
+              "size_bytes": "12594"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "f99f8d820138b1e90144560418384dad2e534b25191ad56e2835b26fc739745f",
+              "size_bytes": "4787584"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "a57c36341392062228b629c2ab2169f06cd02a2a40108d0df3d78112f921d763",
+              "size_bytes": "11854"
+            }
+          ]
+        },
+        {
+          "session_id": "s-4b3d515ee675e9d659a87ad0ec2b70c3",
+          "user_id": "u-8bf7ef5070179142ada0ea869cdd53da",
+          "historical_role": "T",
+          "ticks": 1624944,
+          "windows": 1538,
+          "dropped_tail_ticks": 816,
+          "prepared_row_start": 27038,
+          "outer90_row_start": 46276,
+          "native_count_logical_float32_sha256": "296d296976ca3a94b86eec888c5b8b6f2cfe519c768b70e894e077989fbbf07b",
+          "original_source_npy_sha256": "643dca88ae23ee4fa39f373660bb8cff0f1ee6fc67587ffe655ea0b74000d878",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1624944",
+              "first_begin_unix_ns": 1784084769262000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784084769262000000,
+              "last_end_unix_ns": 1784086394206000000,
+              "range_end_exclusive": 1624944
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "bc6c98758ac7e8e38b774fac0a22aaf2bfe391845606debdd7a02555a91a1b1c",
+          "original_mouse_csv_sha256": "cb85ee11cd7956c03362ba0b2ca433c9ee2f0b136e847d7a9d437cc3ce457adb",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "1838845a31a16774b30e19dc6f0c81120e507e74c04ca9fec8258d7f1815cba7",
+              "size_bytes": "4200"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "a8971aecf02622695b4b551cfb9567dedd6e0c0d674b87945b3efd29391c50b0",
+              "size_bytes": "36020414"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "63cf3a7154267df41b8954e2e0a2bd250c5afbd7eed61b8b0e8a0bbdafeb78a6",
+              "size_bytes": "14310"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "dfe4329bdcdf4c47667642977ca0d169df0ee8b18b1d3608a589aa58b2c0caee",
+              "size_bytes": "4625909"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "646c8ea6ba8ae4fda9d3a438a15410671df8bcd3ac4fd026e5e858a26c93f02c",
+              "size_bytes": "11728"
+            }
+          ]
+        },
+        {
+          "session_id": "s-50c806b2630fdae1d106219d691c8d4e",
+          "user_id": "u-fcea87c6f9428c5110f2e2011aad8897",
+          "historical_role": "T",
+          "ticks": 1389552,
+          "windows": 1315,
+          "dropped_tail_ticks": 912,
+          "prepared_row_start": 28576,
+          "outer90_row_start": 47814,
+          "native_count_logical_float32_sha256": "3bcbb9a7dd1112eeb7e1a61fe98a671e4fddf47935478b2b2b5b8d2038241f47",
+          "original_source_npy_sha256": "dd16eba96230f4c199909d1a8b557807d8075310a84f5a404a2ccd36a9fe80c6",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1389552",
+              "first_begin_unix_ns": 1784216966808000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784216966808000000,
+              "last_end_unix_ns": 1784218356360000000,
+              "range_end_exclusive": 1389552
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "634abc9c820e298add575a4abf39d204eb8cba543cbd4cb9da06a1f4a216dbb5",
+          "original_mouse_csv_sha256": "25f2e7c8f190cc93aa0e3c8d870da13c6a49d59c21cf554e84dcb3e6a5da05d9",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "511ad7303b6b77f765470e3af16ddb94ac3d287e83467bc08a228b705e925205",
+              "size_bytes": "4143"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "5b8e884d36858686664118abaa23129dd4ae2c64336de0c13060fb2ef22f8364",
+              "size_bytes": "33053253"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "5c7b1b00a2de04752b368b1ac025d5ac601509ed0c043267199318199e094b08",
+              "size_bytes": "12447"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "fe192c8193427657f062c6ce3bcbba9a41a972b33897aaf63e51827e2ea06ea9",
+              "size_bytes": "4459527"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "a283bc992989006af2dc324b2d9178cd5124148157b1d8ca9925d2058876f895",
+              "size_bytes": "11791"
+            }
+          ]
+        },
+        {
+          "session_id": "s-51e9455025028fcb9440165d3d672303",
+          "user_id": "u-f41b32467781a139f545c40f112fc2e8",
+          "historical_role": "T",
+          "ticks": 1379620,
+          "windows": 1306,
+          "dropped_tail_ticks": 484,
+          "prepared_row_start": 29891,
+          "outer90_row_start": 50437,
+          "native_count_logical_float32_sha256": "4644719ebb753f88f414239149a9613a928ba586b4f66800e063789db5dba8cd",
+          "original_source_npy_sha256": "96dc18b90ab45e7f48d8fc5616f97536809d32ace05b09edcfa30d5455b93ab9",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1379620",
+              "first_begin_unix_ns": 1784221976110000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784221976110000000,
+              "last_end_unix_ns": 1784223355730000000,
+              "range_end_exclusive": 1379620
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "b58288aa53a6be043e92e14555dc2b74de65390d0a3bdefec245f86110c0770a",
+          "original_mouse_csv_sha256": "4681ac88051de070620bc5e08d7d0fc993dfe69a5795dcdb7ef76d5cbb314790",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "d5111b5d73c4936fc476235cba4d5feb65632f4ce2e79e0297803a7d4105d494",
+              "size_bytes": "4139"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "c64de023f99eb24d652fcb0ed64b93543cfdc6dc414693dfcc2458c16baf4b71",
+              "size_bytes": "43800561"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "335c9ac736f120ff18edd8bee1269062edd834fe81a771e74a6592a71eb5e0f5",
+              "size_bytes": "11999"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "24e104b3440f754f340f84822d98906c64fd2be69e0db695e41d36a03afcbc2b",
+              "size_bytes": "4193529"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "cd1993a041fcf273145dde20d1164f12f3c92c0fc83082399d95c3223a7bebda",
+              "size_bytes": "11726"
+            }
+          ]
+        },
+        {
+          "session_id": "s-53fe74bddfb632ee6b575437d2d11a8c",
+          "user_id": "u-8bf7ef5070179142ada0ea869cdd53da",
+          "historical_role": "T",
+          "ticks": 1384595,
+          "windows": 1311,
+          "dropped_tail_ticks": 179,
+          "prepared_row_start": 31197,
+          "outer90_row_start": 51743,
+          "native_count_logical_float32_sha256": "5b8a4d772459657305e82c3db29db80584244dec73491c2801371942c8935e91",
+          "original_source_npy_sha256": "0aec05ba59ef2a620a0c1e1985bd092b2fee66749644d2849f6e35e0e2cfbda7",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1384595",
+              "first_begin_unix_ns": 1784080862221000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784080862221000000,
+              "last_end_unix_ns": 1784082246816000000,
+              "range_end_exclusive": 1384595
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "0a91bf09cf57b29bf5c7da5bbc018b32fd1d034df4f0daf7e4df30aca178a44d",
+          "original_mouse_csv_sha256": "4d8684f7697da693e5c16685da2effdaa8bdd52beed22de1c37ab72e53739a43",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "e1fd41e06e7b7ea6f1eceaa3e53a8485a7c4d0f819d221929cf56f6417225c0a",
+              "size_bytes": "4193"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "57c9adde6a2d72a46010a09baead2a1d567923c6cdfc5cab8d1d11a0afcaab61",
+              "size_bytes": "27497536"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "1e7b93051d12bbd54e848aa8cb165d68b49bb24056fdb59a00bc673e09bac68a",
+              "size_bytes": "12213"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "b75751d79b09405ebe0cbe9c7c67037e15b88c1f0b2a3aa7ec56bcd7394b981e",
+              "size_bytes": "4368924"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "e1013d56ffafbdacd3f3beeaecfb2634a33f2083a03fdc5f3b9e2e089f285435",
+              "size_bytes": "11690"
+            }
+          ]
+        },
+        {
+          "session_id": "s-5cb24071085466da1c62e9ae028d5b7c",
+          "user_id": "u-c75e5d8a1878e0c67fef1b57febd3dcb",
+          "historical_role": "T",
+          "ticks": 1378954,
+          "windows": 1305,
+          "dropped_tail_ticks": 874,
+          "prepared_row_start": 32508,
+          "outer90_row_start": 53054,
+          "native_count_logical_float32_sha256": "fd8ef2d8d7d38dabaaba8fc8ac7f83054d68cc084fbea93b0ef8a76d93daa514",
+          "original_source_npy_sha256": "440fcd0ec9cbf6d97792aa6c400e11c5b91924bce42c349413a47c06b350bae4",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378954",
+              "first_begin_unix_ns": 1784420623130000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784420623130000000,
+              "last_end_unix_ns": 1784422002084000000,
+              "range_end_exclusive": 1378954
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "e94197ba33096e897b9aac54d13d81910718775b784a6b0c1ccc756006f17547",
+          "original_mouse_csv_sha256": "9f34093cc84aaace9b9d3b190358915fe9ec99a0ee44742fbf8cf2770e2288ff",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "ce59eeb3c60dc2c9501c22e76dfe7fa3ca3dd693a0f07315fe39388c5f5d1bb4",
+              "size_bytes": "4134"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "f8be28931b6b8930dcf077881faf055769045d41ea9a8c5bfe3c9afa48e1bf67",
+              "size_bytes": "32135535"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "101dec7262f0bbd0e9f098ec4e78b73e55c16730581489d73b790228fe97622c",
+              "size_bytes": "12337"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "de0a2d09fe51b71b47340798f68f3a70347cf005fcd15adae093362fc97d488d",
+              "size_bytes": "4349984"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "005d532cc07ae7bb05440d8de230ee141242e84a8004ff47f3fb2194d06958a6",
+              "size_bytes": "11854"
+            }
+          ]
+        },
+        {
+          "session_id": "s-5dfd70c8342aa9b711f223f006effcb6",
+          "user_id": "u-d8556497ad8fefbd5b61fc86166c0891",
+          "historical_role": "T",
+          "ticks": 5340547,
+          "windows": 5057,
+          "dropped_tail_ticks": 355,
+          "prepared_row_start": 33813,
+          "outer90_row_start": 54359,
+          "native_count_logical_float32_sha256": "6dd65e5450d3ed45a8fae65667d9455b0a6046939fe303c88dd64c8746992b14",
+          "original_source_npy_sha256": "0402f651e4bd1b84ebdeae0725fe5ca38da5cb9172697f42058b04ff286c8a45",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "5340547",
+              "first_begin_unix_ns": 1784136252653000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784136252653000000,
+              "last_end_unix_ns": 1784141593200000000,
+              "range_end_exclusive": 5340547
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "34756e63d97b424030afa4b903f74017a14d5fb49d448dd1d3f389b20acae6e5",
+          "original_mouse_csv_sha256": "dbc5034af0a62453d00ec95b26c5672608e63902de52afc08b0f28db1b8b3342",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "2df50fa332b8e3f0aeb08a31ce7d0988e577dfa39f760f1a1f543795780ca580",
+              "size_bytes": "6028"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "0a06e2444fa0f4b504a2c52898c972d2db4181e5be8d71cb1b5b89a4aebf4cc9",
+              "size_bytes": "64990563"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "b707399fa2631c4ad5c110b95af2b9f1600a2cfb9b874f001f7e40b1b7ce46e7",
+              "size_bytes": "45433"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "3478c06beacea974594d640c09c37ed04313e6c7afeaa8c8c93c59516bfadb57",
+              "size_bytes": "4586113"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "c6fe47c9f11f14a50fffb25e3aff2ce18747d1d00c42b50b2eff4d9c40b68ac7",
+              "size_bytes": "11789"
+            }
+          ]
+        },
+        {
+          "session_id": "s-5ebadcc70dadcfce47f7b763d68fa9ee",
+          "user_id": "u-b4e879b0aeb6262fdda9f1544174dc48",
+          "historical_role": "T",
+          "ticks": 1397649,
+          "windows": 1323,
+          "dropped_tail_ticks": 561,
+          "prepared_row_start": 38870,
+          "outer90_row_start": 59416,
+          "native_count_logical_float32_sha256": "5f6144e671bae28af89be4b2648a349b6a8687aa703c63b480125c4e2837d7dc",
+          "original_source_npy_sha256": "43f1bfae73ca0e7c4f8fe82cadde4abbd52f4808a5f84c84c584fd16acc62fe7",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1397649",
+              "first_begin_unix_ns": 1784397938329000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784397938329000000,
+              "last_end_unix_ns": 1784399335978000000,
+              "range_end_exclusive": 1397649
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "16382ddcb8914f2c789386f118739be33587027589558ce11280966d868dab76",
+          "original_mouse_csv_sha256": "da425c12999159e7f10746ba33b4676829006b89a5a9819391196d9d00cf5eb4",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "2ed8ca2283ffe20b8f276c744469a09fbc99b6a76ad082c12f3a02a43b838f63",
+              "size_bytes": "4153"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "b536d306278a31929e2a81d7b4eaf3480287838f01327ae4119160e54a69cc41",
+              "size_bytes": "25818967"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "285aaedec7a651b87cd8892fea32f02cc5552f56d5fb6de8bc3271bc0b2b9493",
+              "size_bytes": "12211"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "89293ea9adcb77bd89a204fac32b1d5763a60c2d5d3a5ff87a5a77e1cc402008",
+              "size_bytes": "4299406"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "21ae34fa1049027a58382182adbd79984575a1e071e434816c00723753566012",
+              "size_bytes": "11333"
+            }
+          ]
+        },
+        {
+          "session_id": "s-66ee5545a0c6a0ef7800b17ab60be8e4",
+          "user_id": "u-d320bbfc7a25dc92c28ed452c320e826",
+          "historical_role": "T",
+          "ticks": 1382624,
+          "windows": 1309,
+          "dropped_tail_ticks": 320,
+          "prepared_row_start": 40193,
+          "outer90_row_start": 62980,
+          "native_count_logical_float32_sha256": "350b9488bf863b085c54f93ad58d3e215854a50d0f1e2c1be53db0f3ebd0c499",
+          "original_source_npy_sha256": "69357e0c4faa8a5b5f487555458ddd70cbf791c5b6886352691585ee2ed2cf28",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1382624",
+              "first_begin_unix_ns": 1785021395385000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785021395385000000,
+              "last_end_unix_ns": 1785022778009000000,
+              "range_end_exclusive": 1382624
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "5994f4dd6e002a74500155c4e0fb9194d5837281605c6a168d30459bee914edf",
+          "original_mouse_csv_sha256": "d21bdcb3c907830f29dff551763efdfaf0a962ed09635a753ff1142f3caf7df3",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "dcc9f88f1a571659240df33dcfd981a7bb396b8a36fdb33ae8867e7000676b77",
+              "size_bytes": "4142"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "4cbf9e660603c3a9a2205f3b17bffef7b31ea0f1c4d2eede80cf42ef24bd17fc",
+              "size_bytes": "28000045"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "70254addbbd1b35b17cfce007b35859c741bf51a15155ac25a321660f1c3f509",
+              "size_bytes": "12202"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "31bbcc520fc8f0677fb0bc08e29730d740cfec59c678b31aa99e00e7bd33b677",
+              "size_bytes": "4201418"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "8078bcc39c0d2f74d04a00e70c1c57c4b70edcb35a5c8b5e7c04d431bb36cd02",
+              "size_bytes": "11330"
+            }
+          ]
+        },
+        {
+          "session_id": "s-73caa9b84d0f8c537d804bae2f46c7cd",
+          "user_id": "u-0f29bd18a87a79c01675674137fa2c68",
+          "historical_role": "T",
+          "ticks": 1378413,
+          "windows": 1305,
+          "dropped_tail_ticks": 333,
+          "prepared_row_start": 41502,
+          "outer90_row_start": 67668,
+          "native_count_logical_float32_sha256": "9a281fbf028e0123025865da6d474ba4b08843c3e655e0afda9c398e6bdd82a4",
+          "original_source_npy_sha256": "6fc1aaed6e66dd85ec2231dae6a36f958965b70cbcc40c8b069f8ea81561f12e",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378413",
+              "first_begin_unix_ns": 1784071127983000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784071127983000000,
+              "last_end_unix_ns": 1784072506396000000,
+              "range_end_exclusive": 1378413
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "69ec2f58d6fd93d5a64a4cf62e9de15ceff7f54b237b083b645c75eefceed5ea",
+          "original_mouse_csv_sha256": "26afb13ee3b04f6bab12d5b26e9bcf353f4ad0c9f97aac9fbbbfde3c8c5820c2",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "cac30c3c071ce9483377fad8900954a10a5fd5c70a8dd1993a1ef72a48a8c723",
+              "size_bytes": "4144"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "5bc77cc494e06e6c95c6a0b1b44d8a9eab78473f2fab8f466879268f22f86640",
+              "size_bytes": "30972440"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "71189a5992cc1b9d4373b59a63fc3534bbc6c06a1a3717606da3772f0c814ce7",
+              "size_bytes": "11986"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "f51452788af4fc549e88ca6556043bbc55ff925446c5d6fd7d7fed75d92e30ff",
+              "size_bytes": "4208698"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "785509fa3af1bf11c263474b08ba37aaccd31bb0e18e908164809f2b42c1f8ec",
+              "size_bytes": "11723"
+            }
+          ]
+        },
+        {
+          "session_id": "s-77b103b001fd941c4f06029756592434",
+          "user_id": "u-cb29b3d7e4a06d8bcb3a8ae49b1e5519",
+          "historical_role": "T",
+          "ticks": 1393663,
+          "windows": 1319,
+          "dropped_tail_ticks": 799,
+          "prepared_row_start": 42807,
+          "outer90_row_start": 68973,
+          "native_count_logical_float32_sha256": "0e36ac0e88df4b5f187f16c79d6cd556b3a2dd33ab038257c64331065a9a06f8",
+          "original_source_npy_sha256": "5528d81fc1d463835aeafa82615b4aa1c8ca61625471007a76d660f7550190f7",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1393663",
+              "first_begin_unix_ns": 1785512805665000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785512805665000000,
+              "last_end_unix_ns": 1785514199328000000,
+              "range_end_exclusive": 1393663
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "e13bd432e3f636cb1150f6fd0c972436195b229fc390dd86a7e70fd619e06181",
+          "original_mouse_csv_sha256": "d4d02a0c53a7215d2d2d86cdf03135149693365603748c4ddfd41aca5b7c3dad",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "5588abd59f32189ce77041e467064d7c8e3a6c7f67993d69d48e4a617f3c551c",
+              "size_bytes": "6146"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "3ae3377b6c3dfab5ec5ef9d56f93ba0bdea877d88ac011148431769652eb75d8",
+              "size_bytes": "27148452"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "9655887bb826f82f6e04fe0bea98ac99ad5a122656b7777bf7f28647ee0162f5",
+              "size_bytes": "12449"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "5d4bb89631ad81684d5c4f404858aeddfede7a6e336e73015775b117691e812c",
+              "size_bytes": "3186660"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "642f5fa94d21f3eb38b5e5d1df0c63899270cd7c09b51d38fcddd949e6762a5f",
+              "size_bytes": "11426"
+            }
+          ]
+        },
+        {
+          "session_id": "s-7af8472c87ad7262509858beddbc91d5",
+          "user_id": "u-fcea87c6f9428c5110f2e2011aad8897",
+          "historical_role": "T",
+          "ticks": 1375276,
+          "windows": 1302,
+          "dropped_tail_ticks": 364,
+          "prepared_row_start": 44126,
+          "outer90_row_start": 70292,
+          "native_count_logical_float32_sha256": "588d714d688098be712524f669fb24ebdeb19c959414c9d3ea4b911ffd7e7478",
+          "original_source_npy_sha256": "717c544ac4252c2d3c3491473a32a66a9466184fdc173d80e3381ca9749d0da0",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1375276",
+              "first_begin_unix_ns": 1784218767864000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784218767864000000,
+              "last_end_unix_ns": 1784220143140000000,
+              "range_end_exclusive": 1375276
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "187ccbb8cfa474dca69df616a57708bd2b8246000824c0d1102b63a14703fcd2",
+          "original_mouse_csv_sha256": "bf308074143488c2e3e336d9dbbb0224de3dcdea21f7d4f88d9d2c2896f4fa5d",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "fbb79728858441a76277ecfa1e0ca16459241318ccca9352be67b7b869b3fb5e",
+              "size_bytes": "4139"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "b58b304e94b0f5f0ba2daab8964eeb1ad4c1a76b3fd1cc973d621b7858072027",
+              "size_bytes": "29632110"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "70cd529a9877e6c898808bf6587d33f2904c6c783886e200b84ae5fa0a5b3ff0",
+              "size_bytes": "12194"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "8ac02d52336e178925ced6f166feddb2b283facd3f181db30bc1c7810774ca9d",
+              "size_bytes": "4473336"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "72dde355a6c65a82b4ef4f8cf88e090ddbd78b2c062fca3cf263f90e96c5033e",
+              "size_bytes": "11749"
+            }
+          ]
+        },
+        {
+          "session_id": "s-817168f9a491ac579dc9ccacf3573613",
+          "user_id": "u-b719956f4a2989a912ee249747efad67",
+          "historical_role": "T",
+          "ticks": 1413842,
+          "windows": 1338,
+          "dropped_tail_ticks": 914,
+          "prepared_row_start": 45428,
+          "outer90_row_start": 71594,
+          "native_count_logical_float32_sha256": "aff5c0a76f21dd65af3a252a7c1a29c566b6e3a0eeb48321309a27b6053bc2cd",
+          "original_source_npy_sha256": "77a17f620cbd8e6db1af950bcebb49ac36b3d7f26d51a14f5214aab84bb607ed",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1413842",
+              "first_begin_unix_ns": 1785429221350000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785429221350000000,
+              "last_end_unix_ns": 1785430635192000000,
+              "range_end_exclusive": 1413842
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "81ae358c4d2fde93c266ad0448359d33b3d334dcb102eccdd853a0e17618168a",
+          "original_mouse_csv_sha256": "6e8c35e4647e7f479fbdcbd75e5f197ac71ffeb442e164a2b29f3294e95440bf",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "242312ffcd83f6fecc70362b95c05ab8d7d41ef642283093ad83475b07f18cba",
+              "size_bytes": "4156"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "0631161a6e238a8eee1e3eebd650aa38e9105e1480e0d2c0211cdf1df2581598",
+              "size_bytes": "63516736"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "e1acc29204007b9c06f2d9a389bd7b51e8cfdea39070dd28d880617bc688cc16",
+              "size_bytes": "12480"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "917231fa3a904940084b4da2e6dd53e46c4ddda10e2099111a50edb1ff619e32",
+              "size_bytes": "4316731"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "00b99a75a242a9cebfc5f4d5e336d3768ec3e27e187ed0bbba3cd40aa58d30e8",
+              "size_bytes": "11717"
+            }
+          ]
+        },
+        {
+          "session_id": "s-86f736454222d73b2ef200d084df8d31",
+          "user_id": "u-5bca06704c95226d885f30eac0146be6",
+          "historical_role": "T",
+          "ticks": 1368962,
+          "windows": 1296,
+          "dropped_tail_ticks": 386,
+          "prepared_row_start": 46766,
+          "outer90_row_start": 74238,
+          "native_count_logical_float32_sha256": "841d4268b22fed5f43546dbd14e6363020a1c51795356731af70f1197ea752c7",
+          "original_source_npy_sha256": "a777a2494e7abf30cf9ced18d004d8b71123253a1bc2147f5a95a94ae9daa909",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1368962",
+              "first_begin_unix_ns": 1784161610589000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784161610589000000,
+              "last_end_unix_ns": 1784162979551000000,
+              "range_end_exclusive": 1368962
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "103a0e70193c8eb4ea9a038cb666b7535ca422263a2b2c971487eac55142e55c",
+          "original_mouse_csv_sha256": "fc7ab3a58e5bf8d4e3cae1aeceed5afd280c7c9ebc39e6d6e125dfd7c5a7e0f0",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "14f46f96e2b84b5c65ab2954d1b9a9e31f81f2e1626002cb33ca4f836dbf1c1a",
+              "size_bytes": "4178"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "d2e613745a1f006c024bb84ecdb02ab754c600758e2803bfa30d7b4b7783dd24",
+              "size_bytes": "39744984"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "d65a5886907ce267dae0d1eba296368cb9adec0cc09e0dfa0bd2d67eec197957",
+              "size_bytes": "12049"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "4539b2d6e55252a34ca502e777dd62cb62bb6a44e729e49d88c9eeead2f02b26",
+              "size_bytes": "3896971"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "967e11273fb5a099cbb19f4b677fc2ddcb5f7c1c6a9dcc3c893e4d16ffe03059",
+              "size_bytes": "11749"
+            }
+          ]
+        },
+        {
+          "session_id": "s-88feadba7473a2428eedddb6cea000c6",
+          "user_id": "u-998f9458b6fded96484cc0ac48081fef",
+          "historical_role": "T",
+          "ticks": 1449214,
+          "windows": 1372,
+          "dropped_tail_ticks": 382,
+          "prepared_row_start": 48062,
+          "outer90_row_start": 75534,
+          "native_count_logical_float32_sha256": "4ca1617bff0f785dd14cb5e46919f1d2a072fd732e28b2405e08f18e9d1eaa5a",
+          "original_source_npy_sha256": "fcd81584c19e26fcc171c977bd4f832ccf977fdf8000daa8be1c2c63f531c982",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1449214",
+              "first_begin_unix_ns": 1784621068595000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784621068595000000,
+              "last_end_unix_ns": 1784622517809000000,
+              "range_end_exclusive": 1449214
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "4fad8136d8ccf46d6be34a74cc617eba7d6994919a6a6a435c806a517f651b5b",
+          "original_mouse_csv_sha256": "40e8856879f77f5948ca9d3af8daa3fd8ada34fb4c7dd7d773ca0ac3cc5fdcc0",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "2292cd1c2fe33a8029cf21cd514a2eb1118bd2fd31bd509261bf9159f96a4a94",
+              "size_bytes": "6736"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "0fcf76210f325e59c9fc1e1daa3ae6e5347dece630d4b5c70567c46e45ef7209",
+              "size_bytes": "41271678"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "e3385347c06f90544acb3f806744574a4d0ddf48d05d9ec7bdf569149cba8742",
+              "size_bytes": "12748"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "da1350f1ec29adb7b8429e75833b80d68f850e1fee9ceb2ee63088f4a2f47a89",
+              "size_bytes": "4216529"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "0f36589a469b678a56879755c94a2cc00bd83f041aaa961738dbd7183b5fbb75",
+              "size_bytes": "11726"
+            }
+          ]
+        },
+        {
+          "session_id": "s-8cdddcd2b06e1ea615d3ea46b5353a27",
+          "user_id": "u-c75e5d8a1878e0c67fef1b57febd3dcb",
+          "historical_role": "T",
+          "ticks": 1378401,
+          "windows": 1305,
+          "dropped_tail_ticks": 321,
+          "prepared_row_start": 49434,
+          "outer90_row_start": 78210,
+          "native_count_logical_float32_sha256": "9cb0f15bf8036add52c03baa81f94dc09d5e01adecc6419008e009723e2dee76",
+          "original_source_npy_sha256": "2d510d93f91c0f4604487fa445bf804b941c0dfe131b4b8be60a8b2f846ec635",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378401",
+              "first_begin_unix_ns": 1784467311868000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784467311868000000,
+              "last_end_unix_ns": 1784468690269000000,
+              "range_end_exclusive": 1378401
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "322a81144e446628acedf2bd6092d4ec8d63703fdb2ae01fd5ba7d4a0b3bcf3d",
+          "original_mouse_csv_sha256": "65fd546ad02e02eb31cfa603251ec45fca3fb1dbae5485eae1f8b78328fbc193",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "cd48dddc58d2f78f3fb445f1d64839c316baee26d1ec13c18137ee8f71d52140",
+              "size_bytes": "4156"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "9fec566b17ca3967dba5698d76fefd8122377a5677a4318e41cbabba7ed0a815",
+              "size_bytes": "26173478"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "7a5aa5288b95a144630f97acf15d6425d85d0fcbd0a77848940fbdb312c1b1d5",
+              "size_bytes": "12300"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "8d676cb73ce55f19ae52ddeac91dddafbb60f40b72646f09d75e8b7753328deb",
+              "size_bytes": "4577399"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "4a19b6b5c4ee5d59e59436eee7bec9b28070e22dcf9d157641392d8b3b522fee",
+              "size_bytes": "11728"
+            }
+          ]
+        },
+        {
+          "session_id": "s-9132e0018eda00e131a25095359778ca",
+          "user_id": "u-b66091362095fbdae0f62be0478f9dc7",
+          "historical_role": "T",
+          "ticks": 1604641,
+          "windows": 1519,
+          "dropped_tail_ticks": 577,
+          "prepared_row_start": 50739,
+          "outer90_row_start": 80822,
+          "native_count_logical_float32_sha256": "d75102d9d48d4d6797ada42a4cda58864f993bb6d7ec7735ede0d260f6c13abb",
+          "original_source_npy_sha256": "51d1f0974fe48650c89656490c8474d3c50b2c5dc2d38aa70e9cab0411b639ef",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1604641",
+              "first_begin_unix_ns": 1784143792641000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784143792641000000,
+              "last_end_unix_ns": 1784145397282000000,
+              "range_end_exclusive": 1604641
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "015cdc744a3dd76773dadaaca7320242d39c94bdeeb7315a3fa46c7a38f85a10",
+          "original_mouse_csv_sha256": "2aa4f5897d6eb7bd3ff9fb2db0727c87ea723547575ce318ab824f6077f95ea3",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "23e689267b690b0fbcbd86125644e08edc8dff5bd8388bfd1206c79d406e38c3",
+              "size_bytes": "4175"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "db6414f9235b554150bfc8e2e5cb23dea7041a95516a4f3c325209958baeae9a",
+              "size_bytes": "51215815"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "8b825b184824fb799f695518dbfaf19471f0187ccdeea7eefa3f62bde5149ed6",
+              "size_bytes": "13970"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "6e825fe1b3302bf7d23efa6fc799af15872fae69ca30ab338fb2e0f5dae45837",
+              "size_bytes": "4231072"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "ab0a155452560d8eebb969bdb939d662040d92d27e804c5e44091ae91162068c",
+              "size_bytes": "11717"
+            }
+          ]
+        },
+        {
+          "session_id": "s-928e182020c7e1b0191d2348c3d58b81",
+          "user_id": "u-e40713d4d7ef071dafe44b4e6ac321a7",
+          "historical_role": "T",
+          "ticks": 1423180,
+          "windows": 1347,
+          "dropped_tail_ticks": 748,
+          "prepared_row_start": 52258,
+          "outer90_row_start": 82341,
+          "native_count_logical_float32_sha256": "54237464b60c6be7e7b0c08a93ec475252a1cf02d5a4223a839a9c978b2c825f",
+          "original_source_npy_sha256": "69244cdd467667a57c3f893d76170067089159cd8148fd24538dbdb2bb4bdde2",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1423180",
+              "first_begin_unix_ns": 1784912351946000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784912351946000000,
+              "last_end_unix_ns": 1784913775126000000,
+              "range_end_exclusive": 1423180
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "6e09fb26e6842317bc83207fac071fd3e054db51c30a91025ac2b1c83904adde",
+          "original_mouse_csv_sha256": "ecc0650c9aaf3aaa3c39a4ec72e9ef8dec5f06bd545c41d164d7f1f019ea1db6",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "ab5c100d85a9c7c2f3f195d4866096ebd04b386c4329255c5edcc13584cec700",
+              "size_bytes": "4140"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "24f551da11ea15cca83f6e0810d4d40b323f4e54757fd1c97331b92425431ce6",
+              "size_bytes": "42910096"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "b0e53cd9ae8eef08bd8093f6973ecd441c11a795e63853a8de6b8f6263483dd6",
+              "size_bytes": "12509"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "169ef482ef35720d293e7d25158f741b278ff19ea230048708ad9182e001ee80",
+              "size_bytes": "3804236"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "6e44c39e9a655e5ce735e1ff013f1694d5464876983ca78aec1a6d744b5076de",
+              "size_bytes": "11352"
+            }
+          ]
+        },
+        {
+          "session_id": "s-9b814653ea15f1d810d154481e7b1ec3",
+          "user_id": "u-a3d5dfdcfb5a378b298d3827ae03c847",
+          "historical_role": "T",
+          "ticks": 1387480,
+          "windows": 1313,
+          "dropped_tail_ticks": 952,
+          "prepared_row_start": 53605,
+          "outer90_row_start": 84994,
+          "native_count_logical_float32_sha256": "61e9662de362bc17dc044b321560ea1981866fd71eee954823668373f46d9fc3",
+          "original_source_npy_sha256": "7c165f8c1769b962529b20dbb63fd3d5e054c37adbf3bc57c8a7cb54e92c398c",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1387480",
+              "first_begin_unix_ns": 1784894354048000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784894354048000000,
+              "last_end_unix_ns": 1784895741528000000,
+              "range_end_exclusive": 1387480
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "ad3c9fa95240d2bea773bca0eba41d098bd35e6b65f171a928d71c278b30955c",
+          "original_mouse_csv_sha256": "18722a05d6e49e6e598b480beb6c8948e0d811567cd56b215ccc6e63431540c8",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "0342a6a0b180eaa535c42641068c5d311f33754278a2cdb0d7f77a9bcbc44f54",
+              "size_bytes": "4173"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "2ddd481abb05bf8eb21eff14fc7be7c90d2edaf9ea6a0044ec27dd76774a3a81",
+              "size_bytes": "34464880"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "902b3083d43835c578717b2427fbe52ef5561f9d888ebd1b91bab4f796987168",
+              "size_bytes": "12249"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "f7321ebfc704de303a8ac3e82058caff5bfffa0e921956db71a5a31f18cdcf52",
+              "size_bytes": "4199170"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "30b137ca46ae7e5f4c299ecb4e5c32bfd391d9de7d8d5271c86ca1465602d3f6",
+              "size_bytes": "11687"
+            }
+          ]
+        },
+        {
+          "session_id": "s-a0582282544a2c9848563a915b477e2b",
+          "user_id": "u-f78b95481766734c4f9770c1c69db2c7",
+          "historical_role": "T",
+          "ticks": 1421659,
+          "windows": 1346,
+          "dropped_tail_ticks": 283,
+          "prepared_row_start": 54918,
+          "outer90_row_start": 87675,
+          "native_count_logical_float32_sha256": "83539497c7d479327d5ab2d034c72abf12c9132d9e87acfe4e85a2e537cabe36",
+          "original_source_npy_sha256": "7317d78682c6be47bf1d8347e41c311920ebbe8c0034afa73ab941109c726c23",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1421659",
+              "first_begin_unix_ns": 1784737617108000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784737617108000000,
+              "last_end_unix_ns": 1784739038767000000,
+              "range_end_exclusive": 1421659
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "7412ebdccea47132bf62d3feb80cbbd3a16f4acf1e6133bbf9bc0239f3979794",
+          "original_mouse_csv_sha256": "6f1060a6c57dbcab028a3a81ef09be91c1641faa830f423322684376f8c072f4",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "a598b07c154f5131d6249667e8474643d633ee2c07e795d9356f7a5442e5d0b7",
+              "size_bytes": "4181"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "dcbe6a1ecf4f56eb88c476792ddcf789d57d739220f63a6b9d2a35a467c75eec",
+              "size_bytes": "52447780"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "8faae3ed0e7b5f7f0568cfb705c6ed3e7b4f8f27c967b38aca82f02820dec3cc",
+              "size_bytes": "12473"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "e5e6f8c49499868161c751a09cf894497e459f8805837a45f81d9669066ec66e",
+              "size_bytes": "4472781"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "9be80fc6431b084fd51c0c944762c048a721c2f542a55392902a850031de36ed",
+              "size_bytes": "11714"
+            }
+          ]
+        },
+        {
+          "session_id": "s-ac3bcadf44b204a089aaee2df6643cf8",
+          "user_id": "u-388d5fc598f9ddc553f5b6ab0afa4548",
+          "historical_role": "T",
+          "ticks": 1378178,
+          "windows": 1305,
+          "dropped_tail_ticks": 98,
+          "prepared_row_start": 56264,
+          "outer90_row_start": 92014,
+          "native_count_logical_float32_sha256": "08ef162f23979b915e6c86fa8865d8c1e310ea6362886133157eb4320245dab8",
+          "original_source_npy_sha256": "77d3d8cf25dd15c32d13651f45ad6006671c8be9dea655829b05fb31e6c2a859",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378178",
+              "first_begin_unix_ns": 1784140790960000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784140790960000000,
+              "last_end_unix_ns": 1784142169138000000,
+              "range_end_exclusive": 1378178
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "7f77811c9e336aa324ddab7a93642e6347576172bdf0c6e7802db1dff12d7932",
+          "original_mouse_csv_sha256": "10b129b14c30617dac89df421acb95d28b52ba16c8090fb8b77417673f7f88e7",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "26a455e9d6be4ebd8f2d04a68f4267671bf9141c85fd76f38963723b62017132",
+              "size_bytes": "5996"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "53b95aedb47de730ef0265acde7d57ac87df2cd93871505ad34c2ef3a670942b",
+              "size_bytes": "56851684"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "0daf322982495ad25c33af1ae1820cb67ff6a1455f724e95f52f9c3226d2ec06",
+              "size_bytes": "11975"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "cdaf0688d42ef72e29e4f9254f3bedcc31e5e3fc97f5cfbd435fdda3313a1809",
+              "size_bytes": "4323176"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "2c2e054ba8d832f3d7e6c7b0038d46dcc37ae1d2d768c38faabae38f54ac4a13",
+              "size_bytes": "11714"
+            }
+          ]
+        },
+        {
+          "session_id": "s-bee67d08e9f3910237a6f844f90101fd",
+          "user_id": "u-c75e5d8a1878e0c67fef1b57febd3dcb",
+          "historical_role": "T",
+          "ticks": 1379622,
+          "windows": 1306,
+          "dropped_tail_ticks": 486,
+          "prepared_row_start": 57569,
+          "outer90_row_start": 105650,
+          "native_count_logical_float32_sha256": "a80e9a0e33b8494cbc1373134f1c26b6b3ae916c449959686af131850130eb0c",
+          "original_source_npy_sha256": "37d8c6c4682e3ff0b385beda78a8895b48e26d3ec8c4258d7570a0ebd0503be7",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1379622",
+              "first_begin_unix_ns": 1784422382818000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784422382818000000,
+              "last_end_unix_ns": 1784423762440000000,
+              "range_end_exclusive": 1379622
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "3cbf1154076a911bbcb7393bd75e7b29a4cd94752ce9fb2dc7fd9e61c6599b73",
+          "original_mouse_csv_sha256": "a29de40856562d446f5323400c9c5e55a8b6ca18c1701e5bd87f2d29dfa0a44e",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "dac1b8810196892c1a95583eab9b56d58912949141615c2e7a074a571f9672aa",
+              "size_bytes": "4161"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "28703356cb5fdaa3d5fe07a3463126c9222aaf5437a997a7962c778ef5a706da",
+              "size_bytes": "26586890"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "de2fbb6f3a418a0c3ea58ed8ef3ed7b373b1bb2156361bb2a90f01bffa623ce7",
+              "size_bytes": "12337"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "c9339bb00f7a8cfab51a1e353db72b64671fb66951ee361bae94c9bd02d415cc",
+              "size_bytes": "4560010"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "5e8d114d7d39479090efcf2b198ee965b839c2bc581905c0e02c1f629093d77d",
+              "size_bytes": "11854"
+            }
+          ]
+        },
+        {
+          "session_id": "s-c18630d81057d21034558d76d1253068",
+          "user_id": "u-67984d528120bc72a58af1ee4b831414",
+          "historical_role": "T",
+          "ticks": 2017152,
+          "windows": 1910,
+          "dropped_tail_ticks": 192,
+          "prepared_row_start": 58875,
+          "outer90_row_start": 106956,
+          "native_count_logical_float32_sha256": "b33740cba1c50fb90e47697a40c495832d63edd6388fb28e2eea018da93d3575",
+          "original_source_npy_sha256": "4c0d92ded76145fb949f1980c6107de794654865cff18f9e0d17da598445153d",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "2017152",
+              "first_begin_unix_ns": 1784130765717000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784130765717000000,
+              "last_end_unix_ns": 1784132782869000000,
+              "range_end_exclusive": 2017152
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "96afa8e2d41ed8a6408ad99c4325d424fdbc509c50d5e27de62e95843961ed05",
+          "original_mouse_csv_sha256": "5832b016bee79cb8c5681b01bed2efede86f6dc56ba52317488fc455d43d226e",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "ed6376c0753955b52f94ef386790c66ad90ccecce6377a4e04c8877a3c068740",
+              "size_bytes": "4193"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "9e8a969e442a1b7be7dfa6f543a7f8855d8695a7bff2b05f11b47a3809628a2d",
+              "size_bytes": "36414270"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "5390c8fcaaab5429f32eaaac67316751c56d35e172a0f306ae228d38f9e0f64b",
+              "size_bytes": "17562"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "be8264d585c50d61b203f8d497b03810b79c199310248c8f4e107fa3bb2cc31f",
+              "size_bytes": "3999702"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "6c161116b0e287aed8dd02aaf2783fcc76e316726ab584cb379c95e788212dd7",
+              "size_bytes": "11747"
+            }
+          ]
+        },
+        {
+          "session_id": "s-c1e8fa540a85e19ef3243001deb4ca9e",
+          "user_id": "u-a80a9d09ac6dd6f99c209a23f6a2fc34",
+          "historical_role": "T",
+          "ticks": 2832485,
+          "windows": 2682,
+          "dropped_tail_ticks": 293,
+          "prepared_row_start": 60785,
+          "outer90_row_start": 108866,
+          "native_count_logical_float32_sha256": "b6b72dce97815cb85be605df8df9318ec2bea26da63de32e0c161b4d77a8285a",
+          "original_source_npy_sha256": "0414515f9751d1e8610a1e40e2b37a9bfa962748ed5e6749ee9852fe328d7737",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "2832485",
+              "first_begin_unix_ns": 1785756824879000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785756824879000000,
+              "last_end_unix_ns": 1785759657364000000,
+              "range_end_exclusive": 2832485
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "4095b29113c5850ab4d70425b9110470dcdfc224933e56bd905971a0e9a106e5",
+          "original_mouse_csv_sha256": "6de97d287f52381ad5b7cd11e93c506d097b92e6c916722d2449ddb5ed341c1e",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "9c441fdd660c32fbebe23e252d672ef328ac46e43c43a2d1406baff4b9618b6d",
+              "size_bytes": "4157"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "8768473a0d9dc2bab3d4f60f910dfb1f9b07cbf26bd460fc0cda62d0e903e4d5",
+              "size_bytes": "37568850"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "59ffc06a68d77fe565f915519a28cdb74667b031315bbfb4c79ed6450d4efcb1",
+              "size_bytes": "24348"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "e31798caf74c1f86da3c0bbff991726f9fab41c8a6e21ff6f20c1a53c54e121c",
+              "size_bytes": "4268416"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "33bc099ba1e0ec664c4e6d64643d9d460b5094b90f060d322ec8a082685bc8d7",
+              "size_bytes": "11728"
+            }
+          ]
+        },
+        {
+          "session_id": "s-c59d1f04e3001e597187f617e57b79e6",
+          "user_id": "u-27d1b52e05679cb29a2ee7a9acdafd49",
+          "historical_role": "T",
+          "ticks": 2520064,
+          "windows": 2386,
+          "dropped_tail_ticks": 448,
+          "prepared_row_start": 63467,
+          "outer90_row_start": 112852,
+          "native_count_logical_float32_sha256": "8543cac946eeee657287ba56a16f4516e375e17ea4700a273b0df40063750219",
+          "original_source_npy_sha256": "6a2ba8061f7cf083792a37ba630b93bd23ba812b377766f523b08de946e35e64",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "2520064",
+              "first_begin_unix_ns": 1785051719908000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785051719908000000,
+              "last_end_unix_ns": 1785054239972000000,
+              "range_end_exclusive": 2520064
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "afe1324dfffa743b2b68e0220780a209db46aeebd7ebcb680bfd2ad8a121e5bb",
+          "original_mouse_csv_sha256": "2e2a1250f4f354a71caa0ae4bdb41ee7eeee6a0b61e74f9ccd47364255d04511",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "183355084cdd105e062cfe65a20553704e8d50dda646e64dd0ae8680dbf5c7cc",
+              "size_bytes": "4160"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "8aaf27420c88669301df61f7972f784e9aeceb96fbf9727fe242fa50ee788fba",
+              "size_bytes": "49125834"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "6aaa63ed8f68320ca8c5027b9109e5c3e260131082bc3d9138757b151d58066d",
+              "size_bytes": "21845"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "d38b320f870ededc3870512f1de3f11a5d183ecc03a8d981342cfe3d3138f396",
+              "size_bytes": "4112495"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "f261a323a9edd0da8caf8926f738f856046f2d90e35fffebc2c0504327dea150",
+              "size_bytes": "11812"
+            }
+          ]
+        },
+        {
+          "session_id": "s-c72a5819fa34365107e9696b34eb41e2",
+          "user_id": "u-ff8f98b88963fb084221ef5319436095",
+          "historical_role": "T",
+          "ticks": 1379009,
+          "windows": 1305,
+          "dropped_tail_ticks": 929,
+          "prepared_row_start": 65853,
+          "outer90_row_start": 115238,
+          "native_count_logical_float32_sha256": "6dc183ea96e1c1e7876c684282d27126f879d5322da5d052ed3ea33112bac074",
+          "original_source_npy_sha256": "bcd2df0ebce7ad13833e645141cfef2879afda667805cbf11910c958ab069743",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1379009",
+              "first_begin_unix_ns": 1785252306183000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785252306183000000,
+              "last_end_unix_ns": 1785253685192000000,
+              "range_end_exclusive": 1379009
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "028e05d2d762417f9ba293e70b31735cf693e87df989f92efd795284cac8f626",
+          "original_mouse_csv_sha256": "e61f274b9452ea8b3dc6a7178c7df69defcdb1fc11f52cffe43c932326a44c0c",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "25c229c2af358b5fc09b676310df3b2d58dd8cbb43149071c97b3f16fc525a65",
+              "size_bytes": "4159"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "7eacfb00081ef97bda5f11e2900b9d8a86152e531682e640056f6183a301d9a3",
+              "size_bytes": "50844333"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "f97379ffeae073b3e97f3b5189fbe800d40decbccedc9bb99835fb217059f5ec",
+              "size_bytes": "12012"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "eae5bd12c4d905485a8d925ef3d90077bef30cffa0c72f82b23a595841c5c22d",
+              "size_bytes": "3597036"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "a89028e39feb5658e784bc56ae7f2028a7515ad689d36a2a3fd0bd5799adc784",
+              "size_bytes": "11730"
+            }
+          ]
+        },
+        {
+          "session_id": "s-c78957d1e87322276ebfa8f6d566145d",
+          "user_id": "u-5ad411ecd89ea98414b3d00e8f72e3d4",
+          "historical_role": "T",
+          "ticks": 431063,
+          "windows": 408,
+          "dropped_tail_ticks": 215,
+          "prepared_row_start": 67158,
+          "outer90_row_start": 116543,
+          "native_count_logical_float32_sha256": "570e417d393faa6149567729487447f2c0108a9c97490dd659a8a3eef305533e",
+          "original_source_npy_sha256": "a445ec28598f162f4a750e622720d6f5f3292788859833b84f1ef21ada61c1a1",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "431063",
+              "first_begin_unix_ns": 1785132547061000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785132547061000000,
+              "last_end_unix_ns": 1785132978124000000,
+              "range_end_exclusive": 431063
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "549023ab886238c07b1df44cc7c83cb90ff0a67489780c0de6a242c89a49ebc4",
+          "original_mouse_csv_sha256": "3c6c94e953091ffbe71d6dd094f33439bab06f99b259614d8856c2ac9a93faf9",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "de2625afd14e21252560553d77f45d55f59dd0418d9bef067a0b36bcfe8dadaf",
+              "size_bytes": "4174"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "97960d4c7a07df75d458a6368248aff2b46fb54268ddcff6ac24c01f1b83901b",
+              "size_bytes": "10197563"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "c0577e01637e11c1a190ed4bdaee3f56194d47e03ed4b24d6212d70e0eda420d",
+              "size_bytes": "4219"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "c4dc8bc1de18ed17e135522aa521055b8f11d6b87e0adc695124b4d48866bb23",
+              "size_bytes": "644392"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "6165cb422bd3857cd6c4474238341515f830499ebec8b96cec8c413aed95432a",
+              "size_bytes": "2226"
+            }
+          ]
+        },
+        {
+          "session_id": "s-c845c6c2013e65d343efb20c91d682c3",
+          "user_id": "u-efad41b477580ee2b8318209e46da883",
+          "historical_role": "T",
+          "ticks": 1908947,
+          "windows": 1807,
+          "dropped_tail_ticks": 755,
+          "prepared_row_start": 67566,
+          "outer90_row_start": 116951,
+          "native_count_logical_float32_sha256": "863ca02a24f8fe2f542c325a8591a7613b4218826bfb25cde6818838527fb89e",
+          "original_source_npy_sha256": "d21759a665302203039d8567bf901be464766682b2fb9e69bf66a2f4ea362036",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1908947",
+              "first_begin_unix_ns": 1785690584541000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785690584541000000,
+              "last_end_unix_ns": 1785692493488000000,
+              "range_end_exclusive": 1908947
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "e08515844033462e4f7772b4ab575d6a43fc2d897f20b2159bd48e875bdc3774",
+          "original_mouse_csv_sha256": "a9d18b7381ed70c69cc6cb781151ceea6dba4135876daf7d40029a02f64b1bde",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "df05abd62a741699794ab2371dc9e80553bf19a627d7f51a2d766ab4a1d32eed",
+              "size_bytes": "4157"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "4ea83d7926d2655111a5868d9ebef020d69e6bb2e0e20ba01582468efacd50c2",
+              "size_bytes": "40904524"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "6d685736afe3551fdbd3a53143b0e19c2e23f720ad80f54b803a1be7d81261d6",
+              "size_bytes": "16477"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "cef5781252649e52d1c96dd3f2eb9ff6a3bab502470144800a6f71b8421b1fb8",
+              "size_bytes": "3877663"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "845854c6f4d3c9c20cf508473107207d5b4e30e94f041483788a0604ccb93e88",
+              "size_bytes": "11345"
+            }
+          ]
+        },
+        {
+          "session_id": "s-cd548c96f15b9543ac4b4d24e25bae13",
+          "user_id": "u-2b3e7b3f0e232e156c611f4c99f012ed",
+          "historical_role": "T",
+          "ticks": 4050490,
+          "windows": 3835,
+          "dropped_tail_ticks": 730,
+          "prepared_row_start": 69373,
+          "outer90_row_start": 118758,
+          "native_count_logical_float32_sha256": "eb2e3926688677a460529a3eb44f3f02e706cb9655af569e8f9f4b2b8566fcaa",
+          "original_source_npy_sha256": "c83770062c19bf503df55127457196563c561c4685646c71f289baa988580a5d",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "4050490",
+              "first_begin_unix_ns": 1784585646822000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784585646822000000,
+              "last_end_unix_ns": 1784589697312000000,
+              "range_end_exclusive": 4050490
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "91f426eb42e59ed010598f12b80c5a9bd28b7e9642e1bb72e10b5db928c51acb",
+          "original_mouse_csv_sha256": "c9c96a61c40cf50c9d23472972230155d1539cd48b32691ef0fe00e320da5e59",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "d544df70870aa51b54294aef3ac2f54e68f75f96f952e569f70ea0ca139df57b",
+              "size_bytes": "4141"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "8c85678789ab31451ae73969842b4e5e0878b35281adf915b365e831b1275b13",
+              "size_bytes": "38451745"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "236014d3b8af5aa37e489ae620982d9f1c088417d37201eb7ca982c45b642f12",
+              "size_bytes": "34425"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "2c427c41e003989d3418dd75b3c90f7e1c62a9b777723679ada2dffb8b14b586",
+              "size_bytes": "4125410"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "ec8864bd0ae955c280f468354d9348de5a050e78eda2e24f1069c6269c9b5e22",
+              "size_bytes": "11371"
+            }
+          ]
+        },
+        {
+          "session_id": "s-d03415cf3517fd3b50078005be33edd9",
+          "user_id": "u-140290c8fbb70b0d4458f92980769c6b",
+          "historical_role": "T",
+          "ticks": 1415141,
+          "windows": 1340,
+          "dropped_tail_ticks": 101,
+          "prepared_row_start": 73208,
+          "outer90_row_start": 122593,
+          "native_count_logical_float32_sha256": "53222c3bafee2809156b67f4d848966ab77dc99eba583c5453feddbb4456f301",
+          "original_source_npy_sha256": "04bf1d3a999ec2bf5f0374c7c080206de6ed030ed741ff7a4396da2987752408",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1415141",
+              "first_begin_unix_ns": 1784595681667000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784595681667000000,
+              "last_end_unix_ns": 1784597096808000000,
+              "range_end_exclusive": 1415141
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "db0da2959ce3a8134fea505b30b6ca5df6073a54e455f7e6be8a429dd22d5ca6",
+          "original_mouse_csv_sha256": "a59b83e8b6b2b56a79a9c2e1eccdad5327df87689dbf084199442770c4983d24",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "7fbd07f74aa1aaa6923f17de4539a80ae1e3f3878804ce26538b4ebf35338384",
+              "size_bytes": "4145"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "2b3e9b04b6a6fe8c43d538db296b503f8deda3523c64e50cb1e761277394f677",
+              "size_bytes": "39327744"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "2528b106e327d7cd31133df791fe3713910c94a7cfd920bbda80f7f2323a5998",
+              "size_bytes": "12553"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "1a72f7e9ba00e7a25bde7c7e829c26bc399866bd0dbcdc929443d14681a68435",
+              "size_bytes": "4028799"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "a8cede29e4eff9151c148536056ed53a7246a3958fb938ed3ec1d3ef021f7405",
+              "size_bytes": "11749"
+            }
+          ]
+        },
+        {
+          "session_id": "s-ddbfbca8bbdd5da71c0973822623c034",
+          "user_id": "u-cc1eec2f8578dd516154ab81bb3c993a",
+          "historical_role": "T",
+          "ticks": 1382790,
+          "windows": 1309,
+          "dropped_tail_ticks": 486,
+          "prepared_row_start": 74548,
+          "outer90_row_start": 123933,
+          "native_count_logical_float32_sha256": "4d5386f4b23c6a21f77fa876d8cb92f91caa64ff1c68bca1b7ad508623bcbcf8",
+          "original_source_npy_sha256": "0d5163a59ef77b9fcb5dcf347a7e3824d1a2d6011607d30630ef96d0a9a0629a",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1382790",
+              "first_begin_unix_ns": 1784629006924000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784629006924000000,
+              "last_end_unix_ns": 1784630389714000000,
+              "range_end_exclusive": 1382790
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "641d6f1cf5d6bcf5fb52a671d4e836a32ce8931235fefb9fb749b8b01fc81add",
+          "original_mouse_csv_sha256": "e27a5dc8b37c08824ea41516f1df60f2331e0807c0b4345d3806a7146fc18a1d",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "c36a6b190a88112efe6b3f4ae4b4dabc6f05a31651ec52bc85e6ac431a07a32e",
+              "size_bytes": "4159"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "95323a491d3a0f09f47943e0bf08be479c809a33bad345910c9dcba4786be577",
+              "size_bytes": "54021948"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "15411ba6bea46b2eedc1996f81f594a093ad57bca515f1b649a06f809b2c2447",
+              "size_bytes": "12213"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "8f272afec761079f8d5932360ec14b4dc2e42dd3dcabdaa1f0fcb5dc020cf6ac",
+              "size_bytes": "3910025"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "4cb1c0f91a192a2ac91c8e368caecd77d284fc63b54ebaedaeab5fa137787179",
+              "size_bytes": "11711"
+            }
+          ]
+        },
+        {
+          "session_id": "s-e7eac4c5ffe0a094c177f47990e799fe",
+          "user_id": "u-2c6af5a5a0af05bf56fec1386d9816a5",
+          "historical_role": "T",
+          "ticks": 1480486,
+          "windows": 1401,
+          "dropped_tail_ticks": 1030,
+          "prepared_row_start": 75857,
+          "outer90_row_start": 125242,
+          "native_count_logical_float32_sha256": "1d005d37da5b6bfbb4aee6b92ee7356ab2ab419908aec16439fef4855162b592",
+          "original_source_npy_sha256": "a702f86b24a87bedd910c2e6fac9a4f80981557ce76c4e9181e598adf94d47ef",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1480486",
+              "first_begin_unix_ns": 1785922421658000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785922421658000000,
+              "last_end_unix_ns": 1785923902144000000,
+              "range_end_exclusive": 1480486
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "68f1096fea28f86efc589917e93ea6771477a084c73e328b50330ca5e33e55fd",
+          "original_mouse_csv_sha256": "a22f198f6e99d0c65720b06a1ac1e670612f84ff2ffeb5fb923bddc16e523451",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "24a6148fea770dc9a978427ec0198ec7c7fc3f01ca1386cc9f6327107bfec807",
+              "size_bytes": "4143"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "cf074d53dfe2d033ac9b12a5191fddc1218cf2bbe8737658e5123fb353e91b1c",
+              "size_bytes": "26114442"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "4dc0bd566e9fbbec752fc3a3a8ab49514bdc4ad0721a1c43cf33c2bfd9290872",
+              "size_bytes": "13011"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "79a45542c02a4fa7c5a238ffacb282adc801bba1a1bca809db3dd2e5b10fd94b",
+              "size_bytes": "3980083"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "2d917247065bfe33e98af99ff47bf2cf82edf873d973a8f0af707a7264b79ea0",
+              "size_bytes": "11705"
+            }
+          ]
+        },
+        {
+          "session_id": "s-eb28d5311f6fdcee25ec923cdb5d53fa",
+          "user_id": "u-ea58b9720b2785ae91b8cafe44537ba5",
+          "historical_role": "T",
+          "ticks": 552091,
+          "windows": 522,
+          "dropped_tail_ticks": 859,
+          "prepared_row_start": 77258,
+          "outer90_row_start": 126643,
+          "native_count_logical_float32_sha256": "ad343bbe799769f2209fae24e4bb49eb336e6a91c47656f5cbf0b0a4497d381e",
+          "original_source_npy_sha256": "0ef540eafbbe09047616efaf2f26d01cf85d38775ae5fe2cfee097030e1842bc",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "552091",
+              "first_begin_unix_ns": 1784103994343000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784103994343000000,
+              "last_end_unix_ns": 1784104546434000000,
+              "range_end_exclusive": 552091
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "3f3359c2da4fa64a9ed6778ce50c06606234658b55d3de7a9ed0c8e32e8ebb66",
+          "original_mouse_csv_sha256": "ceedfd370eea9d2c6a5bd1edd2b3ccd717aa1dfd5e02756b8818dfad7db01a0c",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "8e226172e95a24b4d4de9ca0486a6aa869ced06a2a803bea3419535ccd374fce",
+              "size_bytes": "4164"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "4994c2ba1e6aa0cc11971db0f9cde7d150041b2839bffa9a0498c187cc97770b",
+              "size_bytes": "16931589"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "918ae9fd91d40e2f72fe95d8a15490d3e3ae8b5bc04681dca94456329b3256c7",
+              "size_bytes": "5209"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "d2d6b4a76691782a32365aede2ec4a44f945f68da829fa1fa69104b5bc0f3219",
+              "size_bytes": "1697275"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "adf0be16f428accd72440e12ed265c18f360f4a81adc1537583d4237ab1dbfd5",
+              "size_bytes": "4290"
+            }
+          ]
+        },
+        {
+          "session_id": "s-ec7f8707261ebb23e723a513a6f21374",
+          "user_id": "u-0f29bd18a87a79c01675674137fa2c68",
+          "historical_role": "T",
+          "ticks": 1378522,
+          "windows": 1305,
+          "dropped_tail_ticks": 442,
+          "prepared_row_start": 77780,
+          "outer90_row_start": 127165,
+          "native_count_logical_float32_sha256": "b2ce168b319d2be6ae62177f4ad5debd9102bcf34b758bac45e80ab221c0bea4",
+          "original_source_npy_sha256": "a37f8847c36bc569a415e96f8233cdbed2bb99cabe29f74a93415de100ba661d",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1378522",
+              "first_begin_unix_ns": 1784410973331000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784410973331000000,
+              "last_end_unix_ns": 1784412351853000000,
+              "range_end_exclusive": 1378522
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "ed107a4c0a986b779dacf65c2eb081e2a8e53fb89998442ff7d42b0845742a04",
+          "original_mouse_csv_sha256": "b3067c6a29fd8e0ef4fae788696253f749761326bea9fd1b878b501b128cf134",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "67c6502a8bcc8b2cbcd11a071e760a19edbb97690c4f5bfa69ee1524f4a45658",
+              "size_bytes": "4163"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "5c46de2f32924abae20e9118b1d4f41b280d6697485d72d576ffc7fb2fc618a3",
+              "size_bytes": "30328278"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "51b938bee2b8f5f35b536fcb560f503e6f4c81d2429021051dcc553663fc4f4c",
+              "size_bytes": "12339"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "9f62efa71e4af702719696306987470c1572a4526fa9de90e2de569c7059b87b",
+              "size_bytes": "4078631"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "6ecac31d3f3c9cade3e992eb380dd1451ef4e0186c54b7d6b76f2af27370fc77",
+              "size_bytes": "11875"
+            }
+          ]
+        },
+        {
+          "session_id": "s-ef09c6fd58fb1d0b94aeaea5e182bed4",
+          "user_id": "u-388d5fc598f9ddc553f5b6ab0afa4548",
+          "historical_role": "T",
+          "ticks": 1419835,
+          "windows": 1344,
+          "dropped_tail_ticks": 571,
+          "prepared_row_start": 79085,
+          "outer90_row_start": 128470,
+          "native_count_logical_float32_sha256": "c21bf074a2fea31e2f292c613f0753e9b9c876116550e9003c6c62a0f8fbeaf0",
+          "original_source_npy_sha256": "4212efc0df59406b8a509dc5b031fa3f815d972d5ca477461796bbde744d3d84",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1419835",
+              "first_begin_unix_ns": 1784155087486000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784155087486000000,
+              "last_end_unix_ns": 1784156507321000000,
+              "range_end_exclusive": 1419835
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "a6d2c838597da9ee567df76d5e9725c8038404c45760de030d8ce79c66b1ffa5",
+          "original_mouse_csv_sha256": "1a47734033915aebf37807a9c2de288a822d5aad34a592dfb92dbab7f13a17e9",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "a87e04415ee109f2585dea4694fd270d3e8a31b32d95ae644ce2e443cf799d48",
+              "size_bytes": "4212"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "80fe0090fa93f541afcca6514b32ad218bfc44d677ec7e2880c87bc3da583700",
+              "size_bytes": "32413850"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "157f6ada6fa2cdccbf19c9182e7b6eeb71eba6247a0e65c5cba47d50041eb021",
+              "size_bytes": "12466"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "6411b1902508e9346d69eec5e53be8ca116ee09d9b944e69a96de748be3b433d",
+              "size_bytes": "4285607"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "4a174c951ba181426ba0dea1fffd8031cb34015cde949fcc8fbcda38af06ffb6",
+              "size_bytes": "11711"
+            }
+          ]
+        },
+        {
+          "session_id": "s-f4c54a02ce883f52b2dbdedd06dbb0a7",
+          "user_id": "u-0e30bec4ef7518ba9a4d7621d87b9113",
+          "historical_role": "T",
+          "ticks": 1381684,
+          "windows": 1308,
+          "dropped_tail_ticks": 436,
+          "prepared_row_start": 80429,
+          "outer90_row_start": 129814,
+          "native_count_logical_float32_sha256": "3ed9ccf8df924cf97d5810bd2d330511592dd39f8d895637080f1e80510109b1",
+          "original_source_npy_sha256": "3d29d74ccce843082e7ebb8aae8c339af386c4a488d37e387a863591a6224c63",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1381684",
+              "first_begin_unix_ns": 1784769809684000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784769809684000000,
+              "last_end_unix_ns": 1784771191368000000,
+              "range_end_exclusive": 1381684
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "89388da90cfb5e0582b9157fa9960546a11b47b85b7097890071f89aac7efe9d",
+          "original_mouse_csv_sha256": "f9eaccc5e53467af476bcc11ee0af5cf6416684c5f6889ab116e99c5510782fb",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "620e5d62e874793a7fb3c9fbb030038009ef92ac883939197eeba2dbc4bd49d2",
+              "size_bytes": "4126"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "c7a49e4449d7fe850013c687e53b1a4cfcf49e3cdc69d2fa775791ae508efcd9",
+              "size_bytes": "26425401"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "672f2e267c7f0320a3fff76c320fbc8eb3a2f7b973fb27270b820ce6de9bda09",
+              "size_bytes": "12213"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "252c15fe8170d0bd019970d5d37d94db95de82ae4e2ffaa59c92b55b5cdfda83",
+              "size_bytes": "4564495"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "6b013cbb865bffb45e4684809ed4b24aa1a455a18af22342ace0ed0a50a51d58",
+              "size_bytes": "11333"
+            }
+          ]
+        }
+      ]
+    },
+    "val": {
+      "windows": 10807,
+      "sessions": 8,
+      "installation_keys": 8,
+      "logical_float32_sha256": {
+        "prefix": "93c90094d9bc98d9861ff07b152d4c26b7e1a4aadcc31c7c627e83895e960969",
+        "future": "f0c7e3b9b765a82ac57d53224a20d04a631702cbca5539a126f6f5c32c31e342"
+      },
+      "original_npy_sha256": {
+        "prefix": "6aac15e7b094215e43434c64bcc2253eec1562ff4ee0552c64efac0767aee831",
+        "future": "825b130b4f4766a4487034648b094f652a8dbeeb159c8de0a8ca99dcac01436d"
+      },
+      "outer_row_ids_raw_i64_sha256": "0796e25eeabf5189eecc1c27644beb28184aecd3f8574f2f41e7b4a130b89262",
+      "sources": [
+        {
+          "session_id": "s-1b7ac6c42ee1a13bcad35d60362cee40",
+          "user_id": "u-0e5a7a8f35376d0ecda62d15503b93f8",
+          "historical_role": "V",
+          "ticks": 1381688,
+          "windows": 1308,
+          "dropped_tail_ticks": 440,
+          "prepared_row_start": 0,
+          "outer90_row_start": 23859,
+          "native_count_logical_float32_sha256": "8c69cbad5b4084f83755943a6a11a3343aa37e856d9c2b968891b39ad76fd95a",
+          "original_source_npy_sha256": "822553e7b82ba9126b9f8b630f83ab834fd1f874aa79231a5948f6e6c6237d64",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1381688",
+              "first_begin_unix_ns": 1785760186031000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785760186031000000,
+              "last_end_unix_ns": 1785761567719000000,
+              "range_end_exclusive": 1381688
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "cd86120b1ae416610154587ff7cfdab39547cc55e6cb5ec44e43e7944f88a730",
+          "original_mouse_csv_sha256": "bdcb43a504897802c258cfd07400291a104552fba7525eb949f4c9ecafac20cf",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "bc7c1049ce2d9cf38f5ed45fb504892ee17427ea1731086477a217f0083ffed4",
+              "size_bytes": "4156"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "3ffd2750e21eae360dd19b0704cf5b73b93c2ea470ef72a7eca75bce72dcfb5f",
+              "size_bytes": "39419356"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "7748dc896c974861cf8b13da13080bf72cb089fa248018f900c04c3005540b71",
+              "size_bytes": "12198"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "1886643bfdf2779b0fc851d1ae524201d8bb3f752087e82ccae8cd2c26004a57",
+              "size_bytes": "3729317"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "79d749b93e55d509b1a9339ccc3d38438105a8ab038a794acade481d9ab8031e",
+              "size_bytes": "11655"
+            }
+          ]
+        },
+        {
+          "session_id": "s-3afb2a678658bdb7cfa03d2962ab1fc3",
+          "user_id": "u-3433ce2afac62156e7d32231fd9a441a",
+          "historical_role": "V",
+          "ticks": 1660564,
+          "windows": 1572,
+          "dropped_tail_ticks": 532,
+          "prepared_row_start": 1308,
+          "outer90_row_start": 36973,
+          "native_count_logical_float32_sha256": "1edf1f0937169891edf1ab857bc497567ffb687c1a7bc8637288226b3da91a9c",
+          "original_source_npy_sha256": "536e85be86854695e3b04f78fc93a51fa89a037bf4b52ec0cadf3608d0d8a8cf",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1660564",
+              "first_begin_unix_ns": 1785003330640000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785003330640000000,
+              "last_end_unix_ns": 1785004991204000000,
+              "range_end_exclusive": 1660564
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "a8120bfb78cd82e3123968fbbd8aadb3c89ebbf6d61b4381fb998fb03b3a2842",
+          "original_mouse_csv_sha256": "04c70bf5c1e78c8487e8b2a1d59001c7dad10e2cf8441ca8d470baccc0c75aae",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "ec0d00940ca149123ccafe4feed32b5f9c50dd786c2159e1b09866f104fd7d14",
+              "size_bytes": "6155"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "3f95103edc6fccea251c7e88ac95c94ed4b2565b3f45462793f855bd9365df9c",
+              "size_bytes": "34621101"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "9754c43c2c822dd7b3cb05da534771e0908d2b6986f545b910e85792081a6a3b",
+              "size_bytes": "14561"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "b6d1d76d4d102ce9b1b1bff4485c94030924a9b1f609265fd5016899a453780d",
+              "size_bytes": "4877159"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "d6ecf6ce501f237b897a968b030c92f6523ae8d1fb902f774695f0805bfb08f2",
+              "size_bytes": "11749"
+            }
+          ]
+        },
+        {
+          "session_id": "s-626dc0b57f94b89e8eb5a479ce0aff3d",
+          "user_id": "u-17f370c97998f0947574927fb31ac5e6",
+          "historical_role": "V",
+          "ticks": 934921,
+          "windows": 885,
+          "dropped_tail_ticks": 361,
+          "prepared_row_start": 2880,
+          "outer90_row_start": 60739,
+          "native_count_logical_float32_sha256": "6dcb447fb4b6730adc36e8dc9c75b61db7091bbd4d910acb78e1245e9af7aa76",
+          "original_source_npy_sha256": "b940b25a43351632a260101aa70ec4f87e9ac3da15a085b297241b1a27031227",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "934921",
+              "first_begin_unix_ns": 1784055460121000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784055460121000000,
+              "last_end_unix_ns": 1784056395042000000,
+              "range_end_exclusive": 934921
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "72cc21549c64c64aa63c47c4eba70066777da7e1899ef02195bc6ed01dcf391d",
+          "original_mouse_csv_sha256": "22699d65e9a88b05373e2b2527623a0c58242b02a9f751b96c413777b44fae8c",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "0b5078a007b5b54c1f02f92b26d2c4665b654cf6b551f69c03b39f3e303092ea",
+              "size_bytes": "4147"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "2c4af6931f384540f47e82b69b331d1b5e0ea552f6f97718cfa8cd28e630e6cb",
+              "size_bytes": "20268470"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "1928459ad045b0595451e6ac97c82c0e34bc33297db3c24f1482011a4fdeb85e",
+              "size_bytes": "8505"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "98d764fa462caffa448bbf34cd116366f77384b4f0293d703c1fbc4ffd119f2f",
+              "size_bytes": "2674891"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "26c7dda0418dd7c3743d5a33f6d2410e1ea9bafb69b52672d4a3f5c0e61f3b8a",
+              "size_bytes": "7534"
+            }
+          ]
+        },
+        {
+          "session_id": "s-9cfee4a828d22ba63871df9384746ce3",
+          "user_id": "u-988731b99097aad253c7c09439417ea3",
+          "historical_role": "V",
+          "ticks": 1445216,
+          "windows": 1368,
+          "dropped_tail_ticks": 608,
+          "prepared_row_start": 3765,
+          "outer90_row_start": 86307,
+          "native_count_logical_float32_sha256": "a9a89bba01df14c7cf73b766363e7795d36988b4aa088a63f520f9b8a5dbfc9f",
+          "original_source_npy_sha256": "d860a8194a096c40fe41fdfaf95ca09548f93b44532338d0742b8b184a33c302",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1445216",
+              "first_begin_unix_ns": 1784419596075000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784419596075000000,
+              "last_end_unix_ns": 1784421041291000000,
+              "range_end_exclusive": 1445216
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "ce0761362e47540ddb086ef1966b714943ed68cce3a8509cdf65167dc7073f01",
+          "original_mouse_csv_sha256": "0eb994a0288a2e46f633d75c27685266683cd51597e6df9aa3c960ea8bc0d235",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "490034d6ea523d7ebf4faf63abdda9db1b1139343327bb505a1cf5fceb5f5709",
+              "size_bytes": "6769"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "e278c21d25d577d23490e7620da3930ab7e28f8c031547391d38f59e31105580",
+              "size_bytes": "30160112"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "1ff5a05eda981c8eadef98578086f4be38a2f1765981bbcad167d258e62bd72d",
+              "size_bytes": "12724"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "a669aff3677ad9456277317f624f871225897a9f820b6c4541e5515e666d53ab",
+              "size_bytes": "4279977"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "8b0567cac66b223e6a8e91804bb9020a64b6ccbf3ab46b661f144b9223ad0385",
+              "size_bytes": "11339"
+            }
+          ]
+        },
+        {
+          "session_id": "s-a347628050ae3600536664d891fc8734",
+          "user_id": "u-8a92f43875809f3e3653b106649eee57",
+          "historical_role": "V",
+          "ticks": 1376205,
+          "windows": 1303,
+          "dropped_tail_ticks": 237,
+          "prepared_row_start": 5133,
+          "outer90_row_start": 89021,
+          "native_count_logical_float32_sha256": "9b6d37591de92aa757fe26444c265769c4053f7ef4589ccc22333bd85f80961b",
+          "original_source_npy_sha256": "958c60b019cb64243a724813eec5c57660879f786112bc63344636b948986afd",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1376205",
+              "first_begin_unix_ns": 1785436627733000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785436627733000000,
+              "last_end_unix_ns": 1785438003938000000,
+              "range_end_exclusive": 1376205
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "ed5f0c6f1a8cf9d7529c35631e2e2cd70dc61c82fbd1205ead22f2f8f5b27728",
+          "original_mouse_csv_sha256": "760018ae795b0172e1d170d1588277fe7e52e7fd0af973e03765a7bf4b5ddb21",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "d3c299b2207942c83e58c484b4af3a849ae488b64bcb87038f64616e21281901",
+              "size_bytes": "4138"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "c8af8f3d074c6ec10e381ab38ec1606a6c38f6e00d4e03a8b8fb33ea2c8459b0",
+              "size_bytes": "53696271"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "d75d19e5530ec35f6425d74fcab74e66ff56d7a61d19559d4595189facd88b4a",
+              "size_bytes": "12004"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "54ae9ae345b2a3e84352398b9b6eee69cc975ca8723f81016b35eb92847539a6",
+              "size_bytes": "4069820"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "c00e1a651f2f06970f2d3547fb3e42ab52a100f3bb3594a63825e0528e845e55",
+              "size_bytes": "11708"
+            }
+          ]
+        },
+        {
+          "session_id": "s-a726e3abfa89f080d359b170b1fb6225",
+          "user_id": "u-1ac68a8eedd9be9a0bbf6917678f3354",
+          "historical_role": "V",
+          "ticks": 1785397,
+          "windows": 1690,
+          "dropped_tail_ticks": 757,
+          "prepared_row_start": 6436,
+          "outer90_row_start": 90324,
+          "native_count_logical_float32_sha256": "aa17d3ae8c7da185095dec8e30cc105d580e939ab4454ec78f99921c70686453",
+          "original_source_npy_sha256": "8f2f69ccac3b24782f2ebb2d137226256fc60e18469cd8c0cec26c0a7dd335bc",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1785397",
+              "first_begin_unix_ns": 1784918043907000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784918043907000000,
+              "last_end_unix_ns": 1784919829304000000,
+              "range_end_exclusive": 1785397
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "664e35aadebb3add4a900ff60cf2100569e93d15dd5ce335675539ffdda0aa45",
+          "original_mouse_csv_sha256": "b7dfbab217a245de79adc9dc9b4a6330494ab200d76f2702fa33dd252299910e",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "04ac3651cf9c86992cd8395b7fe7a6a421ec513deb3a5a6052f11020b449ba44",
+              "size_bytes": "4141"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "f8cfc8fb1e8a4a16b113043d1469d345a9a036deee4afbbed9effb58258ad8d0",
+              "size_bytes": "44669403"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "24a9562818f31b44fc008d214e3d92b460426606c81d5631c3044baae8ff7a9f",
+              "size_bytes": "15472"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "5fa98ef1bceb99f0eeca20883a611d05fa5e420fbe778749195407bdf0bfb009",
+              "size_bytes": "4252682"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "4a3a4531a199c07bbaa8e3bb4f82e662f590b99ada87ce63956aad0bc2f43fe3",
+              "size_bytes": "11714"
+            }
+          ]
+        },
+        {
+          "session_id": "s-ad2f92b53d9b6a4b923049c89f209628",
+          "user_id": "u-325e0c271b6dbd106b1891e216101308",
+          "historical_role": "V",
+          "ticks": 1450345,
+          "windows": 1373,
+          "dropped_tail_ticks": 457,
+          "prepared_row_start": 8126,
+          "outer90_row_start": 94831,
+          "native_count_logical_float32_sha256": "569f0fcf1deaec39ec654b2a3884a59b5ece001d74e85818c88d4f2eb91878aa",
+          "original_source_npy_sha256": "f58ba80349063f73a76f8031b4d28f892073ba4d17ad0367221b547dd546cfca",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1450345",
+              "first_begin_unix_ns": 1785604275435000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1785604275435000000,
+              "last_end_unix_ns": 1785605725780000000,
+              "range_end_exclusive": 1450345
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "751dcc8043b3cf83a979f383b8756503a9e6646e13574a6fed5a24961109adb5",
+          "original_mouse_csv_sha256": "7142ccd67454de3bc7df81a0cb6d873b7639c1d2db10c5e988f271110899dae6",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "5b265b6fd7e67bd6d813874255974a449d0b28e110288f2d5cef0e33c074deaf",
+              "size_bytes": "4166"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "2d9fabd6b65382f6617fd2943fcba94afd06e7cc106471b590487113ee54e013",
+              "size_bytes": "49689754"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "a1b5003bdb2a4336a1c69523b11534e52dfe9398b5e3899b22d5e84245e6d83f",
+              "size_bytes": "12955"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "cab6b50caecd23796c6ac24020589591d7f6d0376c13dce1bbdb3683407dbfd4",
+              "size_bytes": "4150186"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "20aa1c0393bcce72b281e551f56a4d5035f63ab726f924d8d7a1fd86e61d290d",
+              "size_bytes": "11812"
+            }
+          ]
+        },
+        {
+          "session_id": "s-f87906bf84427b2e665a8eb977d6bdbf",
+          "user_id": "u-acbb3b18be8ce8a41c4f22044a053971",
+          "historical_role": "V",
+          "ticks": 1382215,
+          "windows": 1308,
+          "dropped_tail_ticks": 967,
+          "prepared_row_start": 9499,
+          "outer90_row_start": 131122,
+          "native_count_logical_float32_sha256": "8dd7a01e8f214df0db2e9a48fa4705a09dc170ce230b7afba9f5feb3819d04d2",
+          "original_source_npy_sha256": "c09a547886b53e3d8bcf7e12813fe1ea702b517b1af24e3d91824e2986c75c1a",
+          "source_protocol_id": "abcurves.capture-trainer.protocol-v3",
+          "original_dense_grid": {
+            "assignment": "begin_unix_ns<=capture_unix_ns<end_unix_ns",
+            "empty_bins": "explicit_zero_rows",
+            "initial_buttons_assumption": "zero_before_first_exported_report",
+            "maximum_dense_bins": "10000000",
+            "period_ns": 1000000,
+            "range": {
+              "bin_count": "1382215",
+              "first_begin_unix_ns": 1784071259866000000,
+              "first_bin_index": 0,
+              "grid_origin_unix_ns": 1784071259866000000,
+              "last_end_unix_ns": 1784072642081000000,
+              "range_end_exclusive": 1382215
+            },
+            "timestamp_source": "authoritative_report.capture_unix_ns"
+          },
+          "original_export_manifest_sha256": "35215375e34e8cc1ca44c97b266d44f2f6d6a625537f33a7325624586feddd38",
+          "original_mouse_csv_sha256": "f6fefce6700f1785569de73bc4f8de418a12b8d63840c49873662a320fb1d90e",
+          "raw_source_artifacts": [
+            {
+              "relative_path": "manifest.json",
+              "sha256": "cada2e5c0466b9e8eae5c9b48c5cf5859a125131c9a017df0d416694407b695a",
+              "size_bytes": "4192"
+            },
+            {
+              "relative_path": "capture/mouse_usb.pcap",
+              "sha256": "44610bcbabb5a60e2bc6a6d4e740405f0541250040c2c81d38b2f8765741120d",
+              "size_bytes": "36392312"
+            },
+            {
+              "relative_path": "clocks/anchors.jsonl",
+              "sha256": "05e64d5b5655bffbd158d0d9e8a80fc6f1815efb0698307ee8684b77c7d09b05",
+              "size_bytes": "12237"
+            },
+            {
+              "relative_path": "gameplay/events.jsonl",
+              "sha256": "3fc85c49d1319f30944ccc5ac7f066c17f58d7c419cec322a137eafb3410f7b9",
+              "size_bytes": "4208681"
+            },
+            {
+              "relative_path": "gameplay/blocks.jsonl",
+              "sha256": "6bfd8f92370b10585ab315fe2551e38f9d2e5465bb76b1e36627ed4e4c4d59ba",
+              "size_bytes": "11702"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "adapter_split_counts": {
+    "train": 73576,
+    "development": 8161
+  }
+}

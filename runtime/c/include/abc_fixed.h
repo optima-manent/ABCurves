@@ -115,7 +115,7 @@ typedef struct abc_fixed_renderer {
 } abc_fixed_renderer_t;
 
 /* Fully prepared non-neural handoff state supplied by the canonical online
- * observer. This contains no learned data and is copied once at begin. */
+ * observer. This contains no learned data and is installed at profile completion. */
 typedef struct abc_fixed_online_boundary {
     int16_t regime_q8[5];
     int16_t previous_emit[2];

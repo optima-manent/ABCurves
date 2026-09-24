@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f7f9">
+  <meta name="description" content="Human mouse motion, sampled and rendered by ABCurves. Explore the Static Planner, Continuous Planner, and 1 kHz Renderer.">
+  <title>ABCurves · human movement, sampled and rendered</title>
+  <style>__STYLES__</style>
+</head>
+<body>
+  <div id="loader" role="status" aria-label="Loading motion">
+    <svg class="loadtrace" viewBox="0 0 250 125" aria-hidden="true">
+      <circle cx="222" cy="30" r="15" fill="#ecfdf5" stroke="#059669" stroke-width="3">
+        <animate attributeName="r" values="15;17;15" dur="1.3s" repeatCount="indefinite"/>
+      </circle>
+      <path d="M14,98 C64,98 104,84 140,52 C164,30 198,22 222,30" fill="none" stroke="#9aa5b1" stroke-width="3.4" stroke-linecap="round" opacity=".45"/>
+      <path class="loading-path" d="M14,98 C64,98 104,84 140,52 C164,30 198,22 222,30" fill="none" stroke="#2563eb" stroke-width="4.2" stroke-linecap="round" stroke-dasharray="262" stroke-dashoffset="262">
+        <animate attributeName="stroke-dashoffset" values="262;0;0" keyTimes="0;.72;1" dur="1.45s" repeatCount="indefinite"/>
+      </path>
+      <circle cx="14" cy="98" r="5" fill="#1f2933"/>
+      <circle cx="128" cy="62" r="5.6" fill="#7c3aed"/>
+    </svg>
+    <span id="loadText">Drawing human movement …</span>
+    <button id="retry" hidden>Try again</button>
+  </div>
+
+  <header>
+    <h1>ABCurves</h1>
+    <span class="tag">human movement, sampled and rendered</span>
+    <nav id="tabs" class="tabs" role="tablist" aria-label="Demo view">
+      <span class="planner-tabs">
+        <span class="group-label" aria-hidden="true">Planners</span>
+        <button id="tab-static" role="tab" data-section="static" aria-label="Static Planner" aria-selected="false" aria-controls="showcase" tabindex="-1">Static</button>
+        <button id="tab-continuous" role="tab" data-section="continuous" class="on" aria-label="Continuous Planner" aria-selected="true" aria-controls="showcase">Continuous</button>
+      </span>
+      <button id="tab-renderer" role="tab" data-section="renderer" aria-selected="false" aria-controls="showcase" tabindex="-1">Renderer</button>
+    </nav>
+  </header>
+  <div id="description" class="sub"></div>
+
+  <main id="showcase" class="wrap" role="tabpanel" aria-labelledby="tab-continuous">
+    <div class="controls">
+      <button id="prev" class="arrow" aria-label="Previous example" title="Previous example (←)">‹</button>
+      <label class="sr-only" for="pick">Choose an example</label>
+      <select id="pick"></select>
+      <button id="next" class="arrow" aria-label="Next example" title="Next example (→)">›</button>
+      <button id="browse" aria-haspopup="dialog">Examples</button>
+      <span class="spacer"></span>
+      <label class="rng" id="speedControl" for="speed">speed <input id="speed" type="range" min="0.1" max="2" step="0.05" value="1"><output id="spdl" for="speed">1.00×</output></label>
+      <button id="play" class="on" aria-label="Pause" aria-pressed="true" title="Play or pause (Space)">❚❚ pause</button>
+      <button id="replay" aria-label="Replay from beginning" title="Replay">↻</button>
+      <button id="marker" class="on" aria-pressed="true" title="Show the cut point">B marker</button>
+      <button id="fit" title="Reset pan and zoom (double-click a pane)">reset view</button>
+      <button id="viewButton" aria-haspopup="dialog">View</button>
+      <output class="clock" id="clock" aria-label="Playback time"></output>
+    </div>
+
+    <div class="motion-options" id="motionOptions">
+      <label id="trailControl" for="trail">trail <select id="trail"><option value="600">short · 0.6 s</option><option value="1200" selected>fading · 1.2 s</option><option value="2400">long · 2.4 s</option><option value="0">full path</option></select></label>
+      <label id="followControl"><input id="follow" type="checkbox" checked> follow motion</label>
+      <label id="guideControl"><input id="guide" type="checkbox" checked> target path</label>
+    </div>
+
+    <div class="comparison-options" id="comparisonOptions">
+      <div id="rendererControls" hidden>
+        <div class="mini" role="group" aria-label="Renderer view">
+          <button data-mode="reports" class="on" aria-pressed="true">1 kHz texture</button>
+          <button data-mode="path" aria-pressed="false">mouse path</button>
+        </div>
+        <div id="axes" class="mini" role="group" aria-label="Report axis">
+          <button data-axis="0" class="on" aria-pressed="true">horizontal (dx)</button>
+          <button data-axis="1" aria-pressed="false">vertical (dy)</button>
+        </div>
+      </div>
+      <div id="drawPicker" class="mini" role="group" aria-label="Choose generated draw">
+        <button data-draw="0" class="on" aria-pressed="true">draw 1</button>
+        <button data-draw="1" aria-pressed="false">draw 2</button>
+        <button data-draw="2" aria-pressed="false">draw 3</button>
+        <button data-draw="3" aria-pressed="false">draw 4</button>
+      </div>
+    </div>
+
+    <section id="panes" class="panes" aria-label="Synchronized motion comparison"></section>
+    <div id="legend" class="legend" aria-label="Colour key"></div>
+    <footer class="foot">
+      <span id="footExplanation"></span>
+      <span class="foot-desktop">Drag to pan, scroll to zoom; the views stay in sync. Space pauses, ←/→ changes the example.</span>
+      <span class="foot-mobile" id="mobileHelp">Pinch to zoom. The views stay in sync.</span>
+      <span id="sourceNote"></span>
+      <a href="https://github.com/optima-manent/ABCurves" target="_blank" rel="noopener noreferrer">Code &amp; the full story in the README</a>.
+    </footer>
+  </main>
+
+  <dialog id="settings" aria-labelledby="settingsTitle">
+    <div class="dialog-head"><h2 id="settingsTitle">View</h2><button class="close" aria-label="Close view settings">×</button></div>
+    <div id="playbackSettings" class="settings-fields"></div>
+    <div id="motionSettings" class="settings-fields"></div>
+    <div id="comparisonSettings" class="settings-comparison"></div>
+    <div id="viewActions" class="settings-actions"></div>
+  </dialog>
+  <dialog id="gallery" aria-labelledby="galleryTitle">
+    <div class="dialog-head"><h2 id="galleryTitle">Choose a motion</h2><button class="close" aria-label="Close examples">×</button></div>
+    <div id="filters" class="mini" role="group" aria-label="Filter examples">
+      <button data-filter="all" class="on" aria-pressed="true">All</button>
+      <button data-filter="human" aria-pressed="false">Human</button>
+      <button data-filter="target" aria-pressed="false">Targets</button>
+    </div>
+    <div id="cards"></div>
+  </dialog>
+  <p id="status" class="sr-only" aria-live="polite"></p>
+  <noscript><p class="noscript">Enable JavaScript to explore the motion examples.</p></noscript>
+  <script type="application/json" id="catalog">__CATALOG__</script>
+  __MOTION_DATA__
+  <script>__APP__</script>
+</body>
+</html>

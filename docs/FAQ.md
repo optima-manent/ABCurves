@@ -2,27 +2,40 @@
 
 ## What is ABCurves actually doing?
 
-A person begins moving toward a target. ABCurves watches A→B and generates only the
-finish, B→C. The observed beginning reveals current speed, approach, hand, device,
-and packet rhythm. A model starting from nothing would have to invent all of that.
+ABCurves generates target-directed human movement. The Continuous Planner can start
+independently, follow a changing target, or begin with a correctly prepared human
+history. The Static Planner watches a real A→B beginning and generates its B→C
+finish toward a fixed target. Both use the same Renderer when integer hardware
+reports are wanted.
+
+The two planners solve different problems. A fixed finish can be planned as one
+coherent gesture; a continuous stream must keep deciding when to pursue, correct,
+pause, brake and restart.
 
 ## What exactly comes out?
 
-A variable-length sequence of signed integer `(dx, dy)` mouse counts, one report per
-millisecond. It is not a list of screen pixels or a smooth Bézier curve. The output
-contains the zeros, bursts, cadence, and quantization of a raw hardware stream.
+`ContinuousPlanner` returns absolute positions in common angular coordinates at
+1 ms sample endpoints. `ContinuousPipeline` converts their differences to native
+count-space intent and returns signed integer `(dx, dy)` reports. `StaticPlanner`
+returns a finite smooth continuation; `StaticPipeline` renders that continuation.
 
-ABCurves returns those integers to the caller. It does not open a USB device, schedule
-HID polls, or own firmware and operating-system queues.
+The coordinates and clocks are explicit in [INTEGRATION.md](INTEGRATION.md).
+ABCurves returns motion to the caller. It does not open a USB device, schedule HID
+polls, or own firmware and operating-system queues.
 
 ## Why are there two models?
 
-The **Planner** chooses long-range shape, speed, duration, and landing. The **global
-Renderer** turns that smooth intent into causal integer reports. Geometry and
-millisecond texture are different-scale problems, and separating them makes both
-easier to train and measure.
+There are two planner families and one shared **Renderer**. A planner chooses
+movement intent; the Renderer supplies millisecond packet texture. Geometry and
+packet cadence are different-scale problems, and separating them makes both easier
+to train and measure.
 
-## Why does the Planner keep sixteen answers?
+The default Continuous Planner is a composed learned system: its motor generates
+candidate motion, while learned choices, activity transitions and braking balance
+purposeful pursuit with varied human movement. The Static Planner instead represents
+one finite continuation with ProDMP. The training guide describes every component.
+
+## Why does the Static Planner keep sixteen answers?
 
 The same A→B beginning can have several legitimate human finishes. A single
 regressor tends to average them into one safe middle curve. Relaxed winner-takes-all
@@ -31,8 +44,7 @@ head uniformly; it does not generate sixteen attempts and choose the nicest one.
 
 ## Does it copy a movement from the training data?
 
-No. It does not retrieve and replay a nearby recording. The Planner creates a new
-finish from the observed prefix and target. The Renderer samples each integer report
+No. It does not retrieve and replay a nearby recording. Each planner generates motion from its current inputs and learned state. The Renderer samples each integer report
 from the smooth intent and its causal state.
 
 ## What makes the Renderer “global”?
@@ -41,9 +53,8 @@ It was trained on complete dense sessions rather than only one event phase. Its 
 windows include movement before A, inside events, between events, after C, and idle
 periods. The Renderer sees no target, outcome, success, A, B, or C label.
 
-That makes it a general smooth-intent-to-count-texture model within the learned 1 kHz
-count-space regimes. ABCurves happens to use it for B→C plans, but the texture law is
-not tied to B→C training crops; inputs far outside those regimes are not guaranteed.
+That makes it a general smooth-intent-to-count-texture model within the learned
+1 kHz count-space regimes. ABCurves uses it for both continuous streams and B→C plans.
 
 ## Does the Renderer just add random jitter?
 
@@ -53,8 +64,8 @@ and which nearby two-axis integer offset to use around a hysteretic delta-sigma
 accumulator.
 
 The accumulator remembers fractional movement instead of discarding it at every
-rounding step. That keeps residual displacement debt small and bounded. It is not a
-promise of exact endpoint equality on every sampled stream.
+rounding step. That keeps residual displacement debt small and bounded; individual
+streams can end with a small residual difference from the smooth path.
 
 ## How large is the Renderer?
 
@@ -71,10 +82,9 @@ heap.
 
 ## Is `RendererProfile` a personalization model?
 
-No. The rank-16 handoff compresses one representative 256-report sample into an
-initial recurrent state. It receives no user identity and does not summarize a named
-person's earlier events. “Profile” names a reusable prepared texture state, not an
-identity model or a promise to imitate one individual.
+It is a reusable texture state. The rank-16 handoff compresses one representative
+256-report sample into the Renderer's initial recurrent state. Its information
+comes from those reports, without a user identity or a person's earlier events.
 
 ## Why does the Renderer need exactly 256 reports?
 
@@ -89,45 +99,43 @@ integer physical counts. The sample should be representative of the intended dev
 or setup, but it does not need to end at B. The same immutable profile can be reused
 across events.
 
-An indicative one-draw Renderer-only engineering probe found little practical
-dependence on millisecond-perfect alignment, with overlapping uncertainty intervals,
-and motivated this deployment schedule. It was not a promotion or equivalence test
-and did not use the full frozen cold/warm protocol, so it does not rewrite those
-published measurements. Its scope and measurements are in the
-[`Renderer profile sensitivity receipt`](../results/inference/renderer_profile_sensitivity.json);
-the frozen results and their exact per-event contexts remain documented in
-[`DETECTION.md`](../DETECTION.md).
+A one-draw Renderer probe found little dependence on millisecond-perfect profile
+alignment, with overlapping uncertainty intervals. The
+[profile sensitivity receipt](../results/inference/renderer_profile_sensitivity.json)
+records that comparison; [DETECTION.md](../DETECTION.md) records the contexts used
+in the detection study.
 
 ## Should I keep an observer running or refresh the profile on a timer?
 
-No. Prepare one 256-report profile before B and clone it for each event. There is no
-continuously advancing observer and no need to rotate the profile every few seconds
-for variety; the event seed supplies sampling variation. If the physical device or
-setup changes materially, prepare a replacement off the B-critical path and use it
-for later events.
+Prepare one representative 256-report profile. Static events clone it at each
+handoff; a Continuous pipeline initializes from it once and then carries Renderer
+state across replanning, braking, holding and restarting. Reinitializing at each
+32 ms plan would break that continuity.
 
-This does not claim that arbitrary-length or continuously rolling observation is
-equivalent. Those are different state semantics and are not part of the public API.
+If the physical device or setup changes materially, prepare a replacement before
+starting a new stream.
 
 ## Is there a hard jump where ABCurves takes over?
 
-The system is built to avoid one. The Planner inherits the event-specific
-smooth-intent boundary at B. The Renderer profile supplies packet-state conditioning,
-including previous emission, last smooth motion, run state, and recent activity, as
-it textures that plan. Exact profile alignment with B is not required. Seam
-continuity is measured rather than assumed. Individual samples can still vary, so
-“no jump is possible” would be a stronger claim than the system makes.
+The Static Planner inherits the movement's position and velocity at B. The Renderer
+profile supplies packet-state conditioning as it textures that plan. Together they
+anchor the handoff, while individual sampled reports can still vary. The
+[handoff comparison](INTEGRATION.md#the-static-handoff) measures the resulting join.
 
 ## How is B chosen?
 
-The live state machine first detects sustained movement toward the target. B fires at
-80% of progress toward the near target edge while the cursor remains outside and
-enough movement remains. Planner training uses nearby handoffs for robustness, while
-validation and live inference use the fixed 0.80 rule.
+For practical Static continuation, use `BTrigger.recommended()`: its first eligible
+crossing is at 90% progress toward the near target edge. The cursor must still be
+outside the target with at least 8 counts of edge distance remaining and at least
+24 observed milliseconds, along with the established eligibility conditions.
+Short movements can have no valid 90% handoff. Do not force a finish in that case.
 
-Edge progress explains the trigger; centre progress is the value passed to the
-Planner. The exact causal rules are in
-[`TRAINING_AND_INFERENCE.md`](TRAINING_AND_INFERENCE.md).
+The real-source comparison improved landing and the upper tail of join error,
+while median join error slightly worsened.
+
+Edge progress selects B; center progress is the model input. The original 80%
+configuration remains frozen for training validation and the detection study.
+[INTEGRATION.md](INTEGRATION.md) gives the formulas and qualification counts.
 
 ## Why not train the Renderer only on successful aiming finishes?
 
@@ -172,8 +180,7 @@ simpler full-corpus rule
 was kept despite the tiny aggregate disadvantage. The score and non-protected
 eight-session panel are defined in the public promotion receipt.
 
-This does not prove that more data always improves every model. It means this
-particular pruning step added complexity without a meaningful gain.
+This pruning step added complexity without a meaningful gain.
 
 ## What does the AF1.5 safeguard do?
 
@@ -208,7 +215,12 @@ and the exact boundary of each claim.
 
 ## Can I train it on my own data?
 
-Yes, but the branches need different inputs.
+Yes. Public raw Capture downloads and their validator are the starting point in
+[DATASET.md](DATASET.md). Exact selected-model recipes for both planner families and
+the Renderer are in [TRAINING_AND_INFERENCE.md](TRAINING_AND_INFERENCE.md).
+
+For new Static/Renderer experiments, the general preparation tools accept several
+input forms:
 
 A validated Capture export tree can prepare both:
 
@@ -236,44 +248,56 @@ already gone. See [DATASET.md](DATASET.md) for both schemas.
 
 ## Does retraining create the 44,484-byte file?
 
-No. `training/train_renderer.py` writes a float research checkpoint. The released
-binary is a separately quantized and authenticated promotion. Replacing it properly
-requires quantization validation, C/Python differential tests, new hashes, and a new
-manifest—not just renaming the float checkpoint.
+The float Renderer trainer produces a checkpoint. The complete public export path
+then quantizes that base, fits the observed-history handoff, and binds the resulting
+image to a separately built native runtime. The [training guide](TRAINING_AND_INFERENCE.md)
+includes both exact reconstruction of the selected artifact and a new-model workflow.
 
-You do not need a new binary to use the retrained model. Pass the checkpoint to
-`Pipeline(float_renderer_checkpoint="runs/renderer_p118345.pt")`. The same
-`RendererProfile` API then runs the PyTorch float sampler directly. The profile object
-is reusable, but this backend replays its raw 256-report window and pre-renders the
-continuation at every event start. It is a research/Python backend rather than a
-native profile-clone or embedded timing claim.
+For direct float experimentation, use
+`StaticPipeline(float_renderer_checkpoint="runs/renderer_p118345.pt")`. That backend
+replays its raw 256-report context and samples the continuation at event start.
+Its timing is separate from native profile preparation and per-tick rendering.
 
 ## Can it run on an ESP32?
 
 The native core is C99, no-heap, fixed-point/int8 in the hot recurrent path, and small
-enough to be a serious ESP32-class starting point. Profile preparation and the
-rank-16 handoff still use float/double and math-library operations, however. No ESP32
-timing, firmware integration, or platform certification is claimed in this release.
+enough to be an ESP32-class starting point. Profile preparation and the rank-16
+handoff use float/double and math-library operations. A board port needs its own
+firmware integration and timing checks.
 
-## Will it work at another polling rate or in screen pixels?
+## Will it work at another polling rate?
 
-Not unchanged. ABCurves runs on one closed 1 ms raw-count bin per step. Other
-polling rates must first be accumulated causally into that grid, and a faithful model
-should be tested or retrained on the target hardware. Screen pixels introduce scaling
-and operating-system transforms, so they cannot be mixed with raw count geometry.
+The models use 1 ms bins. Other polling rates need the documented causal binning
+contract and checks on the intended device.
+
+## What about screen coordinates, 3D scenes or warped controls?
+
+Your application maps its targets and motion into the planner's two-axis frame.
+Static planning and direct rendering use native mouse counts. Continuous uses the
+common angular counts from its training representation. Camera projection,
+acceleration or a nonlinear control surface belongs in that application mapping.
+
+`CountTransform` and `ContinuousPipeline` cover a fixed angular gain per axis and
+an optional Y flip. The planner and Renderer remain separately usable for custom
+integrations. See [count space and application coordinates](INTEGRATION.md#count-space-and-application-coordinates).
 
 ## What still gives the system trouble?
 
-Very small targets remain a clear Planner weakness. The Renderer still requires a
-profile made from exactly 256 chronological reports. Device-specific performance
-outside the tested platforms, USB integration, and arbitrary rolling observation
-remain work for an implementer to validate.
+The Static Planner can struggle with very small targets, and short movements often
+have no eligible late handoff. The Continuous Planner can hesitate or settle slowly;
+it is not a guaranteed point-landing or deadline controller. A human-history start
+can improve the early continuation, but it does not consistently improve every
+later tracking metric.
+
+Device timing, USB integration and external position correction need separate
+implementation and validation. The current continuous stream assumes its generated
+movement is executed.
 
 ## Can I use only the Planner or only the Renderer?
 
-Yes. They are separate by design. If one side is replaced, preserve raw count space,
-the 1 ms clock, causal masks, the smooth-intent convention, and the handoff contract
-described in the technical guide.
+Yes. They are separate by design. Preserve the chosen planner's units, 1 ms sample
+clock, causal history and target receipt rules, and the Renderer's displacement and
+state contracts. [INTEGRATION.md](INTEGRATION.md) shows both boundaries.
 
 ## Where should I begin?
 

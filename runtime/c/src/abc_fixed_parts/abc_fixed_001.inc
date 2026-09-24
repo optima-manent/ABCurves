@@ -142,18 +142,25 @@ static int32_t requant_q31(int32_t accumulator, int32_t multiplier) {
     return (int32_t)round_div_even_i64(product, ABC_Q31);
 }
 
+/* Every dot uses FEATURES or HIDDEN int8-by-int16 terms. Their absolute
+ * partial sums are bounded by columns * 128 * 32768 (335544320 at H80). */
+#if ABC_FIXED_HIDDEN > INT32_MAX / 128 / 32768 || \
+    ABC_FIXED_FEATURES > INT32_MAX / 128 / 32768
+#error "dot_requant dimensions exceed the int32 accumulator bound"
+#endif
+
 static int32_t dot_requant(
     const int8_t *weights,
     const int16_t *vector,
     uint32_t columns,
     int32_t multiplier
 ) {
-    int64_t accumulator = 0;
+    int32_t accumulator = 0;
     uint32_t column;
     for (column = 0U; column < columns; ++column) {
         accumulator += (int32_t)weights[column] * (int32_t)vector[column];
     }
-    return requant_q31((int32_t)accumulator, multiplier);
+    return requant_q31(accumulator, multiplier);
 }
 
 static void gru_step(

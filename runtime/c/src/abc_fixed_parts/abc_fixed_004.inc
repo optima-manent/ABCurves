@@ -84,19 +84,17 @@ int abc_fixed_online_prepare_boundary(
     return prepare_prefix_boundary(renderer, tail4_core_q8);
 }
 
-int abc_fixed_online_begin_from_hidden(
+int abc_fixed_online_begin(
     abc_fixed_renderer_t *renderer,
-    const int16_t hidden_q15[ABC_FIXED_HIDDEN],
     uint64_t event_seed
 ) {
-    if (renderer == NULL || renderer->model == NULL || hidden_q15 == NULL) {
+    if (renderer == NULL || renderer->model == NULL) {
         return ABC_FIXED_ERR_ARGUMENT;
     }
     if (renderer->mode != ABC_FIXED_MODE_OBSERVE ||
         renderer->prefix_count != ABC_FIXED_PREFIX_WINDOW) {
         return ABC_FIXED_ERR_MODE;
     }
-    memcpy(renderer->hidden, hidden_q15, sizeof(renderer->hidden));
     memset(renderer->accumulator_q16, 0, sizeof(renderer->accumulator_q16));
     renderer->event_seed = event_seed;
     renderer->generation_tick = 0U;

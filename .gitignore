@@ -21,3 +21,5 @@ data/private/
 Thumbs.db
 .idea/
 .vscode/
+/web/site/
+/web/qa/verification.json

@@ -4,22 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abcurves"
-version = "1.5.1"
-description = "Human-conditioned movement planning with a compact global hardware-texture renderer."
+version = "2.0.0"
+description = "Continuous human movement generation and static continuation, with native hardware texture."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [{ name = "Optima Manent" }]
 dependencies = [
-  "numba>=0.60",
+  "numba>=0.61",
   "numpy>=1.26",
-  "torch>=2.2",
+  "scipy>=1.14",
 ]
 
 [project.optional-dependencies]
-data = ["pandas>=2.1"]
-evaluation = ["matplotlib>=3.8", "scipy>=1.12"]
+static = ["torch>=2.6"]
+onnx = ["onnxruntime>=1.20"]
+training = ["torch>=2.6", "pandas>=2.1", "onnx>=1.17"]
+data = ["pandas>=2.1", "torch>=2.6"]
+evaluation = ["matplotlib>=3.8", "scipy>=1.14", "torch>=2.6"]
 all = [
+  "torch>=2.6", "onnx>=1.17", "onnxruntime>=1.20",
   "matplotlib>=3.8",
   "pandas>=2.1",
   "scipy>=1.12",
@@ -35,12 +39,19 @@ Issues = "https://github.com/optima-manent/ABCurves/issues"
 abcurves-evaluate = "evaluation.cli:main"
 
 [tool.setuptools]
-packages = ["abcurves", "abcurves._native", "evaluation"]
+packages = ["abcurves", "abcurves._native", "abcurves._continuous", "evaluation"]
 
 [tool.setuptools.package-data]
 abcurves = ["_native/*.dll", "_native/*.so", "_native/*.dylib"]
 
 [tool.setuptools.data-files]
+"models/continuous" = [
+  "models/continuous/manifest.json", "models/continuous/weights.npz",
+  "models/continuous/motor.onnx", "models/continuous/choice.onnx",
+  "models/continuous/events.onnx", "models/continuous/hazard.onnx",
+  "models/continuous/brake.onnx", "models/continuous/choice_split.onnx",
+  "models/continuous/motor.pt", "models/continuous/selector.pt", "models/continuous/events.pt",
+]
 models = [
   "models/README.md",
   "models/manifest.json",
@@ -48,6 +59,7 @@ models = [
   "models/planner_seed23.pt",
   "models/renderer_global_h80.bin",
   "models/renderer_global_h80_float.pt",
+  "models/renderer_adapter.bin",
 ]
 "results/detection" = [
   "results/detection/manifest.json",
@@ -85,6 +97,7 @@ models = [
 ]
 "runtime/c/tests" = [
   "runtime/c/tests/test_loader.c",
+  "runtime/c/tests/test_fixed_math.c",
   "runtime/c/tests/benchmark_runtime.c",
 ]
 

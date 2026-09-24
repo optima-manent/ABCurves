@@ -1,8 +1,4 @@
-                    mul_q16(
-                        hot->logits[row] - lse,
-                        model->config[CFG_INV_DIR_Q16]
-                    );
-            }
+                mul_q16(hot->logits[row] - lse, model->config[CFG_INV_DIR_Q16]);
         }
     }
     for (row = 0U; row < ABC_FIXED_GRID; ++row) {

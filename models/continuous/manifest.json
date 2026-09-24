@@ -1,0 +1,346 @@
+{
+  "schema": "phalm.b223.assets.v1",
+  "utc": "2026-09-23T00:46:11.537304+00:00",
+  "reference": {
+    "model_id": "movement_brake_b2_s23",
+    "active_dependencies": {
+      "brake_and_hazards": {
+        "path": "step_01200.pt",
+        "sha256": "4c71cc4d29b4a13e613afa88438f772c478fd542c1c9095d23447ecb3c4a3afa"
+      },
+      "movement_choice": {
+        "path": "step_06000.pt",
+        "sha256": "e7cb994670c879b2fb5b30901c9d29c212df72c71ad6bccb0f30699dc9e1bf6a"
+      },
+      "motor_and_preprocessing": {
+        "path": "step_00600.pt",
+        "sha256": "48c8b0920f020c926d4cc7436f0a7e9be366bff75fbe578d0a1efbd93c3871d3"
+      },
+      "reference_policy": {
+        "path": "T_s7.json",
+        "sha256": "660d78df8e311446d33c085541383aeff186bef7f72f5430da54a9964ee66e91"
+      },
+      "reference_hazard_components": {
+        "path": "components.pt",
+        "sha256": "de379e25b23e5458f98c96ac4caf4b9a15504cb2e4fb783bab284601e79b1dfe"
+      }
+    },
+    "verified_bindings": {
+      "research/movement_distributions_20260921/common.py": "56a6050e85dfd1a34bee8e07239081632445f9afcad433ab2f46917a741fd128",
+      "research/movement_distributions_20260921/selector_model.py": "f781b58310cd2e70d5507725ebca2ba62454de856c697882a1d46dd10e8b08b1",
+      "research/movement_distributions_20260921/selector_adapter.py": "1c965805b96ffd34c8427863118fe67ed4636be08ab9faf42e6402bb70d49ef2",
+      "human_patterns_20260921/run_v1/policies/T_s7.json": "660d78df8e311446d33c085541383aeff186bef7f72f5430da54a9964ee66e91",
+      "movement_coherence_20260921/run_v1/A_pilot/step_00600.pt": "48c8b0920f020c926d4cc7436f0a7e9be366bff75fbe578d0a1efbd93c3871d3",
+      "research/human_patterns_20260921/hp_common.py": "4efca76979217f3a5deb2f6a8cf26c5b31076547f0c69f70521eb78ee63c44aa",
+      "research/human_patterns_20260921/hp_geometry.py": "5c2b60b5b1d701fa3adc0e184c98a93f0676ea61b0894dfeddafd9443d1fe947",
+      "research/human_patterns_20260921/hp_model.py": "8f743fa2a72cce794505b613764ee531064d99962ffe253f6c01d611391d3641",
+      "research/human_patterns_20260921/hp_adapter.py": "f870c08dbc3629e6863cf4358a79ff7419205b00b3023565d835aa691aa0a0dd",
+      "settling_decisions_20260921/run_v1/fits/monotone_s23/selector.pt": "3e1759c9888cbdd720d80d35d4a763cef61e6d120af5cfdeb2dbd57921759d91",
+      "research/settling_decisions_20260921/core.py": "d8f8a1545b0fb7b5b887ed2fe3671ac38616998f461fa230fe6f9b1f0e79b2e8",
+      "research/settling_decisions_20260921/decision_common.py": "a3f388d11fca8daaa39b27fd462cd1b72e646e926996fcaac17d94668d9f36b1",
+      "research/movement_coherence_20260921/controller.py": "ef9bff743681dd53401bd5eff2fea253a42c76633e1cc92d0b9234a33503ac91",
+      "research/movement_coherence_20260921/coherence_common.py": "ec182f9cf1a09d8aa93b0d69bfe4dbef726e6d5ca9ea9ae4bc1f598435e7bdfe",
+      "research/unified_planner_campaign_20260915/model.py": "3967de544a98d14ec7351a6a677a65740a0ad241ce56c3620684ada74edef558",
+      "research/guided_planner_20260912/reference_abcurves/abcurves/prodmp.py": "983e5a83c05198439509cfdc934f706f4bd2107b6d48162fb7b9f06dae8679d9",
+      "research/human_movement_20260914/temporal_policy/temporal_core.py": "d24d12c1da24f25b9b536bac7e7ab311e67712fe814889562b9bef73983d341d",
+      "research/movement_distributions_20260921/brake_continuity_geometry.py": "a46b210c3a93a1b8992f4342858c91fd907035b4705836e15f753d139c604ff7",
+      "research/movement_distributions_20260921/brake_continuity_model.py": "22fd37bd04386224f629d252e6f8e7d510dccfd77aa135f05b08e647312c352e",
+      "research/movement_distributions_20260921/brake_continuity_adapter.py": "657dc4cb00c008723c877489d2400dc4b0b87644bb504d0fa9062f9e9bfecfd5",
+      "movement_distributions_20260921/selector_run_v1/fits/C_s23/step_06000.pt": "e7cb994670c879b2fb5b30901c9d29c212df72c71ad6bccb0f30699dc9e1bf6a",
+      "human_patterns_20260921/run_v1/fits/components_s7/components.pt": "de379e25b23e5458f98c96ac4caf4b9a15504cb2e4fb783bab284601e79b1dfe"
+    },
+    "runtime": {
+      "path": "reference/runtime.py",
+      "sha256": "bd513a9dcadb380603c406efe97c18029747203d9eda6ae687abb5dd7c56c7e7"
+    },
+    "motor_config": {
+      "enc": "gru",
+      "decoder": "prodmp",
+      "forecast": 128,
+      "commit": 32,
+      "history": 640,
+      "head_hold": 1,
+      "memory": false,
+      "dynamics": true,
+      "velocity_scale": 1.1982087601807259,
+      "position_scale": 81.73350722609987,
+      "target_secant_ms": 32
+    },
+    "family": "C2",
+    "branch": "T"
+  },
+  "learned_tensors": {
+    "motor.input.0.weight": {
+      "shape": [
+        96,
+        9
+      ],
+      "dtype": "float32",
+      "sha256": "25ecf86751eaa862c07ef4e6c96a9489cb039768b6831abe72de7ffe3c6a8521"
+    },
+    "motor.input.0.bias": {
+      "shape": [
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "cf32aa9296bd1a48794e95ffd8c8eb076c48c3fc1ea1722517703b6d8288706b"
+    },
+    "motor.encoder.weight_ih_l0": {
+      "shape": [
+        288,
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "3ede78d277a77714114bc9f2d42e6ab5b07217455571f79fe3ba24d1d73cb348"
+    },
+    "motor.encoder.weight_hh_l0": {
+      "shape": [
+        288,
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "9e491ad9dd677744a144ac362330d55b8cdfedd36f65a13f17509f345b127e83"
+    },
+    "motor.encoder.bias_ih_l0": {
+      "shape": [
+        288
+      ],
+      "dtype": "float32",
+      "sha256": "74c186fd4c5270baeda505624ea78d201f4d46b92bd835bd0f48b3c5dab78a1d"
+    },
+    "motor.encoder.bias_hh_l0": {
+      "shape": [
+        288
+      ],
+      "dtype": "float32",
+      "sha256": "7e3302d38a27a1a68ac4f6256e3265cdbcc75a207279191b1e021ef3098d38db"
+    },
+    "motor.trunk.0.weight": {
+      "shape": [
+        96,
+        158
+      ],
+      "dtype": "float32",
+      "sha256": "c892edc4586f5f84704eac702a67330e6decf2b038d759b10907c22738fba299"
+    },
+    "motor.trunk.0.bias": {
+      "shape": [
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "1bffae267f87d01fcea8c36177455b1dcdb511c9b58726473de3c6b5b8f82408"
+    },
+    "motor.output.weight": {
+      "shape": [
+        672,
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "71a90fc00a043509df8fcfc463f2fea63d23d104566ff342c9c58d571e637989"
+    },
+    "motor.output.bias": {
+      "shape": [
+        672
+      ],
+      "dtype": "float32",
+      "sha256": "2d6d9a40f07e4ee952e798745ecc61233fac03df00c2bf52e8f78eb74f69cfb4"
+    },
+    "motor.selection.unary.0.weight": {
+      "shape": [
+        64,
+        112
+      ],
+      "dtype": "float32",
+      "sha256": "8b494fcac508961e4a6b17d90483895f625a3535f78c1f8ec649588f210dec5c"
+    },
+    "motor.selection.unary.0.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "float32",
+      "sha256": "3f17348d1225ccf3311330089762c911a915b542167236e3890bbd0f7eec485d"
+    },
+    "motor.selection.unary.2.weight": {
+      "shape": [
+        1,
+        64
+      ],
+      "dtype": "float32",
+      "sha256": "293b26ab04cab1b08afaa3346cca045e9aef2ff2d7e1851438cc69fda4ab9959"
+    },
+    "motor.selection.unary.2.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "float32",
+      "sha256": "8b3876c030d8aadc6b1b6e9e09e03b92503a47cb83c218b6fc1005f9ede9f448"
+    },
+    "motor.selection.context.0.weight": {
+      "shape": [
+        16,
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "8fa7e06622134e260d5493b6799d3672eab17ee1cd926ef4e8ce66b5a03e37c3"
+    },
+    "motor.selection.context.0.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "float32",
+      "sha256": "39837757510c75eb6c50cbc09fb9e6fd9f44e15ab30d28a442d9ff7a0d1f5bef"
+    },
+    "motor.selection.pair.0.weight": {
+      "shape": [
+        32,
+        36
+      ],
+      "dtype": "float32",
+      "sha256": "0bfded8eee2774be8b1a043c26222a77357df7874243e8db5ef6f5057705e3fb"
+    },
+    "motor.selection.pair.0.bias": {
+      "shape": [
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "79874e61d85b8ecf8e91b1e43bd0d34af657639f90d950cc9d79a8d53ec9d01c"
+    },
+    "motor.selection.pair.2.weight": {
+      "shape": [
+        1,
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "c6ba9f33fc8d29ef2e39b152d04b5abf2502d4d1eb72121d150b4c07f1cb4d90"
+    },
+    "motor.selection.pair.2.bias": {
+      "shape": [
+        1
+      ],
+      "dtype": "float32",
+      "sha256": "fa9dd488b133efa09c2bd152c85fd68923d60fca5e854ac6942f3e58c1c03ab5"
+    },
+    "events.encoder.0.weight": {
+      "shape": [
+        96,
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "da437b0de18f6387bf69e1be85c1d457b9e073cd9de4af1f48b63000f40352bf"
+    },
+    "events.encoder.0.bias": {
+      "shape": [
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "04b085efcc49211eb0f4f120c5eb456427e60b7597c00b2b05fca45c7a0b51eb"
+    },
+    "events.encoder.2.weight": {
+      "shape": [
+        96,
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "74a95264ba51c4c91431b93ea175d837c79a8b37bc159086a3b38cf576003736"
+    },
+    "events.encoder.2.bias": {
+      "shape": [
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "568c0cd646eacc4425ee0ced38fb6a353d716871baa6ef75de045386d6d81c82"
+    },
+    "events.brake.weight": {
+      "shape": [
+        176,
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "f8f84a1f7ef9f83ca985a4135ba64315f6441ee0d8a3db058c1d18924a577b76"
+    },
+    "events.brake.bias": {
+      "shape": [
+        176
+      ],
+      "dtype": "float32",
+      "sha256": "087049fe419a54c81586881557ab89568f9f9b9579a4d04874f6a17d0dd44c5f"
+    },
+    "events.frequency.weight": {
+      "shape": [
+        16,
+        96
+      ],
+      "dtype": "float32",
+      "sha256": "cced7bf835b36137f39860862344b2ed1809c600743079ebeff806df8b922d8d"
+    },
+    "events.frequency.bias": {
+      "shape": [
+        16
+      ],
+      "dtype": "float32",
+      "sha256": "2aec1e7bc02c9a300fe1d468e2fb50f120fa0efc947ebb72ec18fff891034a9e"
+    },
+    "events.hazard.0.weight": {
+      "shape": [
+        64,
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "7d2a824eb366d19ed13e3ae8616f8932887ff512ab01c540fe34b2d45a156086"
+    },
+    "events.hazard.0.bias": {
+      "shape": [
+        64
+      ],
+      "dtype": "float32",
+      "sha256": "f0abdc8dff1d065ecf0f62e32fec87f32a195f8b26b0166425a2e7140116fa9e"
+    },
+    "events.hazard.2.weight": {
+      "shape": [
+        32,
+        64
+      ],
+      "dtype": "float32",
+      "sha256": "245cc37308588f02e3d56c2526c1ead2512586ce01592e51c6c41621a2377887"
+    },
+    "events.hazard.2.bias": {
+      "shape": [
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "641357afef9685759043ffe62dc66cd994b3ab4ee5a96304ab1a2e8c5a8cfd21"
+    },
+    "events.hazard.4.weight": {
+      "shape": [
+        2,
+        32
+      ],
+      "dtype": "float32",
+      "sha256": "4df14fd79ba99f530a79ce2fecbc720b072fa4a88e499ec67a682aabb9d9c7aa"
+    },
+    "events.hazard.4.bias": {
+      "shape": [
+        2
+      ],
+      "dtype": "float32",
+      "sha256": "24da51e4b4b4c67c44bccbd0527fe871f9211669b8ebf487dc36ca7d342f938e"
+    }
+  },
+  "parameter_count": 182708,
+  "export": {
+    "torch": "2.12.0+cu130",
+    "numpy": "2.4.6",
+    "onnx": "1.22.0",
+    "script_sha256": "5d840e35b79855c1fc523fd493c5ea719e29a4d168991c69a985e8898d2f1d53",
+    "arithmetic": "float32 neural; float64 physical geometry"
+  },
+  "files": {
+    "brake.onnx": "ec511415341b72284498ae0333cb12da6bf26e1f9c06562bc468766bfa636c24",
+    "choice.onnx": "805f517a27219bc20fd0418be02cbf5316a601f040533056fe61304ef5e2ac74",
+    "choice_split.onnx": "7a8d36ab01e719423854051a6b1a4f35536e5688e2eaf3e9e154f32e5e174bf1",
+    "events.onnx": "cd839db370bf0804550cc42e63667736ddd2c2f8fa05cd46453c7254c28dabe3",
+    "hazard.onnx": "ebd385e53ca15bb5ec5609018bdd93f2213875a41b3c78912986b00dfda12e53",
+    "motor.onnx": "116126ef8a6dc7aae027de596158d51e44a06fa30dcfd7058dfcde463106542c",
+    "weights.npz": "018a096c66213c62b429caf4a8ae6f0470f6e283248a24f476f0fed3e36ea881"
+  }
+}

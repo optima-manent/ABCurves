@@ -1,0 +1,820 @@
+{
+  "schema": "abcurves.selected_person3_source.v1",
+  "archive_sha256": "a9808ba768e4e65baf9f496a90b13a7dd988ea70ca4b7aa3e9cf7614978d821c",
+  "roles": {
+    "person3": [
+      {
+        "scenario_id": 0,
+        "group": "g000",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 1,
+        "group": "g001",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 2,
+        "group": "g002",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 3,
+        "group": "g003",
+        "split": "train",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 4,
+        "group": "g004",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 5,
+        "group": "g005",
+        "split": "test",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 6,
+        "group": "g006",
+        "split": "validation",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 7,
+        "group": "g007",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 8,
+        "group": "g008",
+        "split": "train",
+        "family": "figure_eight",
+        "guide": false
+      },
+      {
+        "scenario_id": 9,
+        "group": "g009",
+        "split": "validation",
+        "family": "curved_pursuit",
+        "guide": false
+      },
+      {
+        "scenario_id": 10,
+        "group": "g010",
+        "split": "calibration",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 11,
+        "group": "g011",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 12,
+        "group": "g012",
+        "split": "calibration",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 13,
+        "group": "g013",
+        "split": "train",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 14,
+        "group": "g014",
+        "split": "validation",
+        "family": "random_zigzag",
+        "guide": false
+      },
+      {
+        "scenario_id": 15,
+        "group": "g015",
+        "split": "test",
+        "family": "curved_pursuit",
+        "guide": false
+      },
+      {
+        "scenario_id": 16,
+        "group": "g016",
+        "split": "train",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 17,
+        "group": "g017",
+        "split": "test",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 18,
+        "group": "g018",
+        "split": "validation",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 19,
+        "group": "g019",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 20,
+        "group": "g020",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 21,
+        "group": "g021",
+        "split": "test",
+        "family": "figure_eight",
+        "guide": false
+      },
+      {
+        "scenario_id": 22,
+        "group": "g022",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 23,
+        "group": "g023",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 24,
+        "group": "g024",
+        "split": "calibration",
+        "family": "roaming",
+        "guide": false
+      },
+      {
+        "scenario_id": 25,
+        "group": "g025",
+        "split": "validation",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 26,
+        "group": "g026",
+        "split": "test",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 27,
+        "group": "g027",
+        "split": "test",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 28,
+        "group": "g028",
+        "split": "test",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 29,
+        "group": "g029",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 30,
+        "group": "g030",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": true
+      },
+      {
+        "scenario_id": 31,
+        "group": "g031",
+        "split": "test",
+        "family": "figure_eight",
+        "guide": false
+      },
+      {
+        "scenario_id": 32,
+        "group": "g032",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 33,
+        "group": "g033",
+        "split": "test",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 34,
+        "group": "g034",
+        "split": "test",
+        "family": "roaming",
+        "guide": false
+      },
+      {
+        "scenario_id": 35,
+        "group": "g035",
+        "split": "test",
+        "family": "curved_pursuit",
+        "guide": false
+      },
+      {
+        "scenario_id": 36,
+        "group": "g036",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": false
+      },
+      {
+        "scenario_id": 37,
+        "group": "g029",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 38,
+        "group": "g038",
+        "split": "calibration",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 39,
+        "group": "g039",
+        "split": "test",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 40,
+        "group": "g040",
+        "split": "calibration",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 41,
+        "group": "g041",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": true
+      },
+      {
+        "scenario_id": 42,
+        "group": "g042",
+        "split": "calibration",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 43,
+        "group": "g025",
+        "split": "validation",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 44,
+        "group": "g044",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 45,
+        "group": "g045",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 46,
+        "group": "g046",
+        "split": "validation",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 47,
+        "group": "g047",
+        "split": "calibration",
+        "family": "figure_eight",
+        "guide": false
+      },
+      {
+        "scenario_id": 48,
+        "group": "g048",
+        "split": "test",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 49,
+        "group": "g049",
+        "split": "train",
+        "family": "roaming",
+        "guide": false
+      },
+      {
+        "scenario_id": 50,
+        "group": "g050",
+        "split": "train",
+        "family": "figure_eight",
+        "guide": false
+      },
+      {
+        "scenario_id": 51,
+        "group": "g017",
+        "split": "test",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 52,
+        "group": "g052",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": false
+      },
+      {
+        "scenario_id": 53,
+        "group": "g053",
+        "split": "test",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 54,
+        "group": "g054",
+        "split": "validation",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 55,
+        "group": "g055",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 56,
+        "group": "g056",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 57,
+        "group": "g057",
+        "split": "validation",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 58,
+        "group": "g058",
+        "split": "validation",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 59,
+        "group": "g059",
+        "split": "test",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 60,
+        "group": "g060",
+        "split": "train",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 61,
+        "group": "g061",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 62,
+        "group": "g002",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 63,
+        "group": "g063",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": false
+      },
+      {
+        "scenario_id": 64,
+        "group": "g064",
+        "split": "calibration",
+        "family": "stop_and_go",
+        "guide": false
+      },
+      {
+        "scenario_id": 65,
+        "group": "g007",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 66,
+        "group": "g066",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": false
+      },
+      {
+        "scenario_id": 67,
+        "group": "g067",
+        "split": "train",
+        "family": "figure_eight",
+        "guide": false
+      },
+      {
+        "scenario_id": 68,
+        "group": "g068",
+        "split": "calibration",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 69,
+        "group": "g069",
+        "split": "validation",
+        "family": "roaming",
+        "guide": false
+      },
+      {
+        "scenario_id": 70,
+        "group": "g070",
+        "split": "validation",
+        "family": "figure_eight",
+        "guide": false
+      },
+      {
+        "scenario_id": 71,
+        "group": "g071",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 72,
+        "group": "g072",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": false
+      },
+      {
+        "scenario_id": 73,
+        "group": "g073",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 74,
+        "group": "g074",
+        "split": "calibration",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 75,
+        "group": "g075",
+        "split": "test",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 76,
+        "group": "g017",
+        "split": "test",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 77,
+        "group": "g077",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": true
+      },
+      {
+        "scenario_id": 78,
+        "group": "g078",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 79,
+        "group": "g079",
+        "split": "train",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 80,
+        "group": "g029",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 81,
+        "group": "g081",
+        "split": "test",
+        "family": "horizontal_strafe",
+        "guide": true
+      },
+      {
+        "scenario_id": 82,
+        "group": "g082",
+        "split": "train",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 83,
+        "group": "g083",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 84,
+        "group": "g084",
+        "split": "validation",
+        "family": "stop_and_go",
+        "guide": false
+      },
+      {
+        "scenario_id": 85,
+        "group": "g085",
+        "split": "test",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 86,
+        "group": "g086",
+        "split": "validation",
+        "family": "horizontal_strafe",
+        "guide": true
+      },
+      {
+        "scenario_id": 87,
+        "group": "g025",
+        "split": "validation",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 88,
+        "group": "g088",
+        "split": "train",
+        "family": "curved_pursuit",
+        "guide": false
+      },
+      {
+        "scenario_id": 89,
+        "group": "g089",
+        "split": "validation",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 90,
+        "group": "g090",
+        "split": "train",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 91,
+        "group": "g091",
+        "split": "validation",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 92,
+        "group": "g092",
+        "split": "train",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 93,
+        "group": "g093",
+        "split": "train",
+        "family": "roaming",
+        "guide": false
+      },
+      {
+        "scenario_id": 94,
+        "group": "g094",
+        "split": "calibration",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 95,
+        "group": "g095",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": false
+      },
+      {
+        "scenario_id": 96,
+        "group": "g096",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 97,
+        "group": "g007",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 98,
+        "group": "g098",
+        "split": "train",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 99,
+        "group": "g099",
+        "split": "calibration",
+        "family": "horizontal_strafe",
+        "guide": true
+      },
+      {
+        "scenario_id": 100,
+        "group": "g100",
+        "split": "train",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 101,
+        "group": "g002",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 102,
+        "group": "g102",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": false
+      },
+      {
+        "scenario_id": 103,
+        "group": "g103",
+        "split": "validation",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 104,
+        "group": "g104",
+        "split": "calibration",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 105,
+        "group": "g105",
+        "split": "train",
+        "family": "figure_eight",
+        "guide": true
+      },
+      {
+        "scenario_id": 106,
+        "group": "g106",
+        "split": "train",
+        "family": "roaming",
+        "guide": true
+      },
+      {
+        "scenario_id": 107,
+        "group": "g107",
+        "split": "test",
+        "family": "curved_pursuit",
+        "guide": true
+      },
+      {
+        "scenario_id": 108,
+        "group": "g108",
+        "split": "calibration",
+        "family": "random_zigzag",
+        "guide": true
+      },
+      {
+        "scenario_id": 109,
+        "group": "g029",
+        "split": "train",
+        "family": "recoil_pattern",
+        "guide": true
+      },
+      {
+        "scenario_id": 110,
+        "group": "g110",
+        "split": "test",
+        "family": "horizontal_strafe",
+        "guide": false
+      },
+      {
+        "scenario_id": 111,
+        "group": "g111",
+        "split": "train",
+        "family": "stop_and_go",
+        "guide": false
+      },
+      {
+        "scenario_id": 112,
+        "group": "g112",
+        "split": "test",
+        "family": "horizontal_strafe",
+        "guide": true
+      },
+      {
+        "scenario_id": 113,
+        "group": "g113",
+        "split": "calibration",
+        "family": "curved_pursuit",
+        "guide": false
+      }
+    ]
+  },
+  "geometry": {
+    "counts_per_pixel_x": 2.2591746100913292,
+    "counts_per_pixel_y": 2.2591746100913292,
+    "crosshair_scale": 1.4438385388990571,
+    "effective_radians_per_count": 0.000643793107815518,
+    "pixels_per_count_x": 0.4426395354892795,
+    "pixels_per_count_y": 0.4426395354892795,
+    "transform_revision": "fixed-arena-canonical-counts-v1",
+    "viewport_height_px": 2160,
+    "viewport_width_px": 3840
+  },
+  "original_roles_sha256": "29e744f861a8f04b6796aba3028981891c8629e4c6a51cdcde7d7d3b67086ef8",
+  "source_tracking_metadata_sha256": "b05c98f535d6c2fc2ed020b4d6da34d861a4439d488947e9c14cb9e939764a4e",
+  "acquisition_replacement_count": 58
+}

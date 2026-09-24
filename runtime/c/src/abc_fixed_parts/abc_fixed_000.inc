@@ -22,7 +22,12 @@
 #define ABC_GAMMA_U64 UINT64_C(0x9E3779B97F4A7C15)
 #define ABC_MIX1_U64 UINT64_C(0xBF58476D1CE4E5B9)
 #define ABC_MIX2_U64 UINT64_C(0x94D049BB133111EB)
+#ifdef ABC_CUSTOM_MODEL_BINDING
+#include "abc_model_binding.h"
+#define ABC_EXPECTED_BODY_CRC32 ABC_BOUND_BODY_CRC32
+#else
 #define ABC_EXPECTED_BODY_CRC32 UINT32_C(0x6be2896c)
+#endif
 
 enum {
     CFG_EMIT_BIAS_Q14 = 0,
@@ -42,12 +47,17 @@ static const uint8_t ABC_MAGIC[8] = {
     'A', 'B', 'C', 'F', 'I', 'X', '1', 0
 };
 
-static const uint8_t ABC_EXPECTED_SOURCE_SHA256[32] = {
+static const uint8_t ABC_EXPECTED_SOURCE_SHA256[32] =
+#ifdef ABC_CUSTOM_MODEL_BINDING
+    ABC_BOUND_SOURCE_SHA256;
+#else
+{
     0xe9, 0x95, 0x1a, 0x9b, 0xc2, 0x5b, 0x69, 0xbf,
     0x65, 0x2c, 0xeb, 0xbc, 0xa8, 0x74, 0x9b, 0xad,
     0xd0, 0x2b, 0x8c, 0x06, 0x75, 0xa5, 0xf1, 0xad,
     0x4c, 0xde, 0x7f, 0x1a, 0x86, 0x24, 0x13, 0x2a
 };
+#endif
 
 static const uint8_t ABC_EXPECTED_SCHEMA_TAG[16] = {
     0x34, 0x85, 0xfc, 0x08, 0xbf, 0xb9, 0xfb, 0xc7,
@@ -168,10 +178,15 @@ int abc_fixed_model_init(
     static const uint32_t expected_weight_counts[4] = {4800, 19200, 80, 9680};
     static const uint32_t expected_bias_counts[4] = {240, 240, 1, 121};
     static const uint16_t expected_group_counts[4] = {3, 3, 1, 121};
-    static const int32_t expected_config[11] = {
+    static const int32_t expected_config[11] =
+#ifdef ABC_CUSTOM_MODEL_BINDING
+        ABC_BOUND_CONFIG;
+#else
+{
         24576, 50412, 87381, 436907, 32768, 2097152,
         127, 0, 32768, 98304, 32768
     };
+#endif
     static const uint32_t section_offsets[7] = {
         256, 34016, 36424, 36936, 37452, 37968, 38996
     };

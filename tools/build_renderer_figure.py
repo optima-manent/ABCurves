@@ -12,7 +12,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from abcurves import Pipeline  # noqa: E402
+from abcurves import StaticPipeline as Pipeline  # noqa: E402
 
 
 def main() -> int:
@@ -120,7 +120,7 @@ def main() -> int:
         fontsize=11,
     )
     figure.tight_layout()
-    output = ROOT / "assets" / "renderer_texture.png"
+    output = ROOT / "assets" / "renderer_texture_example.png"
     figure.savefig(output, bbox_inches="tight")
     plt.close(figure)
     print(output)

@@ -1,0 +1,219 @@
+[
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "VerifiedZip",
+    "line": 30,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "73c1236a35c47eab87a3c0d906c5f0fed2c5a352f965b389a147e656517fa6bc"
+  },
+  {
+    "source": "research/human_variance_20260913/prepare_second_recording.py",
+    "symbol": "DirectoryAwareVerifiedZip",
+    "line": 52,
+    "source_sha256": "7b4708334ab080680f10df081aee528a20969a2e9fee2332e5536b08e51b9b91",
+    "extracted_sha256": "c1a74a4f6a45ed0085bdb045d6ae3956f7662bd7528ff993fe14a2246eebe3f7"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "read_tracking",
+    "line": 104,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "17838455af5b5a11ba06b5b7322fe7083f822a4f40e784070c97b4767daa4de0"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "read_witness",
+    "line": 147,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "15e73dc3c9fe70df18a3a5e29bd26d09b5fb5123a476f9ea6a47e270362a7698"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "leakage_groups",
+    "line": 179,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "47cf335f7d766a31b09354f16f7ca2db593dbd19c48ecd56470a7e053d13dff0"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "split_groups",
+    "line": 204,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "bea15bded228b351ee144665966c5ca5e84b0037218a66bd879df44f23803638"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "active_intervals",
+    "line": 244,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "be803742517204584e7abc5eefeafa91a822eeb719a5ab200f4d52cbf1d33411"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "contiguous_runs",
+    "line": 261,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "24f31c2daf4621130bfb9a3270e033c8bbae0ad46b8a205cddec46193a42d29f"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "dense_segment",
+    "line": 266,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "a68f43eabf7e315b48aa13ef1f5e8fa50deaba68c5c41f733675ad89e26b0764"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "quality_windows",
+    "line": 300,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "7b88a69c5d70fd119d2675e232c5563805e22ce4e525ec8b43b2d54bf680e0ac"
+  },
+  {
+    "source": "research/human_tracking_20260913/prepare_human_data.py",
+    "symbol": "make_dataset",
+    "line": 329,
+    "source_sha256": "34b426441bd168f128cbfe92517ae145e879e934ead7102bc07a435f79fe6e31",
+    "extracted_sha256": "593977dd6e8a89b105a6a0976e14fe45fbeb838d1b75ff87316a3d4791804fd8"
+  },
+  {
+    "source": "research/human_tracking_20260913/audit_usb_data.py",
+    "symbol": "varuint",
+    "line": 20,
+    "source_sha256": "99711fe9ac13ff6d46369d51def974a869e233f2772336f64d56f76cb3570e2b",
+    "extracted_sha256": "274f261f72956b5300ae4b5acd6dff38f96160a14376f78c30c3ba0085392efc"
+  },
+  {
+    "source": "research/human_tracking_20260913/audit_usb_data.py",
+    "symbol": "varint",
+    "line": 34,
+    "source_sha256": "99711fe9ac13ff6d46369d51def974a869e233f2772336f64d56f76cb3570e2b",
+    "extracted_sha256": "709de119e3e06b50e603d415264f515197a46f30ec629e7d498a7972c78a594a"
+  },
+  {
+    "source": "research/human_tracking_20260913/audit_usb_data.py",
+    "symbol": "parse_usb",
+    "line": 39,
+    "source_sha256": "99711fe9ac13ff6d46369d51def974a869e233f2772336f64d56f76cb3570e2b",
+    "extracted_sha256": "8aff76cf9ff1cd6ac6f31ca28fdfdd780d0175986ded6f12329bc68574a8b2f3"
+  },
+  {
+    "source": "research/tracking_control_20260913/audit_archives.py",
+    "symbol": "small_journals",
+    "line": 185,
+    "source_sha256": "27f578ad7adf4694e815f9246003f1eed615edaf1f6d4cf290a5db9ba984d4de",
+    "extracted_sha256": "678b212c43ebd5bf0f4361f21735011b55a3263ee039b4a1a2b507859ada83b8"
+  },
+  {
+    "source": "research/human_movement_20260914/data_audit/prepare_acquisition.py",
+    "symbol": "dense_from_boundary",
+    "line": 37,
+    "source_sha256": "8270a7a88ca2ed2ecc55620a691fb126e4d5948956e22ab082d65f41b0508dc4",
+    "extracted_sha256": "c0a73f4d6ce2a5e830647628446029e3c45aee1d68c539d63152844d63ea810f"
+  },
+  {
+    "source": "research/movement_coherence_20260921/prepare_new.py",
+    "symbol": "smooth",
+    "line": 21,
+    "source_sha256": "5f8eb52aa1a5279e5a0eaca58fca44ba8bb91dacf63ce1458dd6025fb474613f",
+    "extracted_sha256": "e1df3831914b992606aaba80093c71940d6fba2128819423c85bf7bc5a2b1b27"
+  },
+  {
+    "source": "research/human_variance_20260913/prepare_usb_development.py",
+    "symbol": "bin_development_episode",
+    "line": 65,
+    "source_sha256": "fea7a7950ad49be7132a68204e9b282f2c2a9f81d1463affcfbfb35d8f6406df",
+    "extracted_sha256": "b4ec5b14f8bd1df09be6224340813feebc84660f9fe0e711b60b1878a5bbd6b4"
+  },
+  {
+    "source": "research/human_variance_20260913/prepare_usb_development.py",
+    "symbol": "derive_position",
+    "line": 102,
+    "source_sha256": "fea7a7950ad49be7132a68204e9b282f2c2a9f81d1463affcfbfb35d8f6406df",
+    "extracted_sha256": "5a4f7ba523c48c309bd513d535727206d1f60753fd3bf4ec36e9659b3acf9f1c"
+  },
+  {
+    "source": "research/human_variance_20260913/prepare_second_recording.py",
+    "symbol": "make_unassigned_dataset",
+    "line": 154,
+    "source_sha256": "7b4708334ab080680f10df081aee528a20969a2e9fee2332e5536b08e51b9b91",
+    "extracted_sha256": "affefe21824b54fbeddaa468f99aa3ef7c5a236623fcdeee0d3cbf3666ddca6f"
+  },
+  {
+    "source": "research/movement_coherence_20260921/prepare_new.py",
+    "symbol": "episodes",
+    "line": 118,
+    "source_sha256": "5f8eb52aa1a5279e5a0eaca58fca44ba8bb91dacf63ce1458dd6025fb474613f",
+    "extracted_sha256": "7649e538ea5ef56cf18f4628cf7f50d34d918b110abda1ba5a00bd578e73bc3d"
+  },
+  {
+    "source": "research/movement_coherence_20260921/prepare_new.py",
+    "symbol": "select_windows",
+    "line": 175,
+    "source_sha256": "5f8eb52aa1a5279e5a0eaca58fca44ba8bb91dacf63ce1458dd6025fb474613f",
+    "extracted_sha256": "c6b272b2c8deabf2d8fd578b34357156ab7274fc9e2e5b6efc1bb6c1176de126"
+  },
+  {
+    "source": "research/movement_coherence_20260921/anchor_new.py",
+    "symbol": "main",
+    "line": 16,
+    "source_sha256": "0e10d062588a70c859baaba2358a21a7f4e0dce7155008dc25d357ee55e257a8",
+    "extracted_sha256": "8ddd50594e120eb834409f0b94deb723f637428397ad332b4c0ac659342570a4"
+  },
+  {
+    "source": "research/tracking_control_20260913/prepare_data.py",
+    "symbol": "save_episode",
+    "line": 81,
+    "source_sha256": "bb08aa15d465408fdc4baece46778b5e76a5632632720c9d1969a50bb719d3da",
+    "extracted_sha256": "5f712b58de59de7fe0b8976f67cc4849bd4ecd7c1377843a7c2da695d1a9bda0"
+  },
+  {
+    "source": "research/tracking_control_20260913/prepare_data.py",
+    "symbol": "prepare_person3",
+    "line": 122,
+    "source_sha256": "bb08aa15d465408fdc4baece46778b5e76a5632632720c9d1969a50bb719d3da",
+    "extracted_sha256": "effc414f140d6b398cad34ebaf00cc8163ab69dcad1d99f3f8200048baa4e8cd"
+  },
+  {
+    "source": "research/human_movement_20260914/data_audit/prepare_acquisition.py",
+    "symbol": "main",
+    "line": 69,
+    "source_sha256": "8270a7a88ca2ed2ecc55620a691fb126e4d5948956e22ab082d65f41b0508dc4",
+    "extracted_sha256": "d76d2f89078c69dc13d8fa2acb2d886882353f7aee5aee2fefcd37c1b6ce28c8"
+  },
+  {
+    "source": "research/tracking_control_20260913/training_data.py",
+    "symbol": "canonical_person",
+    "line": 39,
+    "source_sha256": "773591a07a83a1038f59c09eef8423e3b2f96bacd9ffa43978368c5c271cea38",
+    "extracted_sha256": "d77332e396a221dcdc93fbdfc0db669bf7e8bad0021a967d7722c4302d0d687d"
+  },
+  {
+    "source": "research/tracking_control_20260913/training_data.py",
+    "symbol": "distribution",
+    "line": 46,
+    "source_sha256": "773591a07a83a1038f59c09eef8423e3b2f96bacd9ffa43978368c5c271cea38",
+    "extracted_sha256": "5ba51f65ae34323c0ecaa2b0f09dbed78692141f4841baf6ee33fd356ff247d2"
+  },
+  {
+    "source": "research/tracking_control_20260913/training_data.py",
+    "symbol": "TrainingData",
+    "line": 54,
+    "source_sha256": "773591a07a83a1038f59c09eef8423e3b2f96bacd9ffa43978368c5c271cea38",
+    "extracted_sha256": "3d3e52a37973fb5449c9158df8ab5e3020734fcf326f04b2302d510e4fbf3036"
+  },
+  {
+    "source": "research/human_movement_20260914/data_audit/phase_selection.py",
+    "symbol": "phase_of_cut",
+    "line": 27,
+    "source_sha256": "b5e25f9482d78f17479c44a5ed6761366d9cba802aace9c2cb2647fd71315fd5",
+    "extracted_sha256": "721a7bb20e9a28db5fbfb0425a5ee4afb96bbf786287c24af73338c8590c0f6c"
+  },
+  {
+    "source": "research/human_movement_20260914/data_audit/phase_selection.py",
+    "symbol": "select_phase_preserving",
+    "line": 36,
+    "source_sha256": "b5e25f9482d78f17479c44a5ed6761366d9cba802aace9c2cb2647fd71315fd5",
+    "extracted_sha256": "408430b09ee20e0699f254e9d3049cfc7d50e841f38bec5e268fc3c39b44046f"
+  }
+]

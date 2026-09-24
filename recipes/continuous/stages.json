@@ -1,0 +1,134 @@
+[
+  {
+    "source": "teacher_6943401a0ec7aa37.json",
+    "sha256": "d27fa0b677db549b14fb08e8370e9b38f0d22424d970060fd7c73d0b5d14d15c",
+    "recipe": {
+      "id": "teacher_6943401a0ec7aa37",
+      "phase": "teacher",
+      "seed": 7,
+      "config": {
+        "enc": "gru",
+        "decoder": "prodmp",
+        "forecast": 128,
+        "commit": 64,
+        "history": 640,
+        "head_hold": 1,
+        "memory": false,
+        "dynamics": true,
+        "velocity_scale": 1.1982087601807259,
+        "position_scale": 81.73350722609987,
+        "target_secant_ms": 32
+      },
+      "steps": 20000,
+      "teacher_steps": 20000,
+      "data_variant": "base",
+      "rotation": true,
+      "acceleration_weight": 0.25,
+      "control_weight": 1.0,
+      "checkpoint_every": 1000
+    }
+  },
+  {
+    "source": "H_finalists_gru_prodmp_s7_dynamics_forecast128_commit32_feedback.json",
+    "sha256": "cdb239ba40db54ff1b0b27b43c24e4b21f165fc2747277da0958d4685583127e",
+    "recipe": {
+      "seed": 7,
+      "config": {
+        "enc": "gru",
+        "decoder": "prodmp",
+        "forecast": 128,
+        "commit": 32,
+        "history": 640,
+        "head_hold": 1,
+        "memory": false,
+        "dynamics": true,
+        "velocity_scale": 1.1982087601807259,
+        "position_scale": 81.73350722609987,
+        "target_secant_ms": 32
+      },
+      "data_variant": "base",
+      "rotation": true,
+      "acceleration_weight": 0.25,
+      "control_weight": 4.0,
+      "static_control_mode": "static_terminal",
+      "id": "H_finalists_gru_prodmp_s7_dynamics_forecast128_commit32_feedback",
+      "phase": "feedback",
+      "steps": 3000,
+      "teacher_steps": 20000,
+      "checkpoint_every": 250,
+      "initial_checkpoint": "step_20000.pt",
+      "initial_receipt": "prefix_20000.json",
+      "allowed_warm_config_changes": [
+        "head_hold",
+        "commit"
+      ]
+    }
+  },
+  {
+    "source": "pilot_S1_s7.json",
+    "sha256": "85944cae51d75707f9befa94ea615588758c7b6928e1350eb28a193301e0a7ee",
+    "recipe": {
+      "id": "pilot_S1_s7",
+      "arm": "S1",
+      "seed": 7,
+      "steps": 1000,
+      "checkpoint_every": 250
+    }
+  },
+  {
+    "source": "extended_S1_s7.json",
+    "sha256": "f0355529cf6f5f44a17c478033a8b9399e2ec7a55e3b0a0a70d6b38b4ee7d431",
+    "recipe": {
+      "id": "extended_S1_s7",
+      "arm": "S1",
+      "seed": 7,
+      "steps": 2500,
+      "checkpoint_every": 250,
+      "parent": "step_01000.pt",
+      "parent_sha256": "2d5cbb8ab219679d25c3eb4045b99db1a2af1dccd93bb0b4a3af860f4dae0690",
+      "parent_resume": "resume_01000.pt",
+      "parent_resume_sha256": "f23bd040caa53f34825027b0b1040435c0779dddd171691be0d92c351f706707",
+      "offset": 1000
+    }
+  },
+  {
+    "source": "human_prior.json",
+    "sha256": "276716e5823638baa67d9c40baf0b9c32fb4abc3b95f3152ee4bc8370d12daf1",
+    "recipe": {
+      "id": "human_prior",
+      "arm": "A",
+      "phase": "teacher",
+      "steps": 2500,
+      "seed": 7,
+      "max_seconds": 420,
+      "deadline_unix": 1789987937.2891095,
+      "initial": null,
+      "prior": null,
+      "teacher_batch": 160,
+      "lr": 5e-05,
+      "save_every": 100,
+      "data_offset": 0,
+      "engineering_only": false
+    }
+  },
+  {
+    "source": "A_pilot.json",
+    "sha256": "234279900187297fdf943563ca1b2f208a03abd963fcc2ba8c602fbc36591cf1",
+    "recipe": {
+      "id": "A_pilot",
+      "arm": "A",
+      "phase": "feedback",
+      "steps": 600,
+      "seed": 7,
+      "max_seconds": 600,
+      "deadline_unix": 1789987937.2891095,
+      "initial": "step_02500.pt",
+      "prior": "step_02500.pt",
+      "teacher_batch": 160,
+      "lr": 3e-05,
+      "save_every": 100,
+      "data_offset": 20000,
+      "engineering_only": false
+    }
+  }
+]

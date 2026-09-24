@@ -6,12 +6,12 @@
     "subject": "Final ABCurves pipeline detection and global Renderer similarity",
     "panel": "Frozen 320-row, ten-session B80 panel: four Planner-to-Renderer cells for cold and warm detection; two oracle-W5 Renderer draws for the similarity ruler",
     "handoff": "Observer reset followed by exactly 256 genuine reports ending at B",
-    "omitted": "Private source movements, identity rosters, and large per-group ledgers"
+    "omitted": "Raw source movements (separate Release attachments) and large per-group ledgers"
   },
   "artifacts": {
     "README.md": {
-      "bytes": 2326,
-      "sha256": "7d72776019691873a48af62a5e1fbbf73ff8aa73a83275b1eb98f0a0cb147256"
+      "bytes": 2484,
+      "sha256": "b56468145f4ecb2f8042fd94cc5550aae790cc031da8884b578139356e93a22b"
     },
     "renderer_oracle_b80.json": {
       "bytes": 4010,
@@ -21,5 +21,6 @@
       "bytes": 21034,
       "sha256": "692978c3859cf8fc42e451f58524a2de456a9a9f027b4c1b2f476ac8582c622e"
     }
-  }
+  },
+  "reproduction_guide": "docs/DETECTION_REPRODUCTION.md"
 }

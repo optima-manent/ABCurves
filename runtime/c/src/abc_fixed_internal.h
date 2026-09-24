@@ -19,9 +19,7 @@ int abc_fixed_online_gru_step_q8(
 int abc_fixed_online_prepare_boundary(
     abc_fixed_renderer_t *, const int16_t[5], int16_t[4][15]
 );
-int abc_fixed_online_begin_from_hidden(
-    abc_fixed_renderer_t *, const int16_t[ABC_FIXED_HIDDEN], uint64_t
-);
+int abc_fixed_online_begin(abc_fixed_renderer_t *, uint64_t);
 int abc_fixed_online_install_boundary(
     abc_fixed_renderer_t *, const abc_fixed_online_boundary_t *
 );
