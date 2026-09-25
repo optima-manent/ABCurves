@@ -19,6 +19,8 @@ import math
 import os
 from pathlib import Path
 import platform
+import site
+import sys
 from typing import Any
 
 import numpy as np
@@ -85,14 +87,16 @@ def default_library_path() -> Path:
     bundled = Path(__file__).resolve().parent / "_native" / name
     if bundled.is_file():
         return bundled
-    source_build = Path(__file__).resolve().parents[1] / "runtime" / "c" / "build"
-    candidates = (
-        source_build / "Release" / name,
-        source_build / name,
+    roots = (
+        Path(__file__).resolve().parents[1],
+        Path(sys.prefix),
+        Path(site.getuserbase()),
     )
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
+    for root in roots:
+        build = root / "runtime" / "c" / "build"
+        for candidate in (build / "Release" / name, build / name):
+            if candidate.is_file():
+                return candidate
     raise RendererRuntimeError(
         f"native Renderer library is missing ({bundled}). Build it with "
         "`cmake -S runtime/c -B runtime/c/build` followed by "

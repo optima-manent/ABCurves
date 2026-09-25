@@ -10,8 +10,8 @@
   },
   "artifacts": {
     "README.md": {
-      "bytes": 2484,
-      "sha256": "b56468145f4ecb2f8042fd94cc5550aae790cc031da8884b578139356e93a22b"
+      "bytes": 2433,
+      "sha256": "a960341a0e94a81c09254718d9be3202584da651fad2e03699afeaf2d9b49312"
     },
     "renderer_oracle_b80.json": {
       "bytes": 4010,
